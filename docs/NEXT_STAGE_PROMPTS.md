@@ -70,9 +70,9 @@ Stage 2 主题：STFT/CWT 时频分支与 I/Q 多视图融合。
 
 ## Stage 1.6 → Stage 2
 
-当前 Stage 1.6 状态为 Need Data 时，不允许直接建议进入 Stage 2。必须先下载并放置真实 RadioML2016.10A，至少跑通真实 subset baseline，并生成真实 `baseline_comparison.md`、`baseline_comparison.csv` 和 `accuracy_vs_snr.png`。
+当前 Stage 1.6 状态为 Partial Done：真实 RadioML2016.10A subset baseline 已完成，服务器 full baseline 尚未执行。
 
-如果真实 subset baseline 已完成但服务器 full baseline 未完成，可以进入 Stage 2 的工程开发；论文实验仍需补齐 full baseline。如果服务器 full baseline 也完成，可以正式进入 Stage 2。
+可以进入 Stage 2 的工程开发；论文实验仍需补齐 full baseline。如果服务器 full baseline 也完成，可以正式进入 Stage 2 的论文实验与消融阶段。
 
 ```text
 你现在继续维护项目 radioml-amc-stage1，角色是机器学习实验复现工程师、无线电 AMC 研究助理和 PyTorch 训练工程师。
@@ -85,14 +85,19 @@ Stage 2 主题：STFT/CWT 时频分支与 I/Q 多视图融合。
 5. 如果已有真实 run_dir，读取对应 metrics.json、baseline_comparison.md 和关键 plots 路径。
 
 进入 Stage 2 前置条件：
-- 至少完成真实 RadioML2016.10A subset baseline；
-- 最好完成服务器 full baseline；
-- baseline_comparison.md 和 baseline_comparison.csv 已生成；
-- accuracy_vs_snr.png 已生成；
-- docs/EXPERIMENT_LOG.md 已记录真实实验；
+- 已完成真实 RadioML2016.10A subset baseline；
+- 服务器 full baseline 尚未完成，论文实验前仍需补齐；
+- `runs/stage1_6_real_subset_comparison/baseline_comparison.md` 和 `baseline_comparison.csv` 已生成；
+- CNN1D/ResNet1D run 中 `accuracy_vs_snr.png` 已生成；
+- docs/EXPERIMENT_LOG.md 已记录真实 subset 实验；
 - mock smoke test 不能作为正式实验依据。
 
-如果 Stage 1.6 仍为 Need Data，请不要实现 STFT/CWT、多视图融合、Transformer 或注意力机制；先协助接入真实 RadioML2016.10A 并完成 CNN1D/ResNet1D subset baseline。
+真实 subset baseline 摘要：
+- CNN1D run_dir: `runs/20260507_153710_cnn1d/`
+- ResNet1D run_dir: `runs/20260507_153719_resnet1d/`
+- CNN1D overall accuracy: 0.8461
+- ResNet1D overall accuracy: 0.9070
+- low SNR accuracy: N/A，因为当前 subset 不含 `SNR <= -6`
 
 Stage 2 目标：
 1. 新增 STFT/CWT on-the-fly 特征接口，不离线保存全量 STFT/CWT 图片。

@@ -390,3 +390,36 @@ loader 使用 `pickle.load(..., encoding="latin1")` 兼容 Python 3 读取旧版
 ### 14.10 第二阶段入口
 
 第二阶段主题是 STFT/CWT 时频分支与 I/Q 多视图融合。进入第二阶段前，应优先完成真实 RadioML2016.10A subset baseline，并把结果写入 `docs/EXPERIMENT_LOG.md` 和对应阶段文档。
+
+## 15. 阶段 1.6：真实 subset baseline 当前结果
+
+2026-05-07 已通过 Kaggle 下载并接入真实 RadioML2016.10A：
+
+```text
+data/raw/radioml2016/RML2016.10a_dict.pkl
+```
+
+真实 subset 配置 `configs/stage1_rml2016a_real_subset.yaml` 已跑通：
+
+- 样本数：6400
+- shape：`[6400, 2, 128]`
+- 类别：`8PSK`、`BPSK`、`QAM16`、`QPSK`
+- SNR：`-2`、`0`、`2`、`4`、`6`、`8`、`10`、`12`
+- 每个 modulation × SNR：200 条
+- NaN/Inf：无
+
+真实 subset baseline：
+
+| 模型 | run_dir | Overall Acc | Low SNR Acc | Mid SNR Acc | High SNR Acc |
+|---|---|---:|---:|---:|---:|
+| CNN1D | `runs/20260507_153710_cnn1d/` | 0.8461 | N/A | 0.8300 | 0.8729 |
+| ResNet1D | `runs/20260507_153719_resnet1d/` | 0.9070 | N/A | 0.8775 | 0.9563 |
+
+comparison 输出：
+
+```text
+runs/stage1_6_real_subset_comparison/baseline_comparison.md
+runs/stage1_6_real_subset_comparison/baseline_comparison.csv
+```
+
+说明：当前 subset 不包含 `SNR <= -6`，因此 low SNR accuracy 为 N/A。可以进入 Stage 2 的工程开发，但论文实验仍需在服务器补齐 full baseline。

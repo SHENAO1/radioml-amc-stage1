@@ -8,6 +8,8 @@
 | EXP-S15-MOCK-CNN1D-SMOKE-001 | 2026-05-07 | Stage 1.5 | mock | mock_radioml | `configs/stage1_local_mock.yaml` | CNN1D | `runs/20260507_123742_cnn1d/` | 0.2427 | 0.2069 | 0.2708 | 0.2308 | Stage 1.5 输出结构 smoke test，不能作为正式结果 |
 | EXP-S15-MOCK-RESNET1D-SMOKE-001 | 2026-05-07 | Stage 1.5 | mock | mock_radioml | `configs/stage1_local_mock.yaml` | ResNet1D | `runs/20260507_123758_resnet1d/` | 0.2621 | 0.2414 | 0.2917 | 0.2308 | Stage 1.5 输出结构 smoke test，不能作为正式结果 |
 | EXP-S15-REAL-PENDING-001 | 2026-05-07 | Stage 1.5 | real | RadioML2016.10A | `configs/stage1_rml2016a_real_subset.yaml` | CNN1D/ResNet1D | N/A | N/A | N/A | N/A | N/A | pending：未检测到真实数据，等待放置数据后运行 subset baseline |
-| S16-PENDING-REAL | 2026-05-07 | Stage 1.6 | real | RadioML2016.10A | `configs/stage1_rml2016a_real_subset.yaml` | CNN1D/ResNet1D | N/A | N/A | N/A | N/A | N/A | 等待真实数据；真实 subset/full baseline 尚未执行 |
+| S16-PENDING-REAL | 2026-05-07 | Stage 1.6 | real | RadioML2016.10A | `configs/stage1_rml2016a_real_subset.yaml` | CNN1D/ResNet1D | N/A | N/A | N/A | N/A | N/A | 历史 pending 记录；已由 S16-REAL-SUBSET-CNN1D-001 和 S16-REAL-SUBSET-RESNET1D-001 补充真实结果 |
+| S16-REAL-SUBSET-CNN1D-001 | 2026-05-07 | Stage 1.6 | real subset | RadioML2016.10A | `configs/stage1_rml2016a_real_subset.yaml` | CNN1D | `runs/20260507_153710_cnn1d/` | 0.8461 | N/A | 0.8300 | 0.8729 | subset：4 类、8 个 SNR、每组 200 条；low SNR N/A，因为 subset 不含 `SNR <= -6` |
+| S16-REAL-SUBSET-RESNET1D-001 | 2026-05-07 | Stage 1.6 | real subset | RadioML2016.10A | `configs/stage1_rml2016a_real_subset.yaml` | ResNet1D | `runs/20260507_153719_resnet1d/` | 0.9070 | N/A | 0.8775 | 0.9563 | subset：4 类、8 个 SNR、每组 200 条；full baseline pending |
 
 说明：mock 实验只用于验证工程链路，不代表真实 RadioML2016.10A 性能。真实 subset/full 实验完成后，应新增记录并填写 low/mid/high SNR accuracy、run_dir 和备注。

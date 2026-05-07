@@ -182,3 +182,69 @@ python scripts/check_dataset.py --config configs/stage1_rml2016a_real_subset.yam
 - 先运行 `python scripts/check_dataset.py --config configs/stage1_rml2016a_real_subset.yaml`。
 - 再运行真实 subset 可视化、CNN1D/ResNet1D baseline 和 comparison。
 - subset 验证通过后，在服务器执行 full baseline。
+
+## 2026-05-07 Stage 1.6：真实 subset baseline 完成
+
+### 本次目标
+
+- 在真实 RadioML2016.10A 数据已下载后，完成 Stage 1.6 subset baseline 闭环。
+- 跑通真实 subset `check_dataset`、可视化、CNN1D/ResNet1D 训练和 baseline comparison。
+- 更新 docs 记录真实 subset 结果，并明确 full baseline 仍待服务器执行。
+
+### 本次完成
+
+- 检测到真实数据：`data/raw/radioml2016/RML2016.10a_dict.pkl`。
+- 真实 subset 数据检查通过：6400 条样本，4 类，8 个 SNR，每个 modulation × SNR 200 条，shape `[6400, 2, 128]`，dtype `float32`，无 NaN/Inf。
+- 真实 subset 可视化生成：`runs/20260507_153454_visualize_examples/`。
+- CNN1D 真实 subset 训练完成：`runs/20260507_153710_cnn1d/`。
+- ResNet1D 真实 subset 训练完成：`runs/20260507_153719_resnet1d/`。
+- 固定名称 comparison 已生成：`runs/stage1_6_real_subset_comparison/`。
+- 已更新 Stage 1.6 文档、阶段索引、实验记录和下一阶段提示词。
+
+### 修改/新增文件
+
+- `README.md`
+- `docs/stages/STAGE_016_REAL_DATA_EXECUTION.md`
+- `docs/STAGE_INDEX.md`
+- `docs/PROGRESS_LOG.md`
+- `docs/EXPERIMENT_LOG.md`
+- `docs/NEXT_STAGE_PROMPTS.md`
+
+### 执行命令
+
+```bash
+python scripts/check_dataset.py --config configs/stage1_rml2016a_real_subset.yaml
+python scripts/visualize_examples.py --config configs/stage1_rml2016a_real_subset.yaml
+python scripts/run_stage1_5_baselines.py --config configs/stage1_rml2016a_real_subset.yaml
+python scripts/compare_runs.py --run_dirs runs/20260507_153710_cnn1d runs/20260507_153719_resnet1d --output runs/stage1_6_real_subset_comparison
+pytest -q
+```
+
+### 输出结果
+
+- data status: real subset done；full pending。
+- CNN1D run_dir: `runs/20260507_153710_cnn1d/`
+- ResNet1D run_dir: `runs/20260507_153719_resnet1d/`
+- baseline comparison: `runs/stage1_6_real_subset_comparison/baseline_comparison.md`
+- baseline comparison CSV: `runs/stage1_6_real_subset_comparison/baseline_comparison.csv`
+- report: 两个训练 run 均生成 `stage1_5_report.md`
+- docs: `docs/stages/STAGE_016_REAL_DATA_EXECUTION.md` 已更新真实 subset 结果
+
+### 实验摘要
+
+- CNN1D overall accuracy: 0.8461
+- CNN1D mid/high SNR accuracy: 0.8300 / 0.8729
+- ResNet1D overall accuracy: 0.9070
+- ResNet1D mid/high SNR accuracy: 0.8775 / 0.9563
+- Low SNR accuracy: N/A，因为当前 subset 不含 `SNR <= -6`
+
+### 当前问题
+
+- 本地 PyTorch 未检测到 CUDA，subset baseline 使用 CPU 运行。
+- 服务器 full baseline 尚未执行。
+- 完整低 SNR 表现仍需 full baseline 或扩展 subset 验证。
+
+### 下一步计划
+
+- 可进入 Stage 2 的工程开发：STFT/CWT on-the-fly 特征和多视图融合。
+- 论文实验前仍需在服务器执行 `configs/stage1_rml2016a_real_full.yaml` full baseline。
