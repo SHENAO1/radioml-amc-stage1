@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 from sklearn.model_selection import train_test_split
 
@@ -62,3 +64,42 @@ def make_splits(
         "test": np.asarray(test_idx, dtype=np.int64),
     }
 
+
+def summarize_splits(
+    splits: dict[str, np.ndarray],
+    y: np.ndarray,
+    snr: np.ndarray,
+    class_names: list[str],
+    strategy: str,
+    seed: int,
+) -> dict[str, Any]:
+    total = int(y.shape[0])
+    summary: dict[str, Any] = {
+        "strategy": strategy,
+        "seed": int(seed),
+        "total_samples": total,
+        "splits": {},
+    }
+    for name, indices in splits.items():
+        split_y = y[indices]
+        split_snr = snr[indices]
+        class_counts = {
+            class_names[int(label)]: int(count)
+            for label, count in zip(*np.unique(split_y, return_counts=True))
+        }
+        snr_counts = {
+            str(int(snr_value)): int(count)
+            for snr_value, count in zip(*np.unique(split_snr, return_counts=True))
+        }
+        group_counts: dict[str, int] = {}
+        for class_idx, snr_value in zip(split_y, split_snr):
+            key = f"{class_names[int(class_idx)]}@{int(snr_value)}"
+            group_counts[key] = group_counts.get(key, 0) + 1
+        summary["splits"][name] = {
+            "num_samples": int(indices.shape[0]),
+            "ratio": float(indices.shape[0] / total) if total else 0.0,
+            "class_counts": class_counts,
+            "snr_counts": snr_counts,
+            "modulation_snr_counts": dict(sorted(group_counts.items())),
+        }
+    return summary

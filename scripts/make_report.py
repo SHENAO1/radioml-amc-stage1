@@ -5,7 +5,7 @@ from pathlib import Path
 
 from _bootstrap import PROJECT_ROOT
 
-from radioml_amc.reporting import make_stage1_report
+from radioml_amc.reporting import make_stage1_5_report, make_stage1_report
 
 
 def parse_args() -> argparse.Namespace:
@@ -20,10 +20,11 @@ def main() -> int:
     if not run_dir.is_absolute():
         run_dir = PROJECT_ROOT / run_dir
     report = make_stage1_report(run_dir)
+    stage1_5_report = make_stage1_5_report(run_dir)
     print(f"Report written: {report}")
+    print(f"Stage 1.5 report written: {stage1_5_report}")
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -7,7 +7,7 @@ from pathlib import Path
 from _bootstrap import PROJECT_ROOT
 
 from radioml_amc.config import load_config, save_config
-from radioml_amc.data.dataset import load_data_bundle
+from radioml_amc.data.dataset import load_data_bundle, summarize_data_bundle
 from radioml_amc.data.rml2016a_loader import RadioML2016AMissingError
 from radioml_amc.paths import create_run_dir
 from radioml_amc.visualization.plot_signals import save_signal_example_plots
@@ -41,6 +41,10 @@ def main() -> int:
         "snr_values": [int(v) for v in bundle.snr_values],
     }
     (run_dir / "label_mapping.json").write_text(json.dumps(mapping, ensure_ascii=False, indent=2), encoding="utf-8")
+    (run_dir / "dataset_summary.json").write_text(
+        json.dumps(summarize_data_bundle(bundle), ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
     saved = save_signal_example_plots(
         bundle,
         run_dir / "plots",
@@ -58,4 +62,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

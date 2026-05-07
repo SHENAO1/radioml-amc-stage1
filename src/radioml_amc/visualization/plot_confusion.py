@@ -15,6 +15,7 @@ def plot_confusion_matrix(
     class_names: list[str],
     output_path: str | Path,
     normalize: bool = True,
+    title: str | None = None,
 ) -> str:
     cm = np.asarray(confusion, dtype=np.float32)
     if normalize:
@@ -25,7 +26,7 @@ def plot_confusion_matrix(
 
     fig, ax = plt.subplots(figsize=(max(6, 0.55 * len(class_names)), max(5, 0.5 * len(class_names))))
     im = ax.imshow(cm_plot, interpolation="nearest", cmap="Blues", vmin=0)
-    ax.set_title("Confusion Matrix")
+    ax.set_title(title or ("Normalized Confusion Matrix" if normalize else "Confusion Matrix"))
     ax.set_xlabel("Predicted")
     ax.set_ylabel("True")
     ax.set_xticks(np.arange(len(class_names)), labels=class_names, rotation=45, ha="right")
@@ -44,4 +45,3 @@ def plot_confusion_matrix(
     fig.savefig(path, dpi=170)
     plt.close(fig)
     return str(path)
-

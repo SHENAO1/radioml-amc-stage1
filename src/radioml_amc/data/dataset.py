@@ -61,8 +61,8 @@ def load_data_bundle(config: dict[str, Any], project_root: str | None = None) ->
 
     if mode == "real":
         x, y, snr, mod_names, snr_values, metadata = load_rml2016a(
-            raw_path=data_cfg.get("raw_path", "data/raw/RML2016.10a_dict.pkl"),
-            raw_bz2_path=data_cfg.get("raw_bz2_path", "data/raw/RML2016.10a_dict.pkl.bz2"),
+            raw_path=data_cfg.get("raw_path", "auto"),
+            raw_bz2_path=data_cfg.get("raw_bz2_path"),
             project_root=project_root,
             subset_mode=bool(data_cfg.get("subset_mode", False)),
             subset_mods=data_cfg.get("subset_mods"),
@@ -83,16 +83,25 @@ def summarize_data_bundle(bundle: DataBundle) -> dict[str, Any]:
         str(int(snr_value)): int(count)
         for snr_value, count in zip(*np.unique(bundle.snr, return_counts=True))
     }
+    modulation_snr_counts: dict[str, int] = {}
+    for class_idx, snr_value in zip(bundle.y, bundle.snr):
+        key = f"{bundle.mod_names[int(class_idx)]}@{int(snr_value)}"
+        modulation_snr_counts[key] = modulation_snr_counts.get(key, 0) + 1
+
     return {
         "mode": bundle.mode,
         "num_samples": int(bundle.x.shape[0]),
         "shape": list(bundle.x.shape),
         "dtype": str(bundle.x.dtype),
+        "has_nan": bool(np.isnan(bundle.x).any()),
+        "has_inf": bool(np.isinf(bundle.x).any()),
         "num_classes": len(bundle.mod_names),
+        "num_snrs": len(bundle.snr_values),
         "mod_names": bundle.mod_names,
         "snr_values": [int(v) for v in bundle.snr_values],
         "class_counts": class_counts,
         "snr_counts": snr_counts,
+        "modulation_snr_counts": dict(sorted(modulation_snr_counts.items())),
+        "source_path": bundle.metadata.get("source_path"),
         "metadata": bundle.metadata,
     }
-

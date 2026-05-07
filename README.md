@@ -169,3 +169,156 @@ GitHub 只上传代码、配置、说明和测试文件。以下内容不上传�
 
 第二阶段建议加入 STFT/CWT 时频分支、多视图融合、低 SNR 鲁棒训练、消融实验和正式论文表格。届时需要固定实验协议，区分 mock、本地 subset 和服务器全量结果。
 
+## 14. 阶段 1.5：真实数据 baseline
+
+阶段 1.5 的目标是把第一阶段从 mock 工程闭环推进到真实 RadioML2016.10A baseline 实验闭环。当前阶段仍然不实现 STFT/CWT 训练分支、多视图融合、Transformer 或复杂注意力机制。
+
+先做真实 baseline 的原因是：后续融合模型必须有可靠对照组。只有 CNN1D 和 ResNet1D 在真实数据 subset/full 上的协议、指标和输出稳定后，第二阶段的时频分支收益才有可解释性。
+
+### 14.1 RadioML2016.10A 文件放置路径
+
+请手动下载 RadioML2016.10A，并放到以下任一路径：
+
+```text
+data/raw/RML2016.10a_dict.pkl
+data/raw/RML2016.10a_dict.pkl.bz2
+data/raw/radioml2016/RML2016.10a_dict.pkl
+data/raw/radioml2016/RML2016.10a_dict.pkl.bz2
+```
+
+新配置默认使用：
+
+```yaml
+data:
+  raw_path: auto
+```
+
+也可以在 config 中显式设置 `data.raw_path`。项目不会自动联网下载数据集。
+
+### 14.2 本地真实 subset 测试
+
+```bash
+python scripts/check_dataset.py --config configs/stage1_rml2016a_real_subset.yaml
+python scripts/visualize_examples.py --config configs/stage1_rml2016a_real_subset.yaml
+python scripts/run_stage1_5_baselines.py --config configs/stage1_rml2016a_real_subset.yaml
+```
+
+subset 配置只用于本地小规模真实数据验证，默认选择 `BPSK/QPSK/8PSK/QAM16`、多个中高 SNR 和每组最多 200 条样本。
+
+### 14.3 服务器真实 full 训练
+
+```bash
+python scripts/check_dataset.py --config configs/stage1_rml2016a_real_full.yaml
+python scripts/run_stage1_5_baselines.py --config configs/stage1_rml2016a_real_full.yaml
+```
+
+full 配置默认关闭 subset，建议在服务器或高性能 GPU 环境运行。
+
+### 14.4 CNN1D / ResNet1D baseline 协议
+
+- Baseline A：CNN1D。
+- Baseline B：ResNet1D。
+- 输入统一为 `[batch, 2, 128]` I/Q 序列。
+- 不加入时频分支、多视图融合、Transformer 或注意力机制。
+- 输出指标包括 overall accuracy、per-SNR accuracy、per-class accuracy、confusion matrix、normalized confusion matrix、low/mid/high SNR accuracy、参数量、训练时间、推理时间和 best epoch。
+- SNR 分组：
+  - low SNR：`SNR <= -6`
+  - mid SNR：`-4 <= SNR <= 6`
+  - high SNR：`SNR >= 8`
+
+### 14.5 run 输出说明
+
+新的训练 run 会尽量保存：
+
+```text
+runs/YYYYMMDD_HHMMSS_modelname/
+├── config.yaml
+├── logs.txt
+├── dataset_summary.json
+├── split_summary.json
+├── label_mapping.json
+├── metrics.json
+├── metrics.csv
+├── best_model.pt
+├── plots/
+│   ├── training_curve.png
+│   ├── confusion_matrix.png
+│   ├── normalized_confusion_matrix.png
+│   ├── accuracy_vs_snr.png
+│   ├── per_class_accuracy.png
+│   ├── iq_examples.png
+│   ├── constellation_examples.png
+│   └── stft_examples.png
+├── stage1_report.md
+└── stage1_5_report.md
+```
+
+`dataset_summary.json` 记录样本数、shape、dtype、类别/SNR 分布、modulation × SNR 分布、NaN/Inf 检查和真实数据文件路径。`split_summary.json` 记录 train/val/test 样本数、比例和分层统计。
+
+### 14.6 baseline 对比
+
+批量 baseline：
+
+```bash
+python scripts/run_stage1_5_baselines.py --config configs/stage1_rml2016a_real_subset.yaml
+```
+
+对比已有 runs：
+
+```bash
+python scripts/compare_runs.py --run_dirs runs/xxx_cnn1d runs/yyy_resnet1d --output runs/stage1_5_comparison
+```
+
+输出：
+
+- `baseline_comparison.csv`
+- `baseline_comparison.md`
+
+### 14.7 docs/ 过程文档体系
+
+`docs/` 用于阶段过程管理，进入 Git。核心文件：
+
+- `docs/README.md`
+- `docs/PROJECT_OVERVIEW.md`
+- `docs/STAGE_INDEX.md`
+- `docs/PROGRESS_LOG.md`
+- `docs/EXPERIMENT_LOG.md`
+- `docs/NEXT_STAGE_PROMPTS.md`
+- `docs/stages/`
+
+`reports/` 偏正式报告模板或报告结构；`runs/` 是每次运行产物，不进入 Git。
+
+### 14.8 常见错误
+
+**找不到数据文件**  
+确认文件位于 `data/raw/` 或 `data/raw/radioml2016/` 下，文件名必须匹配 `RML2016.10a_dict.pkl` 或 `RML2016.10a_dict.pkl.bz2`。也可以在 config 中显式设置 `data.raw_path`。
+
+**pickle encoding 问题**  
+loader 使用 `pickle.load(..., encoding="latin1")` 兼容 Python 3 读取旧版 pickle。
+
+**内存不足**  
+先使用 `configs/stage1_rml2016a_real_subset.yaml`，降低 `max_samples_per_group` 或 `batch_size`。全量训练建议放到服务器。
+
+**GPU 不可见**  
+检查 PyTorch CUDA 安装和 `torch.cuda.is_available()`。`device: auto` 会在 CUDA 不可用时回退 CPU。
+
+**matplotlib 中文乱码**  
+当前图表标题主要使用英文，避免依赖本地中文字体。若自行添加中文图题，需要配置可用中文字体。
+
+**sklearn 分层划分报错**  
+如果某些 modulation × SNR 组合样本太少，降低过滤范围或增加样本数。代码会尽量使用固定 seed 和分层划分，必要时回退到非分层切分。
+
+### 14.9 Git 与大文件约定
+
+- mock 结果不能作为正式实验结论。
+- 数据集不进入 Git。
+- `runs/` 不进入 Git。
+- checkpoint 不进入 Git。
+- `docs/` 和 `configs/` 需要进入 Git。
+- `reports/` 模板需要进入 Git。
+- 真实数据建议先 subset，再 full。
+- 大数据集建议在服务器直接下载。
+
+### 14.10 第二阶段入口
+
+第二阶段主题是 STFT/CWT 时频分支与 I/Q 多视图融合。进入第二阶段前，应优先完成真实 RadioML2016.10A subset baseline，并把结果写入 `docs/EXPERIMENT_LOG.md` 和对应阶段文档。

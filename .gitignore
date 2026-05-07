@@ -13,6 +13,7 @@ checkpoints/*
 *.pth
 __pycache__/
 .pytest_cache/
+.pytest_tmp/
 .mypy_cache/
 .ruff_cache/
 .venv/
@@ -24,4 +25,6 @@ venv/
 !data/raw/README.md
 !data/processed/README.md
 !runs/README.md
-
+!docs/**
+!configs/**
+!reports/**

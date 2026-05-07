@@ -1,0 +1,35 @@
+project:
+  name: radioml-amc-stage1
+  seed: 42
+
+data:
+  mode: real
+  dataset: RML2016.10A
+  raw_path: auto
+  test_size: 0.2
+  val_size: 0.1
+  split_strategy: stratified_by_mod_snr
+  subset_mode: true
+  subset_mods: ["BPSK", "QPSK", "8PSK", "QAM16"]
+  subset_snrs: [-2, 0, 2, 4, 6, 8, 10, 12]
+  max_samples_per_group: 200
+
+train:
+  model: cnn1d
+  epochs: 5
+  batch_size: 128
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  num_workers: 0
+  device: auto
+  early_stopping_patience: 3
+
+stft:
+  nperseg: 32
+  noverlap: 16
+
+outputs:
+  run_root: runs
+  save_checkpoint: true
+  save_plots: true
+  save_report: true

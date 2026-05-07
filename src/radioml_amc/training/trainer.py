@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import logging
+import time
 from pathlib import Path
 from typing import Any
 
@@ -13,15 +14,16 @@ from torch.utils.data import DataLoader, Subset
 
 from radioml_amc.config import save_config
 from radioml_amc.data.dataset import DataBundle, SignalDataset, load_data_bundle, summarize_data_bundle
-from radioml_amc.data.split import make_splits
+from radioml_amc.data.split import make_splits, summarize_splits
 from radioml_amc.logger import setup_logger
 from radioml_amc.models.cnn1d import CNN1D, count_parameters as count_cnn_parameters
 from radioml_amc.models.resnet1d import ResNet1D, count_parameters as count_resnet_parameters
 from radioml_amc.paths import create_run_dir, resolve_project_path
-from radioml_amc.reporting import make_stage1_report
+from radioml_amc.reporting import make_stage1_5_report, make_stage1_report
 from radioml_amc.seed import set_seed
 from radioml_amc.training.metrics import evaluate_predictions
 from radioml_amc.visualization.plot_confusion import plot_confusion_matrix
+from radioml_amc.visualization.plot_class_accuracy import plot_per_class_accuracy
 from radioml_amc.visualization.plot_signals import save_signal_example_plots
 from radioml_amc.visualization.plot_snr_curve import plot_accuracy_vs_snr
 from radioml_amc.visualization.plot_training import plot_training_curve
@@ -143,6 +145,8 @@ def _save_label_mapping(bundle: DataBundle, run_dir: Path) -> None:
         "class_to_idx": {name: idx for idx, name in enumerate(bundle.mod_names)},
         "idx_to_class": {str(idx): name for idx, name in enumerate(bundle.mod_names)},
         "snr_values": [int(v) for v in bundle.snr_values],
+        "snr_to_idx": {str(int(value)): idx for idx, value in enumerate(bundle.snr_values)},
+        "idx_to_snr": {str(idx): int(value) for idx, value in enumerate(bundle.snr_values)},
         "metadata": bundle.metadata,
     }
     _save_json(payload, run_dir / "label_mapping.json")
@@ -183,6 +187,8 @@ def run_training(
     run_dir, logger = _prepare_run(config, model_name, project_root)
 
     summary = summarize_data_bundle(bundle)
+    dataset_name = str(config.get("data", {}).get("dataset", bundle.mode))
+    _save_json(summary, run_dir / "dataset_summary.json")
     _save_json(summary, run_dir / "data_summary.json")
     _save_label_mapping(bundle, run_dir)
     _log_data_summary(logger, summary)
@@ -198,6 +204,15 @@ def run_training(
         strategy=str(data_cfg.get("split_strategy", "stratified")),
         seed=seed,
     )
+    split_summary = summarize_splits(
+        splits=splits,
+        y=bundle.y,
+        snr=bundle.snr,
+        class_names=bundle.mod_names,
+        strategy=str(data_cfg.get("split_strategy", "stratified")),
+        seed=seed,
+    )
+    _save_json(split_summary, run_dir / "split_summary.json")
     logger.info("Split sizes: train=%d, val=%d, test=%d", len(splits["train"]), len(splits["val"]), len(splits["test"]))
 
     train_cfg = config.get("train", {})
@@ -230,6 +245,7 @@ def run_training(
     best_epoch = 0
     stale_epochs = 0
 
+    train_start = time.perf_counter()
     for epoch in range(1, epochs + 1):
         train_loss, train_acc, _, _, _ = _loop(model, loaders["train"], criterion, device, optimizer)
         val_loss, val_acc, _, _, _ = _loop(model, loaders["val"], criterion, device)
@@ -272,12 +288,15 @@ def run_training(
             if stale_epochs >= patience:
                 logger.info("Early stopping at epoch %d", epoch)
                 break
+    train_time_seconds = time.perf_counter() - train_start
 
     if save_checkpoint and (run_dir / "best_model.pt").exists():
         checkpoint = torch.load(run_dir / "best_model.pt", map_location=device)
         model.load_state_dict(checkpoint["model_state_dict"])
 
+    inference_start = time.perf_counter()
     test_loss, test_acc, y_pred, y_true, snr_true = _loop(model, loaders["test"], criterion, device)
+    inference_time_seconds = time.perf_counter() - inference_start
     test_metrics = evaluate_predictions(y_true, y_pred, snr_true, bundle.mod_names)
     test_metrics["loss"] = float(test_loss)
     test_metrics["loader_accuracy"] = float(test_acc)
@@ -286,26 +305,55 @@ def run_training(
     logger.info("Per-SNR accuracy: %s", test_metrics["per_snr_accuracy"])
 
     metrics = {
+        "model": model_name,
         "model_name": model_name,
+        "dataset": dataset_name,
+        "data_mode": bundle.mode,
+        "run_dir": str(run_dir),
         "device": str(device),
         "num_parameters": num_parameters,
+        "train_time_seconds": float(train_time_seconds),
+        "inference_time_seconds": float(inference_time_seconds),
         "best_epoch": best_epoch,
         "best_val_acc": best_val_acc,
+        "overall_accuracy": test_metrics["overall_accuracy"],
+        "low_snr_accuracy": test_metrics["low_snr_accuracy"],
+        "mid_snr_accuracy": test_metrics["mid_snr_accuracy"],
+        "high_snr_accuracy": test_metrics["high_snr_accuracy"],
+        "per_snr_accuracy": test_metrics["per_snr_accuracy"],
+        "per_class_accuracy": test_metrics["per_class_accuracy"],
+        "confusion_matrix": test_metrics["confusion_matrix"],
+        "normalized_confusion_matrix": test_metrics["normalized_confusion_matrix"],
         "history": history,
         "test": test_metrics,
         "data_summary": summary,
+        "dataset_summary": summary,
+        "split_summary": split_summary,
     }
     _save_json(metrics, run_dir / "metrics.json")
     _save_history_csv(history, run_dir / "metrics.csv")
 
     if save_plots:
         plot_training_curve(history, run_dir / "plots" / "training_curve.png")
-        plot_confusion_matrix(test_metrics["confusion_matrix"], bundle.mod_names, run_dir / "plots" / "confusion_matrix.png")
+        plot_confusion_matrix(
+            test_metrics["confusion_matrix"],
+            bundle.mod_names,
+            run_dir / "plots" / "confusion_matrix.png",
+            normalize=False,
+        )
+        plot_confusion_matrix(
+            test_metrics["confusion_matrix"],
+            bundle.mod_names,
+            run_dir / "plots" / "normalized_confusion_matrix.png",
+            normalize=True,
+        )
         plot_accuracy_vs_snr(test_metrics["per_snr_accuracy"], run_dir / "plots" / "accuracy_vs_snr.png")
+        plot_per_class_accuracy(test_metrics["per_class_accuracy"], run_dir / "plots" / "per_class_accuracy.png")
         save_signal_example_plots(bundle, run_dir / "plots", config.get("stft", {}), seed=seed)
 
     if bool(config.get("outputs", {}).get("save_report", True)):
         make_stage1_report(run_dir)
+        make_stage1_5_report(run_dir)
 
     return run_dir
 
@@ -327,6 +375,7 @@ def evaluate_checkpoint(
     run_dir, logger = _prepare_run(config, f"eval_{model_name}", project_root)
     _save_label_mapping(bundle, run_dir)
     summary = summarize_data_bundle(bundle)
+    _save_json(summary, run_dir / "dataset_summary.json")
     _save_json(summary, run_dir / "data_summary.json")
     _log_data_summary(logger, summary)
 
@@ -339,6 +388,15 @@ def evaluate_checkpoint(
         strategy=str(data_cfg.get("split_strategy", "stratified")),
         seed=seed,
     )
+    split_summary = summarize_splits(
+        splits=splits,
+        y=bundle.y,
+        snr=bundle.snr,
+        class_names=bundle.mod_names,
+        strategy=str(data_cfg.get("split_strategy", "stratified")),
+        seed=seed,
+    )
+    _save_json(split_summary, run_dir / "split_summary.json")
     train_cfg = config.get("train", {})
     device = get_device(str(train_cfg.get("device", "auto")))
     loaders = _make_loaders(
@@ -353,7 +411,9 @@ def evaluate_checkpoint(
     state_dict = checkpoint.get("model_state_dict", checkpoint)
     model.load_state_dict(state_dict)
     criterion = nn.CrossEntropyLoss()
+    inference_start = time.perf_counter()
     test_loss, test_acc, y_pred, y_true, snr_true = _loop(model, loaders["test"], criterion, device)
+    inference_time_seconds = time.perf_counter() - inference_start
     eval_metrics = evaluate_predictions(y_true, y_pred, snr_true, bundle.mod_names)
     eval_metrics["loss"] = float(test_loss)
     eval_metrics["loader_accuracy"] = float(test_acc)
@@ -361,17 +421,42 @@ def evaluate_checkpoint(
     logger.info("Test loss %.4f, overall accuracy %.4f", test_loss, eval_metrics["overall_accuracy"])
 
     metrics = {
+        "model": model_name,
         "model_name": model_name,
+        "dataset": str(config.get("data", {}).get("dataset", bundle.mode)),
+        "data_mode": bundle.mode,
+        "run_dir": str(run_dir),
         "device": str(device),
         "checkpoint": str(checkpoint_file),
+        "num_parameters": count_model_parameters(model, model_name),
+        "train_time_seconds": None,
+        "inference_time_seconds": float(inference_time_seconds),
+        "best_epoch": checkpoint.get("epoch"),
+        "overall_accuracy": eval_metrics["overall_accuracy"],
+        "low_snr_accuracy": eval_metrics["low_snr_accuracy"],
+        "mid_snr_accuracy": eval_metrics["mid_snr_accuracy"],
+        "high_snr_accuracy": eval_metrics["high_snr_accuracy"],
+        "per_snr_accuracy": eval_metrics["per_snr_accuracy"],
+        "per_class_accuracy": eval_metrics["per_class_accuracy"],
+        "confusion_matrix": eval_metrics["confusion_matrix"],
+        "normalized_confusion_matrix": eval_metrics["normalized_confusion_matrix"],
         "evaluation": eval_metrics,
         "test": eval_metrics,
         "data_summary": summary,
+        "dataset_summary": summary,
+        "split_summary": split_summary,
     }
     _save_json(metrics, run_dir / "metrics.json")
-    plot_confusion_matrix(eval_metrics["confusion_matrix"], bundle.mod_names, run_dir / "plots" / "confusion_matrix.png")
+    plot_confusion_matrix(eval_metrics["confusion_matrix"], bundle.mod_names, run_dir / "plots" / "confusion_matrix.png", normalize=False)
+    plot_confusion_matrix(
+        eval_metrics["confusion_matrix"],
+        bundle.mod_names,
+        run_dir / "plots" / "normalized_confusion_matrix.png",
+        normalize=True,
+    )
     plot_accuracy_vs_snr(eval_metrics["per_snr_accuracy"], run_dir / "plots" / "accuracy_vs_snr.png")
+    plot_per_class_accuracy(eval_metrics["per_class_accuracy"], run_dir / "plots" / "per_class_accuracy.png")
     save_signal_example_plots(bundle, run_dir / "plots", config.get("stft", {}), seed=seed)
     make_stage1_report(run_dir)
+    make_stage1_5_report(run_dir)
     return run_dir
-
