@@ -215,3 +215,77 @@ Stage 2.2 目标：
 - 不引入 Transformer 或复杂注意力机制；
 - 不离线保存全量 STFT/CWT 图片。
 ```
+
+## Stage 2.2 → Stage 3
+
+当前 Stage 2.2 状态为 Done：RadioML2016.10A full 数据检查、CNN1D/ResNet1D full baseline 和 `fusion_iq_stft` full 消融已完成。下一阶段优先进入低 SNR 鲁棒性与误差分析，不要直接进入 RadioML2018.01A。
+
+```text
+你现在继续维护项目 radioml-amc-stage1，角色是机器学习实验复现工程师、无线电 AMC 研究助理、PyTorch 消融实验负责人和论文实验分析助手。
+
+启动前请按 durable context 规则读取：
+1. docs/PROGRESS_LOG.md
+2. docs/STAGE_INDEX.md
+3. docs/stages/STAGE_022_FULL_ABLATION.md
+4. docs/EXPERIMENT_LOG.md
+5. runs/stage2_2_full_ablation_comparison/stage2_2_full_comparison.md
+6. runs/stage2_2_full_ablation_comparison/stage2_2_full_summary.json
+7. runs/20260507_192755_cnn1d/metrics.json
+8. runs/20260507_193019_resnet1d/metrics.json
+9. runs/20260507_193548_fusion_iq_stft/metrics.json
+
+当前 Stage 2.2 full 结果：
+- 数据集：RadioML2016.10A full
+- 样本数：220000
+- 类别数：11
+- SNR：20 个，范围 -20 到 18
+- seed：42
+- low SNR 现在有真实 full 结果
+- CNN1D：overall 0.5855，low 0.2032，mid 0.8017，high 0.8790
+- ResNet1D：overall 0.5968，low 0.2091，mid 0.8155，high 0.8950
+- fusion_iq_stft：overall 0.5782，low 0.2222，mid 0.7856，high 0.8455
+- 当前 full 最佳 overall：ResNet1D
+- `fusion_iq_stft` 在 low SNR 上略高于 baseline，但 overall/mid/high 未超过 ResNet1D
+- `fusion_iq_stft_cwt` 在 RTX 4070 12GB 上 optional skipped：on-the-fly CWT CPU-bound、NNPACK warning flood、日志快速膨胀、GPU 利用率接近 0%
+
+Stage 3 核心目标：
+1. 不重建项目。
+2. 不删除已有 runs。
+3. 不破坏 Stage 1/1.5/1.6/2/2.1/2.2 旧流程。
+4. 基于 RadioML2016.10A full 结果做低 SNR 鲁棒性和误差分析。
+5. 重点比较 CNN1D、ResNet1D、fusion_iq_stft 在 SNR <= -6 的表现。
+6. 输出 low/mid/high SNR 表格、per-SNR 曲线对照、per-class 低 SNR 表格和混淆矩阵分析。
+7. 分析 `fusion_iq_stft` 为什么 low SNR 略优但 overall 不优。
+8. 如需新增训练策略，优先考虑轻量方法：
+   - low SNR sample weighting；
+   - SNR-balanced sampler；
+   - 只在现有 CNN/ResNet/融合结构上调整训练协议；
+   - 不引入 Transformer 或复杂注意力机制。
+9. 生成 Stage 3 文档：
+   - docs/stages/STAGE_03_LOW_SNR_ANALYSIS.md
+   - 更新 docs/STAGE_INDEX.md
+   - 更新 docs/PROGRESS_LOG.md
+   - 更新 docs/EXPERIMENT_LOG.md
+   - 更新 docs/NEXT_STAGE_PROMPTS.md
+   - 必要时更新 README.md
+
+严格限制：
+- 不自动下载大数据集。
+- 不把 data/raw、runs、checkpoint、.venv 加入 Git。
+- 不进入 RadioML2018.01A。
+- 不引入 Transformer 或复杂注意力机制。
+- 不离线保存全量 STFT/CWT 图片。
+- 不把 subset 结果写成 full 结果。
+- 不把 mock 结果写成真实结果。
+- CWT full 三视图已记录为 optional skipped，不要在未优化成本前反复强跑。
+
+本阶段完成后，请输出：
+1. 使用的 run_dir。
+2. 低 SNR 对比表。
+3. 关键 per-SNR 曲线和混淆矩阵路径。
+4. 当前低 SNR 最优模型。
+5. 当前 full overall 最优模型。
+6. 是否需要新增训练策略或只做报告分析。
+7. 是否可以进入 RadioML2018.01A。
+8. Git 状态和是否误加入数据/runs/checkpoint。
+```

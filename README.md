@@ -447,3 +447,25 @@ runs/stage2_1_real_subset_ablation_comparison/
 | fusion_iq_stft_cwt | I/Q + STFT + CWT | 0.8328 | N/A | 0.8187 | 0.8562 |
 
 当前 subset 最佳模型仍是 ResNet1D。结果可以写入结课报告的 subset 消融章节，但必须标注：single-seed、real subset、非 full dataset、low SNR N/A。下一步优先在服务器执行 RadioML2016.10A full baseline/full ablation。
+
+## 17. 阶段 2.2：RadioML2016.10A full 当前结果
+
+Stage 2.2 已在 GPU 服务器上完成 RadioML2016.10A full 数据检查、CNN1D/ResNet1D full baseline 和 `fusion_iq_stft` full 消融。
+
+统一汇总目录：
+
+```text
+runs/stage2_2_full_ablation_comparison/
+```
+
+主要结果：
+
+| 模型 | 输入视图 | Overall Acc | Low SNR Acc | Mid SNR Acc | High SNR Acc |
+|---|---|---:|---:|---:|---:|
+| CNN1D | I/Q | 0.5855 | 0.2032 | 0.8017 | 0.8790 |
+| ResNet1D | I/Q | 0.5968 | 0.2091 | 0.8155 | 0.8950 |
+| fusion_iq_stft | I/Q + STFT | 0.5782 | 0.2222 | 0.7856 | 0.8455 |
+
+当前 full 最佳模型是 ResNet1D。`fusion_iq_stft` 在 low SNR 分组略高于 baseline，但 overall、mid SNR 和 high SNR 未超过 ResNet1D。
+
+`fusion_iq_stft_cwt` 在 RTX 4070 12GB 上被记录为 optional skipped：on-the-fly CWT 触发大量 NNPACK warning，训练在 epoch 1 前明显 CPU-bound，GPU 利用率接近 0%。后续如需 full 三视图，应先优化 CWT 成本或换更强服务器。

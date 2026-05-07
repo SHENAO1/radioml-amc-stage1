@@ -425,3 +425,66 @@ python scripts/make_stage2_1_comparison.py --run_dirs runs/20260507_153710_cnn1d
 - 优先 full baseline：CNN1D、ResNet1D。
 - full ablation 建议优先跑：`fusion_iq_stft`、`fusion_iq_stft_cwt`；资源足够再补 `tfcnn_cwt`。
 - Stage 3 再做低 SNR 鲁棒性分析。
+
+## 2026-05-07 Stage 2.2：RadioML2016.10A full baseline/full ablation
+
+### 本次目标
+
+- 在 GPU 服务器上完成 RadioML2016.10A full 数据检查。
+- 补齐 full CNN1D/ResNet1D baseline。
+- 跑通主要 Stage 2 full 融合模型 `fusion_iq_stft`。
+- 生成 full comparison，并同步结果回本地 `runs/`。
+- 记录 CWT 三视图在当前服务器上的 optional skipped 原因。
+
+### 本次完成
+
+- 服务器环境验证通过：NVIDIA GeForce RTX 4070、Python 3.11.12、PyTorch 2.9.1+cu128、CUDA available。
+- full 数据检查通过：220000 samples、11 类、20 个 SNR、无 NaN/Inf。
+- `pytest -q` 通过：`.s................. [100%]`。
+- `python -m compileall -q src scripts` 通过。
+- full CNN1D baseline 完成。
+- full ResNet1D baseline 完成。
+- full `fusion_iq_stft` 完成。
+- 统一汇总目录已生成并同步回本地：`runs/stage2_2_full_ablation_comparison/`。
+- `fusion_iq_stft_cwt` 在 RTX 4070 12GB 上尝试后停止，记录为 optional skipped。
+
+### 执行命令
+
+```bash
+python scripts/check_dataset.py --config configs/stage1_rml2016a_real_full.yaml
+python scripts/run_stage1_5_baselines.py --config configs/stage1_rml2016a_real_full.yaml
+python scripts/run_stage2_ablations.py --config configs/stage2_rml2016a_real_full.yaml --models fusion_iq_stft --output runs/stage2_2_full_fusion_iq_stft
+python scripts/compare_runs.py --run_dirs runs/20260507_192755_cnn1d runs/20260507_193019_resnet1d runs/20260507_193548_fusion_iq_stft --output runs/stage2_2_full_ablation_comparison
+```
+
+### 输出结果
+
+- `runs/20260507_192755_cnn1d/`
+- `runs/20260507_193019_resnet1d/`
+- `runs/20260507_193548_fusion_iq_stft/`
+- `runs/stage2_2_full_ablation_comparison/stage2_2_full_comparison.csv`
+- `runs/stage2_2_full_ablation_comparison/stage2_2_full_comparison.md`
+- `runs/stage2_2_full_ablation_comparison/stage2_2_full_summary.json`
+- `runs/stage2_2_full_ablation_comparison/stage2_2_full_notes.md`
+
+### 实验摘要
+
+| 模型 | 输入视图 | Overall Acc | Low SNR Acc | Mid SNR Acc | High SNR Acc |
+|---|---|---:|---:|---:|---:|
+| CNN1D | I/Q | 0.5855 | 0.2032 | 0.8017 | 0.8790 |
+| ResNet1D | I/Q | 0.5968 | 0.2091 | 0.8155 | 0.8950 |
+| fusion_iq_stft | I/Q + STFT | 0.5782 | 0.2222 | 0.7856 | 0.8455 |
+
+当前 full 上最佳 overall accuracy 是 ResNet1D：0.5968。`fusion_iq_stft` 未超过 baseline，但 low SNR 分组略高于 CNN1D/ResNet1D。
+
+### 当前问题
+
+- 当前 full 结果仍是 single-seed。
+- full CWT 三视图在 RTX 4070 12GB 上因 CPU-bound CWT 和 NNPACK warning flood 被标记为 optional skipped。
+- Stage 2 融合模型未在 overall/mid/high SNR 上超过 ResNet1D。
+
+### 下一步计划
+
+- 进入 Stage 3：基于 full 数据做低 SNR 鲁棒性与误差分析。
+- 优先分析 low SNR 下 `fusion_iq_stft` 相对 baseline 的收益和类别混淆。
+- 后续如重试 CWT，应先优化 CWT on-the-fly 成本或使用更强服务器。
