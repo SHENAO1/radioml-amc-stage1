@@ -248,3 +248,90 @@ pytest -q
 
 - 可进入 Stage 2 的工程开发：STFT/CWT on-the-fly 特征和多视图融合。
 - 论文实验前仍需在服务器执行 `configs/stage1_rml2016a_real_full.yaml` full baseline。
+
+## 2026-05-07 Stage 2：STFT/CWT 时频分支与多视图融合工程开发
+
+### 本次目标
+
+- 新增 STFT/CWT on-the-fly 特征接口，不离线保存全量图片。
+- 新增时频 CNN 分支和 I/Q + STFT、I/Q + CWT、I/Q + STFT + CWT 多视图融合模型。
+- 新增 `configs/stage2_*` 配置和 `scripts/run_stage2_ablations.py`。
+- 保留 CNN1D/ResNet1D baseline，不破坏 Stage 1.6 命令。
+- 跑通 mock smoke 和至少一个真实 subset Stage 2 闭环。
+
+### 本次完成
+
+- `SignalDataset` 已支持按配置返回 I/Q tensor 或多视图 dict。
+- STFT/CWT 在 `__getitem__` 中即时计算，没有离线保存全量图片数据集。
+- 新增 `tfcnn_stft`、`tfcnn_cwt`、`fusion_iq_stft`、`fusion_iq_cwt`、`fusion_iq_stft_cwt`。
+- 训练器已支持 tensor/dict batch，并在 `metrics.json` 记录 `feature_views`、`feature_config` 和 `model_complexity`。
+- 新增 Stage 2 mock、real subset、real full 和 ablation 配置。
+- 新增 Stage 2 消融批处理脚本。
+- `pytest -q` 通过：`.s.............. [100%]`。
+- mock smoke 跑通：`fusion_iq_stft_cwt`，run_dir 为 `runs/20260507_161030_fusion_iq_stft_cwt/`。
+- real subset 最小闭环跑通：`tfcnn_stft`，run_dir 为 `runs/20260507_161048_tfcnn_stft/`。
+- Stage 1.6 回归验证通过：`check_dataset`、`visualize_examples`、`compare_runs`、`run_stage1_5_baselines` 均可运行。
+
+### 修改/新增文件
+
+- `src/radioml_amc/features/time_frequency.py`
+- `src/radioml_amc/features/__init__.py`
+- `src/radioml_amc/data/dataset.py`
+- `src/radioml_amc/models/multiview.py`
+- `src/radioml_amc/models/__init__.py`
+- `src/radioml_amc/training/trainer.py`
+- `configs/stage2_local_mock.yaml`
+- `configs/stage2_rml2016a_real_subset.yaml`
+- `configs/stage2_rml2016a_real_full.yaml`
+- `configs/stage2_ablation_mock.yaml`
+- `configs/stage2_ablation_real_subset.yaml`
+- `scripts/run_stage2_ablations.py`
+- `tests/test_stage2_features.py`
+- `tests/test_stage2_models.py`
+- `docs/stages/STAGE_02_TIME_FREQUENCY_MULTIVIEW.md`
+- `docs/STAGE_INDEX.md`
+- `docs/PROGRESS_LOG.md`
+- `docs/EXPERIMENT_LOG.md`
+- `docs/NEXT_STAGE_PROMPTS.md`
+
+### 执行命令
+
+```bash
+pytest -q
+python scripts/run_stage2_ablations.py --config configs/stage2_ablation_mock.yaml --models fusion_iq_stft_cwt --output runs/stage2_mock_smoke_ablation
+python scripts/run_stage2_ablations.py --config configs/stage2_ablation_real_subset.yaml
+python scripts/check_dataset.py --config configs/stage1_rml2016a_real_subset.yaml
+python scripts/visualize_examples.py --config configs/stage1_rml2016a_real_subset.yaml
+python scripts/compare_runs.py --run_dirs runs/20260507_153710_cnn1d runs/20260507_153719_resnet1d --output runs/stage2_stage1_6_regression_comparison
+python scripts/run_stage1_5_baselines.py --config configs/stage1_rml2016a_real_subset.yaml
+```
+
+### 输出结果
+
+- mock Stage 2 run: `runs/20260507_161030_fusion_iq_stft_cwt/`
+- mock comparison: `runs/stage2_mock_smoke_ablation/baseline_comparison.md`
+- real Stage 2 run: `runs/20260507_161048_tfcnn_stft/`
+- real comparison: `runs/stage2_real_subset_ablation/baseline_comparison.md`
+- Stage 1.6 regression visualization: `runs/20260507_161117_visualize_examples/`
+- Stage 1.6 regression comparison: `runs/stage2_stage1_6_regression_comparison/`
+- Stage 1.6 regression baseline rerun: `runs/20260507_161134_cnn1d/`、`runs/20260507_161144_resnet1d/`
+
+### 实验摘要
+
+- mock `fusion_iq_stft_cwt` overall accuracy: 0.2308，仅工程 smoke test，不能作为正式结论。
+- real subset `tfcnn_stft` overall accuracy: 0.4047，1 epoch 工程闭环，不能和 5-epoch baseline 做正式优劣结论。
+- real subset `tfcnn_stft` mid/high SNR accuracy: 0.4788 / 0.2812。
+- real subset `tfcnn_stft` low SNR accuracy: N/A，因为当前 subset 不含 `SNR <= -6`。
+
+### 当前问题
+
+- full baseline 仍未训练。
+- Stage 2 完整真实 subset 消融尚未执行。
+- CWT 和融合模型真实 subset/full 结果尚未形成。
+- full 数据和正式消融建议在 GPU 服务器运行。
+
+### 下一步计划
+
+- 在真实 subset 上运行完整 Stage 2 消融：`tfcnn_stft`、`tfcnn_cwt`、`fusion_iq_stft`、`fusion_iq_cwt`、`fusion_iq_stft_cwt`。
+- 补齐服务器 full baseline 后，再执行 full Stage 2 消融。
+- 完整低 SNR 结论等待 full 数据或扩展 subset。

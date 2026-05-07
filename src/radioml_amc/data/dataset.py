@@ -9,6 +9,7 @@ from torch.utils.data import Dataset
 
 from radioml_amc.data.mock_dataset import generate_mock_radioml
 from radioml_amc.data.rml2016a_loader import load_rml2016a
+from radioml_amc.features.time_frequency import compute_cwt_tensor, compute_stft_tensor
 
 
 @dataclass
@@ -22,17 +23,84 @@ class DataBundle:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
+VIEW_ORDER = ("iq", "stft", "cwt")
+
+
+def normalize_feature_config(feature_config: dict[str, Any] | None = None) -> dict[str, Any]:
+    config = dict(feature_config or {})
+    raw_views = config.get("views", ["iq"])
+    if raw_views is None:
+        raw_views = ["iq"]
+    if isinstance(raw_views, str):
+        raw_views = [part.strip() for part in raw_views.split(",")]
+
+    views: list[str] = []
+    for value in raw_views:
+        view = str(value).strip().lower()
+        if not view:
+            continue
+        if view not in VIEW_ORDER:
+            raise ValueError(f"Unsupported feature view: {view}")
+        if view not in views:
+            views.append(view)
+    if not views:
+        views = ["iq"]
+
+    return {
+        "views": views,
+        "stft": dict(config.get("stft", {})),
+        "cwt": dict(config.get("cwt", {})),
+    }
+
+
 class SignalDataset(Dataset):
-    def __init__(self, x: np.ndarray, y: np.ndarray, snr: np.ndarray):
+    def __init__(
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        snr: np.ndarray,
+        feature_config: dict[str, Any] | None = None,
+    ):
         self.x = torch.as_tensor(x, dtype=torch.float32)
         self.y = torch.as_tensor(y, dtype=torch.long)
         self.snr = torch.as_tensor(snr, dtype=torch.long)
+        self.feature_config = normalize_feature_config(feature_config)
+        self.views = list(self.feature_config["views"])
 
     def __len__(self) -> int:
         return int(self.x.shape[0])
 
-    def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        return self.x[index], self.y[index], self.snr[index]
+    def __getitem__(
+        self,
+        index: int,
+    ) -> tuple[torch.Tensor | dict[str, torch.Tensor], torch.Tensor, torch.Tensor]:
+        iq = self.x[index]
+        if self.views == ["iq"]:
+            return iq, self.y[index], self.snr[index]
+
+        features: dict[str, torch.Tensor] = {}
+        if "iq" in self.views:
+            features["iq"] = iq
+        if "stft" in self.views:
+            stft_cfg = self.feature_config["stft"]
+            features["stft"] = compute_stft_tensor(
+                iq,
+                nperseg=int(stft_cfg.get("nperseg", stft_cfg.get("n_fft", 32))),
+                noverlap=int(stft_cfg.get("noverlap", 16)),
+                log_scale=bool(stft_cfg.get("log_scale", True)),
+                normalize=bool(stft_cfg.get("normalize", True)),
+            )
+        if "cwt" in self.views:
+            cwt_cfg = self.feature_config["cwt"]
+            features["cwt"] = compute_cwt_tensor(
+                iq,
+                num_scales=int(cwt_cfg.get("num_scales", 16)),
+                min_scale=float(cwt_cfg.get("min_scale", 1.0)),
+                max_scale=float(cwt_cfg.get("max_scale", 32.0)),
+                log_scale=bool(cwt_cfg.get("log_scale", True)),
+                normalize=bool(cwt_cfg.get("normalize", True)),
+            )
+        return features, self.y[index], self.snr[index]
 
 
 def load_data_bundle(config: dict[str, Any], project_root: str | None = None) -> DataBundle:

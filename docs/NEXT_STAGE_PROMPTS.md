@@ -116,3 +116,51 @@ Stage 2 不做：
 - 不离线保存全量 STFT/CWT 图片；
 - 不直接引入 Transformer 或复杂注意力机制，除非真实 baseline 和消融已经稳定。
 ```
+
+## Stage 2 工程闭环 → Stage 2 正式消融
+
+当前 Stage 2 状态为 Partial Done：工程能力已完成，mock smoke 和真实 subset 最小闭环已跑通；完整真实 subset/full 消融仍待执行。
+
+```text
+你现在继续维护项目 radioml-amc-stage1，角色是机器学习实验复现工程师、无线电 AMC 研究助理和 PyTorch 训练工程师。
+
+启动前请按 durable context 规则读取：
+1. docs/PROGRESS_LOG.md
+2. docs/STAGE_INDEX.md
+3. docs/stages/STAGE_02_TIME_FREQUENCY_MULTIVIEW.md
+4. docs/EXPERIMENT_LOG.md
+5. runs/stage2_real_subset_ablation/baseline_comparison.md
+6. runs/20260507_161048_tfcnn_stft/metrics.json
+7. runs/20260507_161030_fusion_iq_stft_cwt/metrics.json
+
+当前真实 baseline 摘要：
+- 数据集：RadioML2016.10A
+- subset：4 类、8 个 SNR、每组 200 条
+- CNN1D Acc：0.8461
+- ResNet1D Acc：0.9070
+- Low SNR Acc：N/A，因为 subset 不含 SNR <= -6
+- full baseline 尚未训练，论文正式实验前仍需补齐
+
+Stage 2 已完成：
+1. STFT/CWT on-the-fly 特征接口已实现，不离线保存全量图片。
+2. `tfcnn_stft`、`tfcnn_cwt` 时频 CNN 分支已实现。
+3. `fusion_iq_stft`、`fusion_iq_cwt`、`fusion_iq_stft_cwt` 多视图融合模型已实现。
+4. `configs/stage2_*` 配置和 `scripts/run_stage2_ablations.py` 已新增。
+5. mock smoke 已跑通：`fusion_iq_stft_cwt`，Acc 0.2308，仅工程验证。
+6. real subset 最小闭环已跑通：`tfcnn_stft`，1 epoch Acc 0.4047，仅工程闭环。
+7. Stage 1.6 原有 check_dataset、visualize_examples、run_stage1_5_baselines、compare_runs 已回归验证。
+
+下一步目标：
+1. 不破坏 Stage 1.6 baseline 命令。
+2. 在真实 subset 上运行完整 Stage 2 消融：tfcnn_stft、tfcnn_cwt、fusion_iq_stft、fusion_iq_cwt、fusion_iq_stft_cwt。
+3. 对齐 epochs、batch_size、seed、split 和报告字段，输出 comparison。
+4. 更新 docs/EXPERIMENT_LOG.md，明确 mock smoke、1-epoch 工程闭环和正式 subset 消融的区别。
+5. full baseline 和 full Stage 2 消融建议迁移到 GPU 服务器。
+
+严格不做：
+- 不自动下载大数据集；
+- 不把 RadioML 数据、runs 或 checkpoint 加入 Git；
+- 不离线保存全量 STFT/CWT 图片；
+- 不引入 Transformer 或复杂注意力机制；
+- 不用 mock 结果冒充真实结果。
+```

@@ -1,0 +1,45 @@
+project:
+  name: radioml-amc-stage2
+  seed: 42
+
+data:
+  mode: real
+  dataset: RML2016.10A
+  raw_path: auto
+  test_size: 0.2
+  val_size: 0.1
+  split_strategy: stratified_by_mod_snr
+  subset_mode: false
+  subset_mods: null
+  subset_snrs: null
+  max_samples_per_group: null
+
+features:
+  views: ["iq", "stft"]
+  stft:
+    nperseg: 32
+    noverlap: 16
+    log_scale: true
+    normalize: true
+  cwt:
+    num_scales: 16
+    min_scale: 1.0
+    max_scale: 32.0
+    log_scale: true
+    normalize: true
+
+train:
+  model: fusion_iq_stft
+  epochs: 20
+  batch_size: 256
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  num_workers: 4
+  device: auto
+  early_stopping_patience: 6
+
+outputs:
+  run_root: runs
+  save_checkpoint: true
+  save_plots: true
+  save_report: true

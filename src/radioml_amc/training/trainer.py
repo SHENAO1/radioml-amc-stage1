@@ -13,11 +13,18 @@ from torch import nn
 from torch.utils.data import DataLoader, Subset
 
 from radioml_amc.config import save_config
-from radioml_amc.data.dataset import DataBundle, SignalDataset, load_data_bundle, summarize_data_bundle
+from radioml_amc.data.dataset import (
+    DataBundle,
+    SignalDataset,
+    load_data_bundle,
+    normalize_feature_config,
+    summarize_data_bundle,
+)
 from radioml_amc.data.split import make_splits, summarize_splits
 from radioml_amc.logger import setup_logger
-from radioml_amc.models.cnn1d import CNN1D, count_parameters as count_cnn_parameters
-from radioml_amc.models.resnet1d import ResNet1D, count_parameters as count_resnet_parameters
+from radioml_amc.models.cnn1d import CNN1D
+from radioml_amc.models.multiview import MultiViewFusionNet, TimeFrequencyCNN
+from radioml_amc.models.resnet1d import ResNet1D
 from radioml_amc.paths import create_run_dir, resolve_project_path
 from radioml_amc.reporting import make_stage1_5_report, make_stage1_report
 from radioml_amc.seed import set_seed
@@ -35,19 +42,54 @@ def get_device(requested: str = "auto") -> torch.device:
     return torch.device(requested)
 
 
-def build_model(model_name: str, num_classes: int) -> nn.Module:
+def model_required_views(model_name: str) -> list[str]:
+    normalized = model_name.lower()
+    mapping = {
+        "cnn1d": ["iq"],
+        "resnet1d": ["iq"],
+        "residualcnn1d": ["iq"],
+        "tfcnn_stft": ["stft"],
+        "stft_cnn2d": ["stft"],
+        "tfcnn_cwt": ["cwt"],
+        "cwt_cnn2d": ["cwt"],
+        "fusion_iq_stft": ["iq", "stft"],
+        "fusion_iq_cwt": ["iq", "cwt"],
+        "fusion_iq_stft_cwt": ["iq", "stft", "cwt"],
+    }
+    if normalized not in mapping:
+        raise ValueError(f"Unsupported model: {model_name}")
+    return list(mapping[normalized])
+
+
+def feature_config_for_model(config: dict[str, Any], model_name: str) -> dict[str, Any]:
+    raw = dict(config.get("features", {}))
+    if "views" not in raw:
+        raw["views"] = model_required_views(model_name)
+    if "stft" not in raw:
+        raw["stft"] = dict(config.get("stft", {}))
+    if "cwt" not in raw:
+        raw["cwt"] = dict(config.get("cwt", {}))
+    return normalize_feature_config(raw)
+
+
+def build_model(model_name: str, num_classes: int, feature_config: dict[str, Any] | None = None) -> nn.Module:
     normalized = model_name.lower()
     if normalized == "cnn1d":
         return CNN1D(num_classes=num_classes)
     if normalized in {"resnet1d", "residualcnn1d"}:
         return ResNet1D(num_classes=num_classes)
+    if normalized in {"tfcnn_stft", "stft_cnn2d"}:
+        return TimeFrequencyCNN(num_classes=num_classes, view="stft")
+    if normalized in {"tfcnn_cwt", "cwt_cnn2d"}:
+        return TimeFrequencyCNN(num_classes=num_classes, view="cwt")
+    if normalized.startswith("fusion_"):
+        views = list((feature_config or {}).get("views", model_required_views(model_name)))
+        return MultiViewFusionNet(num_classes=num_classes, views=views)
     raise ValueError(f"Unsupported model: {model_name}")
 
 
 def count_model_parameters(model: nn.Module, model_name: str) -> int:
-    if model_name.lower() == "cnn1d":
-        return count_cnn_parameters(model)
-    return count_resnet_parameters(model)
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
 def _make_loaders(
@@ -56,8 +98,9 @@ def _make_loaders(
     batch_size: int,
     num_workers: int,
     device: torch.device,
+    feature_config: dict[str, Any] | None = None,
 ) -> dict[str, DataLoader]:
-    dataset = SignalDataset(bundle.x, bundle.y, bundle.snr)
+    dataset = SignalDataset(bundle.x, bundle.y, bundle.snr, feature_config=feature_config)
     pin_memory = device.type == "cuda"
     return {
         name: DataLoader(
@@ -69,6 +112,14 @@ def _make_loaders(
         )
         for name, indices in splits.items()
     }
+
+
+def _move_to_device(batch: Any, device: torch.device) -> Any:
+    if torch.is_tensor(batch):
+        return batch.to(device)
+    if isinstance(batch, dict):
+        return {key: _move_to_device(value, device) for key, value in batch.items()}
+    return batch
 
 
 def _loop(
@@ -88,7 +139,7 @@ def _loop(
     all_snrs: list[np.ndarray] = []
 
     for x, y, snr in loader:
-        x = x.to(device)
+        x = _move_to_device(x, device)
         y = y.to(device)
         if is_train:
             optimizer.zero_grad(set_to_none=True)
@@ -184,6 +235,8 @@ def run_training(
     bundle = load_data_bundle(config, project_root=str(project_root) if project_root else None)
     model_name = model_name_override or str(config.get("train", {}).get("model", "cnn1d"))
     config.setdefault("train", {})["model"] = model_name
+    feature_config = feature_config_for_model(config, model_name)
+    config["features"] = feature_config
     run_dir, logger = _prepare_run(config, model_name, project_root)
 
     summary = summarize_data_bundle(bundle)
@@ -223,11 +276,12 @@ def run_training(
         batch_size=int(train_cfg.get("batch_size", 32)),
         num_workers=int(train_cfg.get("num_workers", 0)),
         device=device,
+        feature_config=feature_config,
     )
 
-    model = build_model(model_name, num_classes=len(bundle.mod_names)).to(device)
+    model = build_model(model_name, num_classes=len(bundle.mod_names), feature_config=feature_config).to(device)
     num_parameters = count_model_parameters(model, model_name)
-    logger.info("Model: %s, parameters=%d, device=%s", model_name, num_parameters, device)
+    logger.info("Model: %s, views=%s, parameters=%d, device=%s", model_name, feature_config["views"], num_parameters, device)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(
@@ -278,6 +332,8 @@ def run_training(
                         "model_name": model_name,
                         "num_classes": len(bundle.mod_names),
                         "mod_names": bundle.mod_names,
+                        "feature_config": feature_config,
+                        "feature_views": feature_config["views"],
                         "epoch": epoch,
                         "best_val_acc": best_val_acc,
                     },
@@ -311,7 +367,14 @@ def run_training(
         "data_mode": bundle.mode,
         "run_dir": str(run_dir),
         "device": str(device),
+        "feature_views": feature_config["views"],
+        "feature_config": feature_config,
         "num_parameters": num_parameters,
+        "model_complexity": {
+            "num_parameters": num_parameters,
+            "trainable_parameters": num_parameters,
+            "input_views": feature_config["views"],
+        },
         "train_time_seconds": float(train_time_seconds),
         "inference_time_seconds": float(inference_time_seconds),
         "best_epoch": best_epoch,
@@ -372,6 +435,13 @@ def evaluate_checkpoint(
 
     checkpoint = torch.load(checkpoint_file, map_location="cpu")
     model_name = str(checkpoint.get("model_name", config.get("train", {}).get("model", "cnn1d")))
+    config.setdefault("train", {})["model"] = model_name
+    checkpoint_feature_config = checkpoint.get("feature_config")
+    if isinstance(checkpoint_feature_config, dict):
+        feature_config = normalize_feature_config(checkpoint_feature_config)
+    else:
+        feature_config = feature_config_for_model(config, model_name)
+    config["features"] = feature_config
     run_dir, logger = _prepare_run(config, f"eval_{model_name}", project_root)
     _save_label_mapping(bundle, run_dir)
     summary = summarize_data_bundle(bundle)
@@ -405,9 +475,10 @@ def evaluate_checkpoint(
         batch_size=int(train_cfg.get("batch_size", 32)),
         num_workers=int(train_cfg.get("num_workers", 0)),
         device=device,
+        feature_config=feature_config,
     )
 
-    model = build_model(model_name, num_classes=len(bundle.mod_names)).to(device)
+    model = build_model(model_name, num_classes=len(bundle.mod_names), feature_config=feature_config).to(device)
     state_dict = checkpoint.get("model_state_dict", checkpoint)
     model.load_state_dict(state_dict)
     criterion = nn.CrossEntropyLoss()
@@ -428,7 +499,14 @@ def evaluate_checkpoint(
         "run_dir": str(run_dir),
         "device": str(device),
         "checkpoint": str(checkpoint_file),
+        "feature_views": feature_config["views"],
+        "feature_config": feature_config,
         "num_parameters": count_model_parameters(model, model_name),
+        "model_complexity": {
+            "num_parameters": count_model_parameters(model, model_name),
+            "trainable_parameters": count_model_parameters(model, model_name),
+            "input_views": feature_config["views"],
+        },
         "train_time_seconds": None,
         "inference_time_seconds": float(inference_time_seconds),
         "best_epoch": checkpoint.get("epoch"),
