@@ -8,6 +8,7 @@
 | Stage 2 | STFT/CWT 时频分支与多视图融合 | Done | 新增 on-the-fly STFT/CWT 特征、时频 CNN 分支和 I/Q + 时频融合模型 | 工程已完成；mock smoke 和真实 subset 最小闭环均跑通 | `docs/stages/STAGE_02_TIME_FREQUENCY_MULTIVIEW.md` | Stage 2.1 已执行真实 subset 完整消融 |
 | Stage 2.1 | RadioML2016.10A 真实 subset 完整消融 | Done | 固定真实 subset 协议，完成 STFT/CWT/融合模型消融，并纳入 Stage 1.6 baseline 对照 | single-seed subset：ResNet1D 0.9070 最优；最佳融合为 `fusion_iq_stft_cwt` 0.8328；low SNR N/A | `docs/stages/STAGE_021_REAL_SUBSET_ABLATION.md` | 进入 Stage 2.2：服务器 full baseline/full ablation |
 | Stage 2.2 | RadioML2016.10A full baseline/full ablation | Done | 在服务器 full 数据上补齐正式 baseline 和主要融合模型对比 | full single-seed：ResNet1D 0.5968 最优；`fusion_iq_stft` 0.5782；full CWT 三视图在 RTX 4070 上 optional skipped | `docs/stages/STAGE_022_FULL_ABLATION.md` | 进入 Stage 3：低 SNR 鲁棒性与误差分析 |
-| Stage 3 | 低 SNR 鲁棒性与消融实验 | Pending | 重点评估低 SNR，补充鲁棒训练和系统消融 | 未开始 | 待创建 | 基于 RadioML2016.10A full 结果展开 |
+| Stage 3 | 低 SNR 鲁棒性分析 | Done | 基于 full 结果解释低 SNR 现象、输出图表和报告结论边界 | `fusion_iq_stft` low SNR 最优 0.2222，但 ResNet1D overall 最优 0.5968；low-SNR confusion matrix 需保存 predictions 后补 | `docs/stages/STAGE_03_LOW_SNR_ANALYSIS.md` | 可进入 Stage 3.1 轻量改进，或进入 Stage 5.0 报告初稿 |
+| Stage 3.1 | 低 SNR weighted loss / SNR-balanced sampler | Pending | 在现有模型上做轻量低 SNR 改进实验 | 未开始 | 待创建 | 若需要更强低 SNR 证据则执行 |
 | Stage 4 | RadioML2018.01A 扩展验证 | Pending | 扩展到 RadioML2018.01A，验证跨数据集泛化 | 未开始 | 待创建 | 等 Stage 2/3 协议稳定后进入 |
 | Stage 5 | 论文撰写与投稿材料整理 | Pending | 整理图表、实验表格、方法描述和投稿材料 | 未开始 | 待创建 | 等正式实验完成后进入 |

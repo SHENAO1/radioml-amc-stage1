@@ -488,3 +488,64 @@ python scripts/compare_runs.py --run_dirs runs/20260507_192755_cnn1d runs/202605
 - 进入 Stage 3：基于 full 数据做低 SNR 鲁棒性与误差分析。
 - 优先分析 low SNR 下 `fusion_iq_stft` 相对 baseline 的收益和类别混淆。
 - 后续如重试 CWT，应先优化 CWT on-the-fly 成本或使用更强服务器。
+
+## 2026-05-07 Stage 3：低 SNR 鲁棒性分析、结果解释与轻量改进准备
+
+### 本次目标
+
+- 基于 Stage 2.2 full 结果生成低 SNR 分析表格和图表。
+- 判断 `fusion_iq_stft` 的 low SNR 提升是否足以支持报告结论。
+- 明确当前不能生成 low-SNR-only confusion matrix 的原因。
+- 形成 Stage 3 文档和后续 Stage 3.1 / Stage 5.0 提示词。
+
+### 本次完成
+
+- 新增 `scripts/analyze_stage3_low_snr.py`。
+- 新增 `tests/test_stage3_analysis.py`，使用临时 metrics 验证分析脚本输出。
+- 生成 Stage 3 分析目录：`runs/stage3_low_snr_analysis/`。
+- 生成 per-SNR、low/mid/high、overall-vs-low 和 per-class 对比图。
+- 确认 Stage 2.2 run 未保存 prediction-level 文件，因此 low-SNR-only confusion matrix 暂记为 pending。
+- 新增阶段文档：`docs/stages/STAGE_03_LOW_SNR_ANALYSIS.md`。
+
+### 执行命令
+
+```bash
+python scripts/analyze_stage3_low_snr.py --help
+python scripts/analyze_stage3_low_snr.py --comparison-dir runs/stage2_2_full_ablation_comparison --cnn1d-run-dir runs/20260507_192755_cnn1d --resnet1d-run-dir runs/20260507_193019_resnet1d --fusion-run-dir runs/20260507_193548_fusion_iq_stft --output runs/stage3_low_snr_analysis
+pytest -q
+python -m compileall -q src scripts
+git diff --check
+```
+
+### 输出结果
+
+- `runs/stage3_low_snr_analysis/stage3_low_snr_summary.csv`
+- `runs/stage3_low_snr_analysis/stage3_low_snr_summary.md`
+- `runs/stage3_low_snr_analysis/stage3_low_snr_summary.json`
+- `runs/stage3_low_snr_analysis/stage3_low_snr_findings.md`
+- `runs/stage3_low_snr_analysis/per_snr_accuracy_comparison.png`
+- `runs/stage3_low_snr_analysis/low_mid_high_accuracy_bar.png`
+- `runs/stage3_low_snr_analysis/overall_vs_low_snr_tradeoff.png`
+- `runs/stage3_low_snr_analysis/per_class_accuracy_comparison.png`
+
+### 实验摘要
+
+| 模型 | Overall Acc | Low SNR Acc | Mid SNR Acc | High SNR Acc |
+|---|---:|---:|---:|---:|
+| CNN1D | 0.5855 | 0.2032 | 0.8017 | 0.8790 |
+| ResNet1D | 0.5968 | 0.2091 | 0.8155 | 0.8950 |
+| fusion_iq_stft | 0.5782 | 0.2222 | 0.7856 | 0.8455 |
+
+`fusion_iq_stft` 相比 ResNet1D：low SNR +0.0131，overall -0.0186，mid SNR -0.0298，high SNR -0.0495。
+
+### 当前结论
+
+- ResNet1D 是 full overall 最优模型。
+- `fusion_iq_stft` 是当前 low SNR 最优模型，但提升幅度较小。
+- 当前证据支持“STFT 对低 SNR 可能有补充价值”的弱结论。
+- 当前证据不支持“融合模型全面优于 baseline”的强结论。
+
+### 下一步计划
+
+- 如果目标是强化低 SNR 证据，进入 Stage 3.1：low-SNR weighted loss / SNR-balanced sampler。
+- 如果目标是尽快完成课程报告，可以进入 Stage 5.0：结课报告初稿生成。

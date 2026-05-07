@@ -469,3 +469,19 @@ runs/stage2_2_full_ablation_comparison/
 当前 full 最佳模型是 ResNet1D。`fusion_iq_stft` 在 low SNR 分组略高于 baseline，但 overall、mid SNR 和 high SNR 未超过 ResNet1D。
 
 `fusion_iq_stft_cwt` 在 RTX 4070 12GB 上被记录为 optional skipped：on-the-fly CWT 触发大量 NNPACK warning，训练在 epoch 1 前明显 CPU-bound，GPU 利用率接近 0%。后续如需 full 三视图，应先优化 CWT 成本或换更强服务器。
+
+## 18. Results Snapshot
+
+当前可写入结课报告的核心结果：
+
+- RadioML2016.10A full dataset 上，overall 最佳模型是 ResNet1D：0.5968。
+- `fusion_iq_stft` overall 为 0.5782，不能说明融合模型全面优于 baseline。
+- `fusion_iq_stft` low SNR 为 0.2222，高于 CNN1D 的 0.2032 和 ResNet1D 的 0.2091，提示 STFT 特征可能对低 SNR 样本有补充价值。
+- CWT full 训练由于 on-the-fly 计算成本过高，暂未纳入 full 主表。
+- 当前结果仅覆盖 RadioML2016.10A，尚未进入 RadioML2018.01A。
+
+Stage 3 低 SNR 分析输出位于：
+
+```text
+runs/stage3_low_snr_analysis/
+```
