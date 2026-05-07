@@ -15,32 +15,38 @@ data:
   max_samples_per_group: 200
 
 features:
+  amp_phase:
+    normalize: true
   stft:
     nperseg: 32
     noverlap: 16
     log_scale: true
     normalize: true
   cwt:
-    num_scales: 16
+    num_scales: 8
     min_scale: 1.0
-    max_scale: 32.0
+    max_scale: 24.0
     log_scale: true
     normalize: true
 
 train:
   model: tfcnn_stft
-  epochs: 1
+  epochs: 5
   batch_size: 128
   learning_rate: 0.001
   weight_decay: 0.0001
   num_workers: 0
   device: auto
-  early_stopping_patience: 1
+  early_stopping_patience: 5
 
 ablation:
   models:
     - tfcnn_stft
-  output_dir: runs/stage2_real_subset_ablation
+    - tfcnn_cwt
+    - fusion_iq_stft
+    - fusion_iq_amp_phase
+    - fusion_iq_stft_cwt
+  output_dir: runs/stage2_1_real_subset_stage2_only
 
 outputs:
   run_root: runs

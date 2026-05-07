@@ -85,7 +85,7 @@ class MultiViewFusionNet(nn.Module):
         branches: dict[str, nn.Module] = {}
         dims: dict[str, int] = {}
         for view in self.views:
-            if view == "iq":
+            if view in {"iq", "amp_phase"}:
                 branches[view] = IQBranch1D(embedding_dim=128)
                 dims[view] = 128
             elif view in {"stft", "cwt"}:

@@ -8,7 +8,7 @@ Stage 2 在 Stage 1.6 真实 RadioML2016.10A subset baseline 之后，补充 STF
 
 - 新增 STFT/CWT on-the-fly 特征接口，不离线保存全量图片。
 - 新增时频 CNN 分支，支持 STFT-only 和 CWT-only。
-- 新增 I/Q + STFT、I/Q + CWT、I/Q + STFT + CWT 多视图融合模型。
+- 新增 I/Q + STFT、I/Q + CWT、I/Q + STFT + CWT 多视图融合模型；Stage 2.1 进一步补齐 I/Q + amplitude/phase 融合。
 - 保留 CNN1D 和 ResNet1D baseline，不破坏 Stage 1.6 命令。
 - 新增 Stage 2 mock、real subset、real full 和 ablation 配置。
 - 新增 `scripts/run_stage2_ablations.py` 批量运行消融实验。
@@ -37,7 +37,7 @@ Stage 2 在 Stage 1.6 真实 RadioML2016.10A subset baseline 之后，补充 STF
 | CWT on-the-fly | Done | 使用轻量 Ricker CWT 即时计算 `[1,scales,L]` | `src/radioml_amc/features/time_frequency.py` |
 | 多视图 dataset | Done | I/Q only 返回 tensor；多视图返回 dict，不预生成图片数据集 | `src/radioml_amc/data/dataset.py` |
 | 时频 CNN | Done | 支持 `tfcnn_stft`、`tfcnn_cwt` | `src/radioml_amc/models/multiview.py` |
-| 多视图融合 | Done | 支持 `fusion_iq_stft`、`fusion_iq_cwt`、`fusion_iq_stft_cwt` | `src/radioml_amc/models/multiview.py` |
+| 多视图融合 | Done | 支持 `fusion_iq_stft`、`fusion_iq_cwt`、`fusion_iq_stft_cwt`；Stage 2.1 补齐 `fusion_iq_amp_phase` | `src/radioml_amc/models/multiview.py` |
 | 训练器兼容 | Done | batch 可为 tensor 或 view dict；metrics 增加 feature/model_complexity | `src/radioml_amc/training/trainer.py` |
 | Stage 2 配置 | Done | 新增 mock、real subset、real full、ablation 配置 | `configs/stage2_*.yaml` |
 | Stage 2 消融脚本 | Done | 可按模型列表批量训练并生成 comparison | `scripts/run_stage2_ablations.py` |

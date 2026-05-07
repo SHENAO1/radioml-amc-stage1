@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 
 from radioml_amc.data.mock_dataset import generate_mock_radioml
 from radioml_amc.data.rml2016a_loader import load_rml2016a
-from radioml_amc.features.time_frequency import compute_cwt_tensor, compute_stft_tensor
+from radioml_amc.features.time_frequency import compute_amplitude_phase_tensor, compute_cwt_tensor, compute_stft_tensor
 
 
 @dataclass
@@ -23,7 +23,7 @@ class DataBundle:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-VIEW_ORDER = ("iq", "stft", "cwt")
+VIEW_ORDER = ("iq", "amp_phase", "stft", "cwt")
 
 
 def normalize_feature_config(feature_config: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -48,6 +48,7 @@ def normalize_feature_config(feature_config: dict[str, Any] | None = None) -> di
 
     return {
         "views": views,
+        "amp_phase": dict(config.get("amp_phase", {})),
         "stft": dict(config.get("stft", {})),
         "cwt": dict(config.get("cwt", {})),
     }
@@ -81,6 +82,12 @@ class SignalDataset(Dataset):
         features: dict[str, torch.Tensor] = {}
         if "iq" in self.views:
             features["iq"] = iq
+        if "amp_phase" in self.views:
+            amp_phase_cfg = self.feature_config["amp_phase"]
+            features["amp_phase"] = compute_amplitude_phase_tensor(
+                iq,
+                normalize=bool(amp_phase_cfg.get("normalize", True)),
+            )
         if "stft" in self.views:
             stft_cfg = self.feature_config["stft"]
             features["stft"] = compute_stft_tensor(

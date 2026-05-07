@@ -423,3 +423,27 @@ runs/stage1_6_real_subset_comparison/baseline_comparison.csv
 ```
 
 说明：当前 subset 不包含 `SNR <= -6`，因此 low SNR accuracy 为 N/A。可以进入 Stage 2 的工程开发，但论文实验仍需在服务器补齐 full baseline。
+
+## 16. 阶段 2.1：真实 subset 消融当前结果
+
+Stage 2 已完成 STFT/CWT on-the-fly 特征、多视图 Dataset、TF-CNN 和 I/Q + 时频融合模型。Stage 2.1 在真实 RadioML2016.10A subset 上完成 single-seed 消融，并将 Stage 1.6 baseline 纳入统一对比。
+
+统一汇总目录：
+
+```text
+runs/stage2_1_real_subset_ablation_comparison/
+```
+
+主要结果：
+
+| 模型 | 输入视图 | Overall Acc | Low SNR Acc | Mid SNR Acc | High SNR Acc |
+|---|---|---:|---:|---:|---:|
+| CNN1D | I/Q | 0.8461 | N/A | 0.8300 | 0.8729 |
+| ResNet1D | I/Q | 0.9070 | N/A | 0.8775 | 0.9563 |
+| tfcnn_stft | STFT | 0.5961 | N/A | 0.6125 | 0.5687 |
+| tfcnn_cwt | CWT | 0.6539 | N/A | 0.6850 | 0.6021 |
+| fusion_iq_stft | I/Q + STFT | 0.8320 | N/A | 0.8200 | 0.8521 |
+| fusion_iq_amp_phase | I/Q + amp/phase | 0.8086 | N/A | 0.7863 | 0.8458 |
+| fusion_iq_stft_cwt | I/Q + STFT + CWT | 0.8328 | N/A | 0.8187 | 0.8562 |
+
+当前 subset 最佳模型仍是 ResNet1D。结果可以写入结课报告的 subset 消融章节，但必须标注：single-seed、real subset、非 full dataset、low SNR N/A。下一步优先在服务器执行 RadioML2016.10A full baseline/full ablation。

@@ -335,3 +335,93 @@ python scripts/run_stage1_5_baselines.py --config configs/stage1_rml2016a_real_s
 - 在真实 subset 上运行完整 Stage 2 消融：`tfcnn_stft`、`tfcnn_cwt`、`fusion_iq_stft`、`fusion_iq_cwt`、`fusion_iq_stft_cwt`。
 - 补齐服务器 full baseline 后，再执行 full Stage 2 消融。
 - 完整低 SNR 结论等待 full 数据或扩展 subset。
+
+## 2026-05-07 Stage 2.1：RadioML2016.10A 真实 subset 完整消融
+
+### 本次目标
+
+- 固定 Stage 2 subset ablation 配置，不再使用 1 epoch 作为正式 subset 结果。
+- 在真实 RadioML2016.10A subset 上完成主要时频和多视图模型消融。
+- 将 Stage 1.6 CNN1D/ResNet1D baseline 纳入统一对比。
+- 生成可复现实验报告所需的 csv、md、json 和 notes。
+- 更新 Stage 2.1 文档、阶段索引、进展日志、实验日志和下一阶段提示词。
+
+### 本次完成
+
+- 审查确认现有 `scripts/run_stage2_ablations.py` 可批量训练，但原 `configs/stage2_ablation_real_subset.yaml` 只跑 `tfcnn_stft` 且 1 epoch，不适合作正式消融。
+- 新增 `amp_phase` on-the-fly view，并补齐 `fusion_iq_amp_phase` 路由。
+- 将 Stage 2.1 消融配置固定为 seed 42、5 epochs、batch size 128、同一真实 subset 和同一分层 split。
+- CWT 使用 8 scales，避免 CPU 上成本过高。
+- 新增 `scripts/make_stage2_1_comparison.py`，生成 Stage 2.1 专用汇总文件。
+- `pytest -q` 通过：`.s................. [100%]`。
+- `python -m compileall -q src scripts` 通过。
+- 真实 subset Stage 2.1 五个模型均跑通。
+- 统一汇总目录已生成：`runs/stage2_1_real_subset_ablation_comparison/`。
+
+### 修改/新增文件
+
+- `configs/stage2_ablation_real_subset.yaml`
+- `scripts/make_stage2_1_comparison.py`
+- `src/radioml_amc/features/time_frequency.py`
+- `src/radioml_amc/features/__init__.py`
+- `src/radioml_amc/data/dataset.py`
+- `src/radioml_amc/models/multiview.py`
+- `src/radioml_amc/training/trainer.py`
+- `tests/test_stage2_features.py`
+- `tests/test_stage2_models.py`
+- `docs/stages/STAGE_021_REAL_SUBSET_ABLATION.md`
+- `docs/STAGE_INDEX.md`
+- `docs/PROGRESS_LOG.md`
+- `docs/EXPERIMENT_LOG.md`
+- `docs/NEXT_STAGE_PROMPTS.md`
+
+### 执行命令
+
+```bash
+pytest -q
+python -m compileall -q src scripts
+python scripts/make_stage2_1_comparison.py --help
+python scripts/run_stage2_ablations.py --config configs/stage2_ablation_real_subset.yaml
+python scripts/make_stage2_1_comparison.py --run_dirs runs/20260507_153710_cnn1d runs/20260507_153719_resnet1d runs/20260507_164216_tfcnn_stft runs/20260507_164238_tfcnn_cwt runs/20260507_164433_fusion_iq_stft runs/20260507_164503_fusion_iq_amp_phase runs/20260507_164537_fusion_iq_stft_cwt --output runs/stage2_1_real_subset_ablation_comparison
+```
+
+### 输出结果
+
+- `runs/20260507_164216_tfcnn_stft/`
+- `runs/20260507_164238_tfcnn_cwt/`
+- `runs/20260507_164433_fusion_iq_stft/`
+- `runs/20260507_164503_fusion_iq_amp_phase/`
+- `runs/20260507_164537_fusion_iq_stft_cwt/`
+- `runs/stage2_1_real_subset_stage2_only/baseline_comparison.md`
+- `runs/stage2_1_real_subset_ablation_comparison/stage2_1_ablation_comparison.csv`
+- `runs/stage2_1_real_subset_ablation_comparison/stage2_1_ablation_comparison.md`
+- `runs/stage2_1_real_subset_ablation_comparison/stage2_1_ablation_summary.json`
+- `runs/stage2_1_real_subset_ablation_comparison/stage2_1_ablation_notes.md`
+
+### 实验摘要
+
+| 模型 | 输入视图 | Overall Acc | Low SNR Acc | Mid SNR Acc | High SNR Acc |
+|---|---|---:|---:|---:|---:|
+| CNN1D | I/Q | 0.8461 | N/A | 0.8300 | 0.8729 |
+| ResNet1D | I/Q | 0.9070 | N/A | 0.8775 | 0.9563 |
+| tfcnn_stft | STFT | 0.5961 | N/A | 0.6125 | 0.5687 |
+| tfcnn_cwt | CWT | 0.6539 | N/A | 0.6850 | 0.6021 |
+| fusion_iq_stft | I/Q + STFT | 0.8320 | N/A | 0.8200 | 0.8521 |
+| fusion_iq_amp_phase | I/Q + amp/phase | 0.8086 | N/A | 0.7863 | 0.8458 |
+| fusion_iq_stft_cwt | I/Q + STFT + CWT | 0.8328 | N/A | 0.8187 | 0.8562 |
+
+当前 subset 上最佳 overall accuracy 仍是 Stage 1.6 ResNet1D：0.9070。Stage 2.1 中最佳融合模型为 `fusion_iq_stft_cwt`：0.8328。
+
+### 当前问题
+
+- 当前结果是 single-seed real subset，不是 full dataset。
+- subset 不含 `SNR <= -6`，low SNR accuracy 为 N/A，不能支撑低 SNR 鲁棒性结论。
+- CWT 和三视图融合在 CPU 上训练耗时明显高于 STFT/IQ 融合。
+- 融合模型未超过 ResNet1D baseline，后续 full dataset 上需重新验证。
+
+### 下一步计划
+
+- 进入 Stage 2.2：服务器 RadioML2016.10A full baseline/full ablation。
+- 优先 full baseline：CNN1D、ResNet1D。
+- full ablation 建议优先跑：`fusion_iq_stft`、`fusion_iq_stft_cwt`；资源足够再补 `tfcnn_cwt`。
+- Stage 3 再做低 SNR 鲁棒性分析。

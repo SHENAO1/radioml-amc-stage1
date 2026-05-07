@@ -46,13 +46,16 @@ def model_required_views(model_name: str) -> list[str]:
     normalized = model_name.lower()
     mapping = {
         "cnn1d": ["iq"],
+        "cnn1d_iq": ["iq"],
         "resnet1d": ["iq"],
+        "resnet1d_iq": ["iq"],
         "residualcnn1d": ["iq"],
         "tfcnn_stft": ["stft"],
         "stft_cnn2d": ["stft"],
         "tfcnn_cwt": ["cwt"],
         "cwt_cnn2d": ["cwt"],
         "fusion_iq_stft": ["iq", "stft"],
+        "fusion_iq_amp_phase": ["iq", "amp_phase"],
         "fusion_iq_cwt": ["iq", "cwt"],
         "fusion_iq_stft_cwt": ["iq", "stft", "cwt"],
     }
@@ -65,6 +68,8 @@ def feature_config_for_model(config: dict[str, Any], model_name: str) -> dict[st
     raw = dict(config.get("features", {}))
     if "views" not in raw:
         raw["views"] = model_required_views(model_name)
+    if "amp_phase" not in raw:
+        raw["amp_phase"] = {}
     if "stft" not in raw:
         raw["stft"] = dict(config.get("stft", {}))
     if "cwt" not in raw:
@@ -74,9 +79,9 @@ def feature_config_for_model(config: dict[str, Any], model_name: str) -> dict[st
 
 def build_model(model_name: str, num_classes: int, feature_config: dict[str, Any] | None = None) -> nn.Module:
     normalized = model_name.lower()
-    if normalized == "cnn1d":
+    if normalized in {"cnn1d", "cnn1d_iq"}:
         return CNN1D(num_classes=num_classes)
-    if normalized in {"resnet1d", "residualcnn1d"}:
+    if normalized in {"resnet1d", "resnet1d_iq", "residualcnn1d"}:
         return ResNet1D(num_classes=num_classes)
     if normalized in {"tfcnn_stft", "stft_cnn2d"}:
         return TimeFrequencyCNN(num_classes=num_classes, view="stft")

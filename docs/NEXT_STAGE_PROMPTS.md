@@ -164,3 +164,54 @@ Stage 2 已完成：
 - 不引入 Transformer 或复杂注意力机制；
 - 不用 mock 结果冒充真实结果。
 ```
+
+## Stage 2.1 → Stage 2.2
+
+当前 Stage 2.1 状态为 Done：RadioML2016.10A 真实 subset 完整消融已完成，Stage 1.6 baseline 已纳入统一对比。下一阶段优先进入服务器 full baseline/full ablation，不要直接进入 RadioML2018.01A。
+
+```text
+你现在继续维护项目 radioml-amc-stage1，角色是机器学习实验复现工程师、无线电 AMC 研究助理和 PyTorch 训练工程师。
+
+启动前请按 durable context 规则读取：
+1. docs/PROGRESS_LOG.md
+2. docs/STAGE_INDEX.md
+3. docs/stages/STAGE_021_REAL_SUBSET_ABLATION.md
+4. docs/EXPERIMENT_LOG.md
+5. runs/stage2_1_real_subset_ablation_comparison/stage2_1_ablation_comparison.md
+6. runs/stage2_1_real_subset_ablation_comparison/stage2_1_ablation_summary.json
+
+当前 Stage 2.1 真实 subset 结果：
+- 数据集：RadioML2016.10A real subset
+- subset：4 类、8 个 SNR、每组 200 条
+- seed：42
+- epochs：5
+- batch size：128
+- low SNR：N/A，因为 subset 不含 SNR <= -6
+- CNN1D：0.8461
+- ResNet1D：0.9070
+- tfcnn_stft：0.5961
+- tfcnn_cwt：0.6539
+- fusion_iq_stft：0.8320
+- fusion_iq_amp_phase：0.8086
+- fusion_iq_stft_cwt：0.8328
+
+当前结论：
+- subset 最佳模型仍是 ResNet1D，Acc 0.9070。
+- Stage 2.1 最佳融合模型是 fusion_iq_stft_cwt，Acc 0.8328，但未超过 CNN1D/ResNet1D baseline。
+- 当前结果可以写入结课报告的 subset 消融章节，但必须标注 single-seed、real subset、low SNR N/A、非 full dataset。
+
+Stage 2.2 目标：
+1. 在服务器或 GPU 环境补齐 RadioML2016.10A full baseline：CNN1D、ResNet1D。
+2. 在 full 数据上运行主要 Stage 2 模型：优先 fusion_iq_stft、fusion_iq_stft_cwt；资源足够再补 tfcnn_cwt。
+3. 生成 full comparison，字段保持 Stage 2.1 一致。
+4. 更新 docs/stages/STAGE_022_FULL_ABLATION.md、STAGE_INDEX、PROGRESS_LOG、EXPERIMENT_LOG 和 NEXT_STAGE_PROMPTS。
+5. 明确 full 结果和 subset 结果的区别。
+
+严格不做：
+- 不自动下载大数据集，除非用户明确要求并提供服务器环境；
+- 不打印或接触 Kaggle token；
+- 不把 data/raw、runs、checkpoint、.venv 加入 Git；
+- 不进入 RadioML2018.01A；
+- 不引入 Transformer 或复杂注意力机制；
+- 不离线保存全量 STFT/CWT 图片。
+```

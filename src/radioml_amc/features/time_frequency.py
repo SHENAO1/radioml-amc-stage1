@@ -147,3 +147,22 @@ def compute_cwt_tensor(
         image = torch.log1p(image)
     image = image.unsqueeze(0).to(dtype=torch.float32)
     return _normalize_image(image) if normalize else image
+
+
+def compute_amplitude_phase_tensor(
+    sample: torch.Tensor | np.ndarray,
+    normalize: bool = True,
+) -> torch.Tensor:
+    """Compute amplitude and unwrapped phase as a two-channel 1D view."""
+    iq = _as_iq_tensor(sample)
+    complex_signal = torch.complex(iq[0], iq[1])
+    amplitude = complex_signal.abs()
+    phase = torch.angle(complex_signal)
+    if int(phase.shape[0]) > 1:
+        jumps = phase[1:] - phase[:-1]
+        corrections = torch.zeros_like(jumps)
+        corrections = torch.where(jumps > np.pi, corrections - (2.0 * np.pi), corrections)
+        corrections = torch.where(jumps < -np.pi, corrections + (2.0 * np.pi), corrections)
+        phase = phase + torch.cat([torch.zeros(1, dtype=phase.dtype, device=phase.device), torch.cumsum(corrections, dim=0)])
+    view = torch.stack([amplitude, phase], dim=0).to(dtype=torch.float32)
+    return _normalize_image(view) if normalize else view
