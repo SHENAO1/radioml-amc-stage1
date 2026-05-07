@@ -124,3 +124,61 @@ python scripts/run_stage1_5_baselines.py --config configs/stage1_rml2016a_real_s
 ### 下一步计划
 
 - 放置真实数据到 `data/raw/` 或 `data/raw/radioml2016/` 后，先运行 subset 检查与训练，再在服务器运行 full baseline。
+
+## 2026-05-07 Stage 1.6：真实 RadioML2016.10A 数据接入与 baseline 执行
+
+### 本次目标
+
+- 检查当前工程状态，确认 Stage 1 和 Stage 1.5 未被破坏。
+- 检查真实 RadioML2016.10A 是否已经放入约定路径。
+- 无真实数据时补齐下载说明、服务器 full baseline 步骤和 Stage 1.6 过程文档。
+- 明确进入 Stage 2 的前置条件。
+
+### 本次完成
+
+- 确认当前是 Git 仓库，初始 `git status --short` 无输出。
+- 确认 `README.md`、`docs/`、`configs/`、`scripts/`、`runs/` 结构完整。
+- 确认四个约定路径均未检测到真实 RadioML2016.10A。
+- 执行 `pytest -q`，结果为 `.s......... [100%]`。
+- 执行真实 subset `check_dataset`，脚本给出清晰缺失提示并正常返回。
+- 增强 `scripts/download_radioml_kaggle.sh` 的 Kaggle token、Windows/Linux、2016/2018 示例和 `check_dataset` 说明。
+- 更新 README 的数据下载、放置、本地 subset 和服务器 full baseline 命令。
+- 新增 Stage 1.6 过程文档，并更新阶段索引、实验记录和下一阶段提示词。
+
+### 修改/新增文件
+
+- `README.md`
+- `scripts/download_radioml_kaggle.sh`
+- `docs/stages/STAGE_016_REAL_DATA_EXECUTION.md`
+- `docs/STAGE_INDEX.md`
+- `docs/PROGRESS_LOG.md`
+- `docs/EXPERIMENT_LOG.md`
+- `docs/NEXT_STAGE_PROMPTS.md`
+
+### 执行命令
+
+```bash
+pytest -q
+python scripts/check_dataset.py --config configs/stage1_rml2016a_real_subset.yaml
+```
+
+### 输出结果
+
+- data status: Need Data；真实 RadioML2016.10A 尚未放置。
+- run_dir: N/A。
+- baseline comparison: N/A。
+- report: `docs/stages/STAGE_016_REAL_DATA_EXECUTION.md`。
+- docs: `docs/STAGE_INDEX.md`、`docs/PROGRESS_LOG.md`、`docs/EXPERIMENT_LOG.md`、`docs/NEXT_STAGE_PROMPTS.md` 已更新。
+
+### 当前问题
+
+- 真实 RadioML2016.10A 尚未放置，真实 subset/full baseline 尚未执行。
+- 服务器 Kaggle token、磁盘空间和 GPU 环境尚未验证。
+- 当前 baseline comparison 仍只有 mock smoke test，不是正式实验结果。
+
+### 下一步计划
+
+- 下载 RadioML2016.10A 并放到 `data/raw/` 或 `data/raw/radioml2016/` 的约定路径。
+- 先运行 `python scripts/check_dataset.py --config configs/stage1_rml2016a_real_subset.yaml`。
+- 再运行真实 subset 可视化、CNN1D/ResNet1D baseline 和 comparison。
+- subset 验证通过后，在服务器执行 full baseline。

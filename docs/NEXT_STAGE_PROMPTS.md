@@ -67,3 +67,47 @@ Stage 2 主题：STFT/CWT 时频分支与 I/Q 多视图融合。
 - 输出 per-SNR、low/mid/high SNR、per-class、混淆矩阵、归一化混淆矩阵和复杂度统计。
 - docs/ 阶段文档和 EXPERIMENT_LOG.md 已更新，真实与 mock 结果明确区分。
 ```
+
+## Stage 1.6 → Stage 2
+
+当前 Stage 1.6 状态为 Need Data 时，不允许直接建议进入 Stage 2。必须先下载并放置真实 RadioML2016.10A，至少跑通真实 subset baseline，并生成真实 `baseline_comparison.md`、`baseline_comparison.csv` 和 `accuracy_vs_snr.png`。
+
+如果真实 subset baseline 已完成但服务器 full baseline 未完成，可以进入 Stage 2 的工程开发；论文实验仍需补齐 full baseline。如果服务器 full baseline 也完成，可以正式进入 Stage 2。
+
+```text
+你现在继续维护项目 radioml-amc-stage1，角色是机器学习实验复现工程师、无线电 AMC 研究助理和 PyTorch 训练工程师。
+
+请先读取 durable context：
+1. 如果 docs/session_state.md 存在，先读取它；
+2. 再读取 docs/PROGRESS_LOG.md；
+3. 读取 docs/stages/STAGE_016_REAL_DATA_EXECUTION.md；
+4. 读取 docs/EXPERIMENT_LOG.md；
+5. 如果已有真实 run_dir，读取对应 metrics.json、baseline_comparison.md 和关键 plots 路径。
+
+进入 Stage 2 前置条件：
+- 至少完成真实 RadioML2016.10A subset baseline；
+- 最好完成服务器 full baseline；
+- baseline_comparison.md 和 baseline_comparison.csv 已生成；
+- accuracy_vs_snr.png 已生成；
+- docs/EXPERIMENT_LOG.md 已记录真实实验；
+- mock smoke test 不能作为正式实验依据。
+
+如果 Stage 1.6 仍为 Need Data，请不要实现 STFT/CWT、多视图融合、Transformer 或注意力机制；先协助接入真实 RadioML2016.10A 并完成 CNN1D/ResNet1D subset baseline。
+
+Stage 2 目标：
+1. 新增 STFT/CWT on-the-fly 特征接口，不离线保存全量 STFT/CWT 图片。
+2. 新增时频 CNN 分支。
+3. 新增 I/Q + STFT、I/Q + CWT、I/Q + STFT + CWT 多视图融合模型。
+4. 保留 CNN1D 和 ResNet1D baseline，不破坏 Stage 1.6 的 check_dataset、visualize、run_stage1_5_baselines 和 compare_runs 流程。
+5. 新增 configs/stage2_* 配置，区分 mock、real subset、real full 和 ablation。
+6. 新增 scripts/run_stage2_ablations.py 批量运行消融实验。
+7. 输出 overall accuracy、per-SNR accuracy、low/mid/high SNR accuracy、per-class accuracy、confusion matrix、normalized_confusion_matrix、模型复杂度统计和训练耗时。
+8. 继续更新 docs/STAGE_INDEX.md、docs/PROGRESS_LOG.md、docs/EXPERIMENT_LOG.md、docs/NEXT_STAGE_PROMPTS.md 和新的 Stage 2 过程文档。
+
+Stage 2 不做：
+- 不自动下载大数据集；
+- 不把 RadioML 数据集加入 Git；
+- 不把 checkpoint 或 runs 产物加入 Git；
+- 不离线保存全量 STFT/CWT 图片；
+- 不直接引入 Transformer 或复杂注意力机制，除非真实 baseline 和消融已经稳定。
+```

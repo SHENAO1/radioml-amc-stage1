@@ -53,27 +53,69 @@ pytest -q
 
 mock 数据只用于检查工程是否可运行，不能作为正式实验结果或论文结论。
 
-## 6. RadioML2016.10A 数据集放置说明
+## 6. RadioML2016.10A 数据集下载与放置
 
-请手动下载 RadioML2016.10A，并放到以下任一位置：
+Stage 1.6 需要真实 RadioML2016.10A 数据后才能执行正式 subset/full baseline。当前项目不会自动下载大数据集，也不会把数据集加入 Git。
+
+请先配置 Kaggle API token：
+
+```bash
+pip install kaggle
+mkdir -p ~/.kaggle
+# 将 kaggle.json 放到 ~/.kaggle/kaggle.json
+chmod 600 ~/.kaggle/kaggle.json
+```
+
+Windows PowerShell：
+
+```powershell
+pip install kaggle
+New-Item -ItemType Directory -Force $env:USERPROFILE\.kaggle
+# 将 kaggle.json 放到 $env:USERPROFILE\.kaggle\kaggle.json
+```
+
+不要把 `kaggle.json` 提交到 GitHub。`scripts/download_radioml_kaggle.sh` 会创建约定目录并打印 Kaggle 下载示例，但不会强制下载。
+
+RadioML2016.10A 下载示例：
+
+```bash
+bash scripts/download_radioml_kaggle.sh
+kaggle datasets download -d nolasthitnotomorrow/radioml2016-deepsigcom -p data/raw/radioml2016 --unzip
+```
+
+如果 Kaggle 页面上的 dataset slug 与示例不同，请以 Kaggle 页面实际 slug 为准。Stage 1.6 不需要 RadioML2018.01A；脚本中的 2018 命令只为后续阶段预留。
+
+下载后请检查文件名，并放到以下任一位置：
 
 ```text
 data/raw/RML2016.10a_dict.pkl
 data/raw/RML2016.10a_dict.pkl.bz2
+data/raw/radioml2016/RML2016.10a_dict.pkl
+data/raw/radioml2016/RML2016.10a_dict.pkl.bz2
 ```
 
-真实数据检查和训练：
+Linux 服务器可使用软链接：
 
 ```bash
-python scripts/check_dataset.py --config configs/stage1_rml2016a.yaml
-python scripts/visualize_examples.py --config configs/stage1_rml2016a.yaml
-python scripts/train_cnn1d.py --config configs/stage1_rml2016a.yaml
-python scripts/train_resnet1d.py --config configs/stage1_rml2016a.yaml
-python scripts/evaluate_model.py --config configs/stage1_rml2016a.yaml --checkpoint runs/某次运行目录/best_model.pt
-python scripts/make_report.py --run_dir runs/某次运行目录
+ln -s "$(pwd)/data/raw/radioml2016/RML2016.10a_dict.pkl" data/raw/RML2016.10a_dict.pkl
 ```
 
-如果数据文件不存在，脚本会给出清晰提示，不会打印难以阅读的 traceback。
+Windows PowerShell 可直接移动：
+
+```powershell
+Move-Item .\RML2016.10a_dict.pkl .\data\raw\radioml2016\RML2016.10a_dict.pkl
+```
+
+真实数据检查和本地 subset baseline：
+
+```bash
+python scripts/check_dataset.py --config configs/stage1_rml2016a_real_subset.yaml
+python scripts/visualize_examples.py --config configs/stage1_rml2016a_real_subset.yaml
+python scripts/run_stage1_5_baselines.py --config configs/stage1_rml2016a_real_subset.yaml
+python scripts/compare_runs.py --run_dirs runs/xxx_cnn1d runs/yyy_resnet1d --output runs/stage1_6_real_subset_comparison
+```
+
+subset 只用于本地验证真实数据链路，不能替代服务器 full baseline。如果数据文件不存在，脚本会给出清晰提示，不会打印难以阅读的 traceback。
 
 ## 7. 输出目录说明
 
@@ -117,7 +159,7 @@ ResNet1D 使用 2 到 3 个轻量残差块，仍然直接处理 I/Q 序列。它
 
 STFT 在第一阶段只用于示例可视化，不会把全量样本离线转换成图片数据集。
 
-## 10. 服务器训练与数据集下载说明
+## 10. 服务器 full baseline 训练与数据集下载说明
 
 本地推荐流程：
 
@@ -127,19 +169,45 @@ STFT 在第一阶段只用于示例可视化，不会把全量样本离线转换
 4. 确认脚本和 pytest 无误；
 5. git push 到 GitHub。
 
+服务器推荐使用 `tmux` 或等价的会话管理工具，建议直接在服务器下载数据集，不建议从本地上传大数据。先检查数据盘空间和 GPU：
+
+```bash
+df -h
+nvidia-smi
+python - <<'PY'
+import torch
+print("cuda_available:", torch.cuda.is_available())
+print("device_count:", torch.cuda.device_count())
+PY
+```
+
 服务器推荐流程：
 
-1. `git clone` 仓库；
-2. 创建虚拟环境；
-3. `pip install -r requirements.txt`；
-4. 配置 Kaggle API token 到 `~/.kaggle/kaggle.json`；
-5. 参考 `scripts/download_radioml_kaggle.sh` 下载数据集；
-6. 执行 `bash scripts/check_storage.sh`；
-7. 执行 `python scripts/check_dataset.py --config configs/stage1_rml2016a.yaml`；
-8. 执行训练脚本；
-9. 查看 `runs/` 输出。
+```bash
+git clone <your-repo-url>
+cd radioml-amc-stage1
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+bash scripts/check_storage.sh
+bash scripts/download_radioml_kaggle.sh
+# 按脚本提示配置 Kaggle token 并手动运行 RadioML2016.10A 下载命令
+python scripts/check_dataset.py --config configs/stage1_rml2016a_real_full.yaml
+python scripts/run_stage1_5_baselines.py --config configs/stage1_rml2016a_real_full.yaml
+```
 
-`scripts/download_radioml_kaggle.sh` 是示例脚本，不会自动执行。不要把 `kaggle.json` 上传到 GitHub。
+full baseline 耗时需要根据服务器 GPU、CPU、磁盘和 batch size 确定。full baseline 完成后至少保存并记录：
+
+- `metrics.json`
+- `baseline_comparison.md`
+- `baseline_comparison.csv`
+- `confusion_matrix.png`
+- `normalized_confusion_matrix.png`
+- `accuracy_vs_snr.png`
+- `per_class_accuracy.png`
+- `stage1_5_report.md` 或 `stage1_6_report.md`
+
+`scripts/download_radioml_kaggle.sh` 是示例脚本，不会自动下载。不要把 `kaggle.json` 上传到 GitHub。
 
 ## 11. GitHub 上传注意事项
 
@@ -167,7 +235,7 @@ GitHub 只上传代码、配置、说明和测试文件。以下内容不上传�
 
 ## 13. 第二阶段计划
 
-第二阶段建议加入 STFT/CWT 时频分支、多视图融合、低 SNR 鲁棒训练、消融实验和正式论文表格。届时需要固定实验协议，区分 mock、本地 subset 和服务器全量结果。
+第二阶段建议加入 STFT/CWT 时频分支、多视图融合、低 SNR 鲁棒训练、消融实验和正式论文表格。进入第二阶段前至少应完成真实 RadioML2016.10A subset baseline，并生成 `baseline_comparison.md`、`baseline_comparison.csv` 和 `accuracy_vs_snr.png`；更稳妥的论文实验入口是服务器 full baseline 也完成。mock 结果不能作为进入 Stage 2 的主要依据。
 
 ## 14. 阶段 1.5：真实数据 baseline
 
