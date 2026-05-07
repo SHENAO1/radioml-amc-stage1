@@ -1,0 +1,35 @@
+project:
+  name: radioml-amc-stage1
+  seed: 42
+
+data:
+  mode: mock
+  dataset: mock_radioml
+  num_samples: 512
+  num_classes: 4
+  snr_values: [-6, 0, 6, 12]
+  signal_length: 128
+  test_size: 0.2
+  val_size: 0.1
+  split_strategy: stratified
+
+train:
+  model: cnn1d
+  epochs: 2
+  batch_size: 32
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  num_workers: 0
+  device: auto
+  early_stopping_patience: 2
+
+stft:
+  nperseg: 32
+  noverlap: 16
+
+outputs:
+  run_root: runs
+  save_checkpoint: true
+  save_plots: true
+  save_report: true
+
