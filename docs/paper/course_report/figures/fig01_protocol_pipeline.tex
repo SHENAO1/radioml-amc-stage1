@@ -1,0 +1,27 @@
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  node distance=1.05cm and 1.1cm,
+  stage/.style={rounded corners, draw=#1!75!black, fill=#1!10, very thick,
+    align=center, minimum width=3.0cm, minimum height=1.05cm, font=\small},
+  artifact/.style={rounded corners, draw=black!55, fill=black!4, thick,
+    align=center, minimum width=3.0cm, minimum height=0.85cm, font=\small},
+  arrow/.style={-{Latex[length=2.5mm]}, thick, draw=black!70}
+]
+\node[stage=blue] (data) {\datasetname{}\\220k samples};
+\node[stage=teal, right=of data] (split) {Fixed split\\\splitname{}};
+\node[stage=orange, right=of split] (models) {9 model rows\\3 train seeds};
+\node[artifact, below=of models] (pred) {Predictions archive\\27 \texttt{predictions\_test.csv}};
+\node[artifact, left=of pred] (agg) {Aggregate tables\\main / low-SNR / latency};
+\node[artifact, right=of pred] (tests) {Paired statistics\\bootstrap + McNemar};
+\node[stage=green, below=of pred] (report) {Course report claims\\evidence-bounded};
+\draw[arrow] (data) -- (split);
+\draw[arrow] (split) -- (models);
+\draw[arrow] (models) -- (pred);
+\draw[arrow] (pred) -- (tests);
+\draw[arrow] (pred) -- (agg);
+\draw[arrow] (agg) -- (report);
+\draw[arrow] (tests) -- (report);
+\node[artifact, below=0.55cm of agg, fill=gray!8] (exclude) {Stage 6B smoke/diagnostic\\excluded from main results};
+\draw[arrow, dashed, draw=gray!70] (exclude) -- (report);
+\end{tikzpicture}%
+}

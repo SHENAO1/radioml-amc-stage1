@@ -71,3 +71,37 @@
 Stage~6B smoke 或 diagnostic 输出不得进入 Stage 5A/5B 主表、low-SNR 表、paired bootstrap、McNemar 检验、摘要结论或总结性实验结论。若未来执行 tiny subset diagnostic，也必须使用独立输出目录、独立模型标识和 \texttt{DIAGNOSTIC} evidence label，并明确其不能替代当前 Stage 5A/5B 主证据。
 
 本附录只整理 evidence package、manifest、环境和同步边界，不新增实验结果。任何后续候选方案在完成新的完整协议前，都只能作为工程诊断或未来工作线索记录，不能写作当前课程报告的主结果。
+
+\section{补充图表清单与诊断性可视化}
+
+表~\ref{tab:figure-inventory} 汇总本文新增图表文件、主要证据源、证据标签和正文引用位置。该清单用于复查图表是否均可回溯到已有 artifact，而不是来自新增训练或 Stage~6B diagnostic 输出。
+
+\input{tables/figure_inventory}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{fig08_low_snr_confusion_panels.pdf}
+  \caption{代表模型在 low-SNR scope 下的行归一化混淆矩阵，三训练种子聚合。Data source: \texttt{confusion\_low\_snr.csv} for seeds 42, 2025, and 3407.}
+  \label{fig:low-snr-confusion-panels}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{fig16_overall_confusion_panels.pdf}
+  \caption{代表模型在 overall scope 下的行归一化混淆矩阵，三训练种子聚合。Data source: \texttt{confusion\_overall.csv} for seeds 42, 2025, and 3407.}
+  \label{fig:overall-confusion-panels}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.82\textwidth]{fig09_mcldnn_seed_anomaly.pdf}
+  \caption{MCLDNN 在三个训练种子上的 overall accuracy 与 macro-F1。Data source: \texttt{mcldnn/seed\_*/metrics\_test.json}; seeds 2025 and 3407 are retained negative evidence.}
+  \label{fig:mcldnn-seed-anomaly}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/fig10_evidence_boundary}
+  \caption{本文证据标签与排除规则示意图。Data source: \texttt{REPORT\_EVIDENCE\_MAP.md}, paper package manifests, and environment audit.}
+  \label{fig:evidence-boundary}
+\end{figure}

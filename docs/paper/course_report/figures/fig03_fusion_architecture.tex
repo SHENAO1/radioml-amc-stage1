@@ -1,0 +1,33 @@
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  block/.style={rounded corners, draw=#1!75!black, fill=#1!10, very thick,
+    align=center, minimum width=2.45cm, minimum height=0.9cm, font=\small},
+  smallblock/.style={rounded corners, draw=black!55, fill=black!3, thick,
+    align=center, minimum width=2.4cm, minimum height=0.75cm, font=\scriptsize},
+  arrow/.style={-{Latex[length=2.1mm]}, thick, draw=black!65}
+]
+\node[block=blue] (iqin) at (0,1.35) {I/Q input\\$x_{\mathrm{IQ}}$};
+\node[smallblock] (iqbranch) at (2.9,1.35) {1D Conv branch\\$h_{\mathrm{IQ}}$};
+\node[block=teal] (stftin) at (0,-1.35) {STFT input\\$x_{\mathrm{STFT}}$};
+\node[smallblock] (stftbranch) at (2.9,-1.35) {2D Conv branch\\$h_{\mathrm{STFT}}$};
+\node[smallblock] (proj1) at (5.6,1.35) {Projection\\$z_{\mathrm{IQ}}$};
+\node[smallblock] (proj2) at (5.6,-1.35) {Projection\\$z_{\mathrm{STFT}}$};
+\node[block=orange] (concat) at (8.7,1.35) {Static fusion\\concat + classifier};
+\node[block=purple] (gate) at (8.7,-1.35) {Scalar gate\\$(1-g)z_{\mathrm{IQ}}+gz_{\mathrm{STFT}}$};
+\node[smallblock] (out1) at (11.8,1.35) {Class logits};
+\node[smallblock] (out2) at (11.8,-1.35) {Class logits};
+\draw[arrow] (iqin) -- (iqbranch);
+\draw[arrow] (stftin) -- (stftbranch);
+\draw[arrow] (iqbranch) -- (proj1);
+\draw[arrow] (stftbranch) -- (proj2);
+\draw[arrow] (proj1) -- (concat);
+\draw[arrow] (proj2) -- (concat);
+\draw[arrow] (concat) -- (out1);
+\draw[arrow] (proj1) -- (gate);
+\draw[arrow] (proj2) -- (gate);
+\draw[arrow] (gate) -- (out2);
+\node[draw=black!45, rounded corners, fill=gray!7, align=center, font=\scriptsize,
+  minimum width=11.7cm] at (5.95,-2.75)
+  {The gate is a tested candidate, not a supported robustness claim; Stage 5A/5B results decide its interpretation.};
+\end{tikzpicture}%
+}

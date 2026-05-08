@@ -89,6 +89,10 @@ McNemar 检验基于两个模型在同一样本上的正确/错误配对结果�
   \end{tabularx}
 \end{table}
 
+表~\ref{tab:figure-evidence-map} 进一步列出本文新增图表与证据源之间的对应关系。凡是涉及模型性能、低信噪比表现或配对统计检验的图表，均只使用 \texttt{PROJECT\_SUPPORTED} 主实验材料；复杂度相关图表仅使用 \texttt{CONTROLLED\_LATENCY} 范围内的 CUDA forward latency 证据。
+
+\input{tables/figure_evidence_sources}
+
 Stage 6B smoke 或 diagnostic 输出不得进入 Stage 5A/5B 主表、low-SNR 表、paired bootstrap、McNemar 检验、摘要结论或总结结论。若后续存在新的诊断候选，其输出也必须使用单独模型标识、单独输出目录和明确 evidence label；除非另有完整协议授权，否则不能替代、修复或重写当前 Stage 5A/5B evidence。
 
 本地同步状态也限定了报告写作方式。当前本地已有 paper package、27 个 Stage 5A prediction archive 文件和统计检验 artifacts，足以支撑课程报告的主结果写作与统计解释；但完整 27 个 Stage 5A \path{best_model.pt} 权重尚未同步到本地 package 或本地 Stage 5A 结果树。因此，本报告可以基于已归档预测与聚合表撰写实验结果，但不能宣称本地包已经构成完整训练权重归档。

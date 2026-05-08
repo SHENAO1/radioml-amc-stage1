@@ -1,0 +1,33 @@
+\begingroup
+\footnotesize
+\setlength{\tabcolsep}{2.5pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{longtable}{p{0.30\textwidth}p{0.30\textwidth}p{0.20\textwidth}p{0.08\textwidth}}
+\caption{新增图表清单、证据源与正文引用位置}\label{tab:figure-inventory}\\
+\toprule
+文件 & 主要证据源 & 证据标签 & 引用位置 \\
+\midrule
+\endfirsthead
+\toprule
+文件 & 主要证据源 & 证据标签 & 引用位置 \\
+\midrule
+\endhead
+\path{fig01_protocol_pipeline.tex} & Protocol/manifests/statistical package & \path{PROJECT_SUPPORTED} & 第 1 章 \\
+\path{fig02_model_taxonomy.tex} & \path{main_table_metrics.csv} & \path{PROJECT_SUPPORTED} & 第 3 章 \\
+\path{fig03_fusion_architecture.tex} & model source files & \path{PROJECT_SUPPORTED} & 第 3 章 \\
+\path{fig04_accuracy_by_snr_group.pdf/png} & \path{main_table_metrics.csv} & \path{PROJECT_SUPPORTED} & 第 4 章 \\
+\path{fig05_low_snr_per_snr_curve.pdf/png} & \path{low_snr_table.csv} & \path{PROJECT_SUPPORTED} & 第 4 章 \\
+\path{fig06_bootstrap_delta_forest.pdf/png} & \path{paired_bootstrap_accuracy_deltas.csv} & \path{PROJECT_SUPPORTED} & 第 4 章 \\
+\path{fig07_accuracy_latency_params_bubble.pdf/png} & \path{main_table_metrics.csv}; \path{complexity_latency_table.csv} & \path{CONTROLLED_LATENCY} & 第 4 章 \\
+\path{fig08_low_snr_confusion_panels.pdf/png} & \path{confusion_low_snr.csv} & \path{PROJECT_SUPPORTED} & 附录 A \\
+\path{fig09_mcldnn_seed_anomaly.pdf/png} & mcldnn metrics\_test.json & \path{PROJECT_SUPPORTED} & 附录 A \\
+\path{fig10_evidence_boundary.tex} & \path{REPORT_EVIDENCE_MAP.md} & Mixed labels & 附录 A \\
+\path{fig11_full_snr_accuracy_macro_f1.pdf/png} & \path{metrics_per_snr.csv} & \path{PROJECT_SUPPORTED} & 第 4 章 \\
+\path{fig12_model_class_accuracy_heatmap.pdf/png} & \path{metrics_per_class.csv} & \path{PROJECT_SUPPORTED} & 第 4 章 \\
+\path{fig13_low_snr_class_recall_delta.pdf/png} & \path{confusion_low_snr.csv} & \path{PROJECT_SUPPORTED} & 第 4 章 \\
+\path{fig14_paired_disagreement_by_snr.pdf/png} & \path{predictions_test.csv} & \path{PROJECT_SUPPORTED} & 第 4 章 \\
+\path{fig15_seed_stability_all_models.pdf/png} & \path{metrics_test.json} & \path{PROJECT_SUPPORTED} & 第 4 章 \\
+\path{fig16_overall_confusion_panels.pdf/png} & \path{confusion_overall.csv} & \path{PROJECT_SUPPORTED} & 附录 A \\
+\bottomrule
+\end{longtable}
+\endgroup

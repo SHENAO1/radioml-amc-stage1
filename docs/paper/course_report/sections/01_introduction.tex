@@ -7,6 +7,10 @@
 
 传统 AMC 方法通常依赖人工设计的统计特征或高阶特征，而深度神经网络可以直接从原始 I/Q 序列或派生时频表示中学习判别性表征。I/Q 序列保留了基带信号的同相与正交分量，适合刻画时域相位和幅度变化；STFT 等时频视图则显式呈现局部频率结构，为低信噪比下的互补信息分析提供了一个自然入口。不过，引入额外视图并不必然带来整体性能收益，融合结构是否有效仍需要在受控协议、参数控制和统计检验下判断。
 
+为使报告中的图表安排与 AMC 论文常见呈现方式一致，本文在已有项目文献综述基础上补充梳理了 20 篇开放论文或开放全文论文的图表类型。表~\ref{tab:literature-figure-patterns} 显示，结构图、accuracy-vs-SNR 曲线、消融或结果对比表、混淆矩阵以及复杂度/延迟表是该方向中反复出现的表达方式。因此，本文后续图表并非装饰性补充，而是围绕固定协议、模型矩阵、低信噪比行为、统计检验和复杂度边界组织证据。
+
+\input{tables/literature_figure_patterns}
+
 \section{问题定义}
 
 本文研究基于 \datasetname{} 的调制分类问题。给定一个无线电信号样本，其输入可以表示为原始 I/Q 序列，也可以通过预处理得到 STFT 时频视图；模型输出为调制类别标签。本文不研究信噪比估计、信道识别或端到端部署系统优化，而是围绕固定数据划分下的分类性能、低信噪比分组表现和统计检验组织实验。
@@ -20,6 +24,13 @@
 在评价层面，本文报告 overall accuracy、low/mid/high SNR accuracy、macro-F1 与 balanced accuracy，并针对已登记的模型对使用 paired bootstrap 和 McNemar 检验。统计检验基于 archived predictions 的同一样本配对，而不是重新训练模型或重写 Stage 5A/5B 主表。复杂度和延迟讨论仅使用 \texttt{CONTROLLED\_LATENCY} 证据，即受控 CUDA forward latency，不扩展为 CPU、FLOPs/MACs 或 STFT preprocessing-inclusive latency 结论。
 
 本文还保留 MCLDNN seed 2025 与 seed 3407 的 chance-level collapse 结果。该处理体现了固定协议下的负结果保留原则：实验报告应忠实记录已登记运行的完整结果，而不是通过删除失败种子来获得更整齐的汇总值。相关异常解释、统计检验和可复现性边界将在后续章节展开。
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/fig01_protocol_pipeline}
+  \caption{本文主实验与统计检验证据链。Data source: Stage 5A/5B protocol documents, paper package manifests, predictions archive, and statistical-test package.}
+  \label{fig:protocol-pipeline}
+\end{figure}
 
 \section{贡献与边界}
 

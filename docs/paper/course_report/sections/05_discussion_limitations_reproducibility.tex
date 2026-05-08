@@ -68,6 +68,8 @@
   }
 \end{table}
 
+附录图~\ref{fig:evidence-boundary} 将上述证据标签整理为三栏边界图。该图强调，\texttt{PROJECT\_SUPPORTED} 与 \texttt{CONTROLLED\_LATENCY} 可以分别支撑主结果和受控延迟讨论，而 \texttt{SMOKE TEST}/\texttt{DIAGNOSTIC} 只能用于工程追踪与未来诊断说明。
+
 环境方面，本地环境为 Windows 与 CPU-only PyTorch，适合进行报告写作、manifest 检查、CSV 只读核验和轻量文档维护；服务器环境记录为 CUDA-capable PyTorch 与 NVIDIA GeForce RTX 4070，适合作为未来授权实验的执行环境。该区分对复现性很重要：本轮报告写作不应被描述为在本地复跑训练，也不应把本地 CPU-only 环境误写为 Stage 5A 主实验执行环境。
 
 当前本地证据包足以支撑课程报告主结果写作，因为聚合表、prediction archive 和统计检验 artifacts 已经同步；但它不是完整训练权重归档。环境同步记录显示，服务器端存在 27 个 Stage 5A \path{best_model.pt} 权重，而本地 Stage 5A 结果树和 paper package 中没有完整 27 个权重文件。如果后续需要模型加载、推理复跑或权重级归档，应先将这些权重同步到单独 archive/package 路径并进行 hash 检查，不能默认覆盖本地 \path{results/} 或 Stage 5A/5B 根目录。

@@ -26,6 +26,13 @@
   \end{tabularx}
 \end{table}
 
+\begin{figure}[htbp]
+  \centering
+  \input{figures/fig02_model_taxonomy}
+  \caption{主实验模型行的输入视图与方法角色分类。Data source: \texttt{main\_table\_metrics.csv} and Stage 5A/5B model registry.}
+  \label{fig:model-taxonomy}
+\end{figure}
+
 从方法设计角度看，上述矩阵并不预设任何结构必然优于其他结构。I/Q-only 模型用于提供原始时域信号基线；STFT-only 模型用于评估时频视图本身；I/Q+STFT 模型用于检验多视图融合在固定协议下的行为；参数匹配控制用于降低“参数量增加”对融合解释的混杂。上述边界与 \path{docs/paper/manuscript/section4_experimental_protocol.md} 和 \path{docs/paper/course_report/REPORT_EVIDENCE_MAP.md} 中的证据约束一致。
 
 \section{I/Q 序列基础模型}
@@ -109,6 +116,13 @@ I/Q 序列基础模型直接以形状为 $[B,2,L]$ 的基带信号张量作为�
 其中 $g$ 为样本级标量门控权重，$\sigma(\cdot)$ 表示 sigmoid 函数，$\phi(\cdot)$ 表示非线性激活。分类器随后基于融合表示 $h$ 输出调制类别 logits。
 
 需要注意的是，该 gate 不接收显式 SNR 输入，其设计目的是在固定模型矩阵中提供一个可检验的视图加权机制。本章只描述其实现方式与实验角色，不写“门控提升鲁棒性”或类似结果性表述。
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/fig03_fusion_architecture}
+  \caption{静态 I/Q-STFT 融合与标量门控融合的结构关系。Data source: \texttt{src/radioml\_amc/models/multiview.py} and \texttt{src/radioml\_amc/models/gated\_fusion.py}.}
+  \label{fig:fusion-architecture}
+\end{figure}
 
 \section{方法边界}
 
