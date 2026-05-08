@@ -1,0 +1,68 @@
+% !TeX encoding = UTF-8
+% !TeX program = xelatex
+\documentclass{CUCThesis}
+
+\usepackage[colorlinks,linkcolor=black,citecolor=black,urlcolor=black]{hyperref}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{threeparttable}
+\usepackage{siunitx}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,calc,shapes.geometric}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\graphicspath{{figures/}{coverimg/}}
+\addbibresource{ref.bib}
+
+\newcommand{\reporttitle}{基于时频特征与深度神经网络融合的无线电调制识别方法研究}
+\newcommand{\datasetname}{RadioML2016.10A}
+\newcommand{\splitname}{\texttt{stratified\_by\_mod\_snr\_seed42}}
+\newcommand{\mainseeds}{\texttt{42, 2025, 3407}}
+\newcommand{\lowSNR}{\texttt{snr\_db <= -6}}
+
+\setup{
+  Type = 机器学习课程作业报告,
+  Header = 中国传媒大学作业报告,
+  StudentID = 待填写,
+  TitleinCover = \customtitle{\reporttitle},
+  TitleinBody = \reporttitle,
+  Author = 待填写,
+  Date = 2026年5月
+}
+
+\begin{document}
+\coverpage
+\pagenumbering{Roman}
+\input{sections/abstract}
+\begingroup
+\makeatletter
+\let\ps@plain\ps@empty
+\let\ps@fancy\ps@empty
+\makeatother
+\pagestyle{empty}
+\ctexset{chapter = {format = \centering\zihao{3}\heiti}}
+\tableofcontents
+\clearpage
+\endgroup
+\pagestyle{fancy}
+\pagenumbering{arabic}
+
+\input{sections/01_introduction}
+\input{sections/02_dataset_protocol_metrics}
+\input{sections/03_methods_fusion}
+\input{sections/04_results_statistical_tests}
+\input{sections/05_discussion_limitations_reproducibility}
+\input{sections/06_conclusion}
+
+\begin{reference}
+  \printbibliography[heading=none]
+\end{reference}
+
+\appendix
+\input{sections/appendix_a_evidence_environment}
+\end{document}
