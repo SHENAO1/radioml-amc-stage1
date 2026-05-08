@@ -1,9 +1,73 @@
 \chapter{讨论、局限性与可复现性}
 
-\section{写作占位}
+\section{固定协议下结果的解释}
 
-本章为讨论、局限性与可复现性占位。正式正文应讨论固定划分解释边界、overall 与 low-SNR trade-off、gated fusion 负结果、受控 latency 的适用范围、MCLDNN 异常保留原则、预测归档与环境同步状态。
+第~4~章给出的主实验结果应被理解为固定协议内的观察，而不是无条件的模型排序。主结果只覆盖 \datasetname{}、固定划分 \splitname{}、9 个模型行和 3 个训练种子 \mainseeds{}。在这一协议中，\path{cldnn} 是 overall accuracy 与 macro-F1 最高的 observed model，并且相对 \path{resnet1d} 与 \path{iq_param_matched} 的 paired bootstrap 和 McNemar 检验均支持其在当前 paired comparison 中更高。该结论的有效范围由 \path{main_table_metrics.csv}、\path{paired_bootstrap_accuracy_deltas.csv} 和 \path{mcnemar_tests.csv} 共同限定。
+% evidence: main_table_metrics.csv; paired_bootstrap_accuracy_deltas.csv; mcnemar_tests.csv
 
-\section{声明边界}
+固定划分的主要价值在于降低模型比较中的划分扰动。所有模型行在同一 split artifact、同一训练种子集合和同一测试样本标识下完成评估，使模型间差异更容易被解释为当前实现与训练配置下的差异，而不是测试样本集合变化造成的偏差。三训练种子汇总也为结果提供了基本的随机性缓冲，避免仅依据单次训练给出结论。
 
-本章只做基于已有证据的解释和限制说明。不得把未同步的 Stage 5A 权重描述为本地完整归档，不得声称 CPU latency、FLOPs/MACs 或 preprocessing-inclusive latency 已被充分测量，不得把诊断候选写成已完成主实验。
+这一设计同时带来明确限制。固定 split 提高了模型行之间的可比性，但并不能替代多划分、多数据集或跨信道条件验证。本报告没有纳入其他数据集结果，也没有把任何 RadioML2018.01A 输出作为证据。因此，\path{cldnn} 的优势只能表述为“在当前固定划分协议下观察到的最强结果”，不能写成跨数据集泛化结论或最新水平比较。
+
+\section{低信噪比融合权衡}
+
+低信噪比分析显示，静态 I/Q-STFT 融合的价值主要体现为局部互补性线索，而不是整体性能优势。第~4~章中 \path{fusion_iq_stft} 在 \lowSNR{} 子集上接近 \path{cldnn}，并且相对 \path{iq_param_matched} 有小幅正向差异；统计检验中，\path{fusion_iq_stft} vs. \path{iq_param_matched} 的 low-SNR bootstrap delta 为正，McNemar 检验也支持该方向。然而，同一模型相对 \path{iq_param_matched} 的 overall delta 为负，说明低信噪比局部收益伴随整体准确率损失。
+% evidence: low_snr_table.csv; paired_bootstrap_accuracy_deltas.csv; mcnemar_tests.csv
+
+相对于 \path{cldnn}，静态融合的解释边界更窄。其 low-SNR paired bootstrap 置信区间跨越 0，McNemar 检验也未支持相对 \path{cldnn} 的 paired correctness 差异。因此，合理表述是：STFT 视图在当前实现中可能为低信噪比样本提供一定互补信息，但该互补性没有形成相对 \path{cldnn} 的统计支持优势，也没有抵消 overall scope 中的性能代价。
+
+该结果对后续研究问题有两点启示。其一，多视图输入并不自动产生整体收益，融合结构需要同时满足低信噪比收益和中高信噪比保持。其二，参数匹配控制是必要的，因为它使静态融合的低信噪比表现可以与参数规模接近的 I/Q-only 模型比较，而不是只与较小基线比较。基于当前证据，本报告只能讨论 low-SNR trade-off，不能将其扩展为广义融合优越性。
+
+\section{门控融合负结果的意义}
+
+\path{gated_fusion_iq_stft} 在当前证据集中应作为 retained negative result 处理。该模型的设计意图是通过样本级 gate 调节 I/Q 与 STFT 表征贡献，但第~4~章结果显示，它没有改善静态 \path{fusion_iq_stft}。在 overall 和 low-SNR 两个 scope 上，gated minus static 的 paired bootstrap delta 均为负，且 McNemar 检验方向支持 static fusion。该结果说明，当前实现和训练协议下的 gate 机制没有带来预期收益。
+% evidence: section5_3_gated_fusion_outcome.md; paired_bootstrap_accuracy_deltas.csv; mcnemar_tests.csv
+
+这一负结果不应被解释为所有门控或注意力式融合都无效。它只约束本报告中已经登记的 \path{gated_fusion_iq_stft} 模型行、固定 split、三训练种子和当前实现。若后续设计新的 gating 变体、SNR-aware gate 或其他视图加权机制，需要以新的模型标识、独立输出目录和明确 evidence label 重新评估。除非经过后续完整协议授权，这些候选只能作为 diagnostic candidates，不得从当前结果外推出性能结论。
+
+因此，本报告在叙述门控融合时采用保守口径：它是一次被保留的负结果，能够约束“门控融合提升鲁棒性”这类未经证据支持的表述。保留该结果有助于避免只报告成功结构，也使第~3~章中的方法候选与第~4~章中的实验事实保持一致。
+
+\section{复杂度与延迟证据的边界}
+
+复杂度与延迟表提供了有用的运行时上下文，但其证据范围严格限定为受控 CUDA forward latency。该测量使用 CUDA 设备、50 次 warm-up、200 次 measured iterations，并在 batch size 1 和 256 下记录 forward-pass latency。该信息可以支持“在相同受控测量设置下，不同模型行具有不同参数量和 CUDA 前向耗时”的讨论，也可以帮助读者理解 accuracy 与 forward latency 之间的局部关系。
+% evidence: complexity_latency_table.csv; EXPERIMENT_ENVIRONMENT_AND_SYNC_STATUS_20260508.md
+
+该证据不能推出部署效率结论。当前 aggregate 表中的 FLOPs/MACs 字段为空，CPU latency 没有形成完整测量，STFT preprocessing-inclusive latency 也不充分。尤其对于 STFT 或 I/Q+STFT 模型，forward-only timing 不包含从 I/Q 序列构造时频视图的预处理成本，因此不能代表端到端推理耗时。若要讨论真实部署系统，还需要补充硬件、批量、预处理、数据搬运和端到端 pipeline 的统一测量协议。
+
+本报告据此采用受限解释：\path{complexity_latency_table.csv} 可作为 \texttt{CONTROLLED\_LATENCY} 证据，用于报告参数量与 CUDA forward-pass timing；它不能支撑 CPU runtime、operation-count efficiency、preprocessing-inclusive runtime 或硬件可迁移部署优势。
+
+\section{MCLDNN 异常与负结果保留}
+
+\path{mcldnn} 行是本实验中最重要的负结果之一。第~4~章已经说明，seed 2025 与 seed 3407 出现 chance-level single-class collapse，并且二者继续保留在三种子聚合结果中。该处理符合固定协议要求：主表应反映登记运行的完整结果，而不是只保留成功种子。Stage 5B 审计未给出足以删除这些种子的证据，因此清洗 failed seeds 后重算主表会破坏实验记录的可追溯性。
+% evidence: section5_5_mcldnn_anomaly_retained_negative_evidence.md; main_table_metrics.csv
+
+保留 MCLDNN 异常提高了报告透明度。它提示读者：某些结构在当前超参数、初始化和训练流程下可能存在明显稳定性问题；该问题本身就是有价值的实验信息。将异常种子从聚合中移除，可能会制造一个更好看的但不忠实于协议的结果。相反，将其作为 retained negative evidence 报告，可以使读者区分“模型家族潜力”“当前实现结果”和“协议内实际证据”。
+
+这一异常也限定了后续讨论方式。本报告不能把未来 \path{mcldnn_stable_v2} 或其他稳定化诊断写成已经修复 Stage 5A 结果；也不能用新的 diagnostic run 替换当前 \path{mcldnn} 行。后续若要分析 collapse 机制，应使用独立模型标识、独立输出目录和 \texttt{DIAGNOSTIC} evidence label，并在新的协议下评估。
+
+\section{可复现性与 artifact 边界}
+
+本报告的可复现性主要来自三个已同步证据集合。第一，\path{paper_package/server_sync_20260508} 保存了 Stage 5A/5B 聚合结果、受控 CUDA latency 表以及与 paper package 相关的 manifest 记录；其 paper package manifest 共记录 299 行，其中包含 \texttt{PROJECT\_SUPPORTED}、\texttt{CONTROLLED\_LATENCY} 与 \texttt{SMOKE TEST} 等不同证据标签。第二，\path{paper_package/predictions_archive_20260508} 包含 27 个 Stage 5A \path{predictions_test.csv} 文件，覆盖 9 个模型行与 3 个训练种子，并且 manifest 中 27 行均为 \path{archive_hash_match}。第三，\path{paper_package/statistical_tests_20260508} 保存 paired bootstrap、McNemar、significance JSON、统计检验摘要和对应 manifest，用于支撑第~4~章的配对统计解释。
+% evidence: ARTIFACT_MANIFEST_PAPER_PACKAGE_20260508.csv; ARTIFACT_MANIFEST_PREDICTIONS_ARCHIVE_20260508.csv; statistical_tests_summary.md
+
+\begin{table}[htbp]
+  \centering
+  \caption{课程报告使用的主要 artifact 集合及边界}
+  \label{tab:course-artifact-boundary}
+  \begin{tabularx}{\textwidth}{llX}
+    \toprule
+    Artifact 集合 & 主要作用 & 使用边界 \\
+    \midrule
+    \path{paper_package/server_sync_20260508} & 聚合主表、low-SNR 表、复杂度与受控 latency 表 & 支撑 Stage 5A/5B 主结果和 evidence label 记录。 \\
+    \path{paper_package/predictions_archive_20260508} & 27 个 Stage 5A 测试集预测文件 & 支撑 paired bootstrap 与 McNemar；不包含 Stage 6B 预测。 \\
+    \path{paper_package/statistical_tests_20260508} & paired bootstrap、McNemar 和统计摘要 & 支撑已登记 comparison；不得外推到未检验模型对。 \\
+    \path{docs/paper/EXPERIMENT_ENVIRONMENT_AND_SYNC_STATUS_20260508.md} & 本地与服务器环境、同步状态、权重状态 & 支撑环境边界和后续复现实验前置条件说明。 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+环境方面，本地环境为 Windows 与 CPU-only PyTorch，适合进行报告写作、manifest 检查、CSV 只读核验和轻量文档维护；服务器环境记录为 CUDA-capable PyTorch 与 NVIDIA GeForce RTX 4070，适合作为未来授权实验的执行环境。该区分对复现性很重要：本轮报告写作不应被描述为在本地复跑训练，也不应把本地 CPU-only 环境误写为 Stage 5A 主实验执行环境。
+
+当前本地证据包足以支撑课程报告主结果写作，因为聚合表、prediction archive 和统计检验 artifacts 已经同步；但它不是完整训练权重归档。环境同步记录显示，服务器端存在 27 个 Stage 5A \path{best_model.pt} 权重，而本地 Stage 5A 结果树和 paper package 中没有完整 27 个权重文件。如果后续需要模型加载、推理复跑或权重级归档，应先将这些权重同步到单独 archive/package 路径并进行 hash 检查，不能默认覆盖本地 \path{results/} 或 Stage 5A/5B 根目录。
+
+Stage~6B 的 smoke/diagnostic 输出在可复现性部分只能作为排除边界说明。已有 Stage~6B mock smoke 可说明某些工程路径和 artifact writer 被检查过，但其 data mode、evidence tag、输出根目录和运行设置均不同于 Stage 5A/5B 主实验。因此，它不得进入主结果表、统计检验、摘要结论或总结性性能判断。任何 future diagnostic candidate 在完成新的完整协议前，都只能作为后续工作线索，而不能写成当前课程报告的实验结果。

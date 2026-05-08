@@ -1,9 +1,29 @@
 \chapter{总结}
 
-\section{写作占位}
+\section{工作总结}
 
-本章为总结占位。正式正文应以课程报告语气概括：本工作完成了固定协议下的模型矩阵比较、统计检验和证据归档；主要结论必须保持 protocol-bounded。
+本文围绕无线电自动调制识别任务，完成了 \datasetname{} 固定划分协议下的课程实验报告写作。实验协议以 \splitname{} 为固定测试口径，覆盖 9 个模型行与 3 个训练种子 \mainseeds{}，共形成 $9\times3=27$ 个主实验单元。模型矩阵包含 I/Q-only、STFT-only、I/Q+STFT 静态融合、门控融合、时序模型、轻量模型和参数匹配 I/Q 控制模型，用于在同一数据划分与训练种子集合下比较不同输入视图和结构设计。
+% evidence: docs/paper/course_report/sections/02_dataset_protocol_metrics.tex; docs/paper/course_report/sections/03_methods_fusion.tex
 
-\section{声明边界}
+在实验结果组织上，本文基于已经同步的 Stage 5A/5B evidence package，整理了主表、low-SNR 表、受控 CUDA forward latency 表和 paired statistical tests。主结果来自 \path{main_table_metrics.csv} 与 \path{low_snr_table.csv}，复杂度与延迟解释限定在 \path{complexity_latency_table.csv} 的 \texttt{CONTROLLED\_LATENCY} 范围内；统计检验来自 archived predictions 生成的 paired bootstrap 与 McNemar artifacts。整个报告写作过程没有重新训练模型、没有重建主表，也没有将 Stage~6B smoke/diagnostic 输出写入主结果。
+% evidence: main_table_metrics.csv; low_snr_table.csv; complexity_latency_table.csv; statistical_tests_summary.md
 
-总结只能回收正文已经由 evidence source 支撑的结论。不得新增 SOTA、跨数据集、广义融合优越性、部署优越性或 Stage 6B 诊断结果主实验化表述。
+\section{主要发现}
+
+在当前 \datasetname{} 固定划分与三训练种子协议下，\path{cldnn} 是本报告中观察到的 strongest observed model。第~4~章的主表结果与 paired statistical tests 均支持其在当前已登记比较中相对主要 I/Q baseline 具有更高的整体表现。该发现应严格限定在本报告的数据集、划分、模型矩阵和训练种子范围内，不能扩展为跨数据集泛化结论或最新水平比较。
+
+静态 I/Q-STFT 融合体现出低信噪比局部权衡。相对于参数匹配 I/Q 控制模型，\path{fusion_iq_stft} 在 low-SNR scope 上存在小幅正向证据，但其 overall scope 存在 penalty，且相对 \path{cldnn} 的 low-SNR paired test 不支持显著优势。因此，该结果只能解释为 low-SNR trade-off，而不是 broad improvement 或融合结构的普遍优越性。
+
+门控融合在当前实现和协议下没有改善静态融合。\path{gated_fusion_iq_stft} 在 overall 与 low-SNR 两个 scope 上均未超过 \path{fusion_iq_stft}，paired bootstrap 与 McNemar 结果也支持将其作为 retained negative result 处理。本报告因此不写“门控融合提升鲁棒性”或类似结论。
+
+\path{mcldnn} 行中的 seed 2025 与 seed 3407 chance-level collapse 被保留在主表聚合中。该处理维护了固定协议下的完整实验记录，也使报告能够呈现模型训练稳定性方面的负结果。本文不删除 failed seeds，不重算清洗后的 MCLDNN 结果，也不使用未来 diagnostic candidate 替换当前 Stage 5A/5B 证据。
+
+\section{不足与后续工作}
+
+本文的局限性之一来自数据集与划分范围。当前主结果仅覆盖 \datasetname{} 与 \splitname{}，没有纳入 RadioML2018.01A 或其他数据集，也没有进行多划分重复验证。因此，本报告的发现只能作为 fixed-split evidence 使用，不能作为一般 AMC 排名或跨数据集结论。
+
+复杂度与运行时证据也存在边界。当前报告只具有受控 CUDA forward latency 证据，不具备完整 FLOPs/MACs、CPU latency 或 STFT preprocessing-inclusive latency 证据。因此，本文不讨论部署效率、硬件可迁移性能或端到端推理成本优势。若后续需要进行系统级效率分析，应在单独协议下补充统一的 CPU/GPU、预处理和端到端 pipeline 测量。
+
+本地 artifact 同步状态对后续复现也有约束。当前本地已有 paper package、27 个 Stage 5A predictions archive 文件和 statistical-test artifacts，足以支撑本报告的主结果写作和统计解释；但完整 27 个 Stage 5A \path{best_model.pt} 权重尚未同步到本地 package 或本地 Stage 5A 结果树。若后续需要模型加载、推理复跑或权重级归档，应先将服务器端权重同步到独立 archive 路径并进行 hash 检查。
+
+后续工作若继续开展新实验，应与当前证据集清晰分离。Stage~6B 中的 amp-phase fusion、weighted CE、TCN-GRU、MCLDNN 稳定化等方向只能作为 future diagnostic candidates；在没有新的完整协议、独立输出目录、明确 evidence label 和相应统计检验之前，它们不能写作当前课程报告的实验结果，也不能用于修复或替换 Stage 5A/5B 主表。
