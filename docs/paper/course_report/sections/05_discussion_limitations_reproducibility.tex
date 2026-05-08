@@ -54,7 +54,8 @@
   \centering
   \caption{课程报告使用的主要 artifact 集合及边界}
   \label{tab:course-artifact-boundary}
-  \begin{tabularx}{\textwidth}{llX}
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{lll}
     \toprule
     Artifact 集合 & 主要作用 & 使用边界 \\
     \midrule
@@ -63,7 +64,8 @@
     \path{paper_package/statistical_tests_20260508} & paired bootstrap、McNemar 和统计摘要 & 支撑已登记 comparison；不得外推到未检验模型对。 \\
     \path{docs/paper/EXPERIMENT_ENVIRONMENT_AND_SYNC_STATUS_20260508.md} & 本地与服务器环境、同步状态、权重状态 & 支撑环境边界和后续复现实验前置条件说明。 \\
     \bottomrule
-  \end{tabularx}
+  \end{tabular}%
+  }
 \end{table}
 
 环境方面，本地环境为 Windows 与 CPU-only PyTorch，适合进行报告写作、manifest 检查、CSV 只读核验和轻量文档维护；服务器环境记录为 CUDA-capable PyTorch 与 NVIDIA GeForce RTX 4070，适合作为未来授权实验的执行环境。该区分对复现性很重要：本轮报告写作不应被描述为在本地复跑训练，也不应把本地 CPU-only 环境误写为 Stage 5A 主实验执行环境。

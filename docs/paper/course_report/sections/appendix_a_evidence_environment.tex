@@ -1,9 +1,73 @@
 \chapter{证据包与实验环境}
 
-\section{写作占位}
+\section{主实验证据包}
 
-本附录为证据包与实验环境占位。正式正文应列出 paper package、predictions archive、statistical-test package、manifest、hash 状态、服务器环境、本地环境，以及 Stage 6B smoke/diagnostic 排除规则。
+本文使用的主要证据包位于 \path{paper_package/server_sync_20260508}。该目录用于同步 Stage 5A/5B 固定协议实验的主要审计材料和聚合证据，包括 Stage 5B audit 文档、\path{main_table_metrics.csv}、\path{low_snr_table.csv}、\path{complexity_latency_table.csv} 以及若干小型 artifact 和 manifest 记录。根据 \path{docs/paper/ARTIFACT_MANIFEST_PAPER_PACKAGE_20260508.csv}，paper package manifest 共 299 行，其中 \texttt{PROJECT\_SUPPORTED} 253 行、\texttt{CONTROLLED\_LATENCY} 28 行、\texttt{SMOKE TEST} 18 行。
 
-\section{声明边界}
+该证据包中存在 Stage~6B diagnostic 或 smoke metadata，是为了记录工程路径、artifact writer 和后续候选筛查边界。这类 metadata 不属于 Stage 5A/5B 主实验证据，不得进入主结果表、统计检验或课程报告结论。本文正文和附录使用它们时，仅用于说明证据标签和排除规则。
 
-附录只记录证据来源与复现边界，不写新的实验发现。若后续需要列命令，应明确标注为既有 artifact 追溯或未来复现准备，不能暗示本轮运行过训练、tiny subset、RadioML2018.01A 或 LaTeX 编译。
+\section{预测归档与统计检验}
+
+预测归档位于 \path{paper_package/predictions_archive_20260508}。该归档包含 27 个 Stage 5A \path{predictions_test.csv} 文件，覆盖 9 个模型行和 3 个训练种子 \mainseeds{}，其 manifest 记录均为 \path{archive_hash_match}。这些预测文件是 paired bootstrap 与 McNemar 检验的输入来源，使统计比较可以按照 \path{split_id}、\path{train_seed} 和 \path{sample_id} 对同一样本进行配对。
+
+统计检验包位于 \path{paper_package/statistical_tests_20260508}。该目录包含 \path{paired_bootstrap_accuracy_deltas.csv}、\path{mcnemar_tests.csv}、\path{significance_tests.json}、\path{statistical_tests_summary.md} 以及统计检验 manifest。统计检验摘要明确说明，这些 artifacts 基于 Stage 5A archived predictions 生成，没有训练模型、没有运行 tiny subset、没有重建或覆盖 Stage 5A/5B 主表，也没有使用 Stage~6B \texttt{SMOKE TEST} 或 \texttt{DIAGNOSTIC} 输出。
+
+\section{证据标签}
+
+为避免主实验、受控延迟测量和工程诊断相互混淆，本文采用 evidence label 约束证据使用范围。表~\ref{tab:appendix-evidence-labels} 汇总了课程报告中使用的主要标签及其边界。
+
+\begin{table}[htbp]
+  \centering
+  \caption{证据标签与可用范围}
+  \label{tab:appendix-evidence-labels}
+  \begin{tabularx}{\textwidth}{llX}
+    \toprule
+    证据标签 & 含义 & 课程报告使用范围 \\
+    \midrule
+    \texttt{PROJECT\_SUPPORTED} & Stage 5A/5B 完整固定协议证据 & 可用于主表、low-SNR 表、模型矩阵、predictions archive 和 paired statistical tests。 \\
+    \texttt{CONTROLLED\_LATENCY} & 受控 CUDA forward latency 测量 & 仅用于参数量与 CUDA forward latency 范围内的复杂度讨论。 \\
+    \texttt{SMOKE TEST} & mock 或 synthetic code-path 检查 & 仅用于工程路径说明，不得作为性能证据。 \\
+    \texttt{DIAGNOSTIC} & mock、subset 或调试筛查 & 仅用于后续诊断边界说明，不得进入主表或统计检验。 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+其中，\texttt{PROJECT\_SUPPORTED} 与 \texttt{CONTROLLED\_LATENCY} 可支撑正文中的主表、统计检验和受控延迟讨论；\texttt{SMOKE TEST} 与 \texttt{DIAGNOSTIC} 只能用于工程检查或未来诊断说明，不能支撑实验发现。
+
+\section{本地与服务器环境}
+
+实验环境与同步状态记录见 \path{docs/paper/EXPERIMENT_ENVIRONMENT_AND_SYNC_STATUS_20260508.md}。本地环境与服务器环境的角色不同，表~\ref{tab:appendix-env} 给出与课程报告复现边界相关的主要信息。
+
+\begin{table}[htbp]
+  \centering
+  \caption{本地与服务器环境摘要}
+  \label{tab:appendix-env}
+  \begin{tabularx}{\textwidth}{lXX}
+    \toprule
+    项目 & 本地环境 & 服务器环境 \\
+    \midrule
+    操作系统/路径 & Windows 11；\path{E:/ML_HomeWork/.../radioml-amc-stage1} & Linux；\path{/hy-tmp/radioml-amc-stage1} \\
+    Python & 3.13.7 & 3.11.12 \\
+    PyTorch & 2.11.0+\texttt{cpu} & 2.9.1+\texttt{cu128} \\
+    CUDA & 不可用 & 可用 \\
+    GPU & 无本地 CUDA GPU 证据 & NVIDIA GeForce RTX 4070 \\
+    角色 & 报告写作、manifest 检查、CSV 只读核验 & 后续经授权的 GPU 实验执行 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+因此，本地环境适合课程报告写作、证据包检查和统计 artifact 审阅，不应用于 GPU full training。若后续需要继续实验，应在服务器环境中按新的协议明确授权后执行，并使用新的输出根目录。
+
+\section{同步状态与剩余缺口}
+
+当前本地已经同步 \path{paper_package/server_sync_20260508}、\path{paper_package/predictions_archive_20260508} 和 \path{paper_package/statistical_tests_20260508}。这些材料足以支撑课程报告正文中的主结果写作、配对统计解释和证据边界说明。
+
+同步状态仍存在若干限制。服务器端存在 27 个 Stage 5A \path{best_model.pt} 权重，但本地 Stage 5A 结果树和 paper package 中没有完整 27 个权重文件。因此，本地证据包不能被描述为完整 checkpoint archive。若后续需要模型加载、推理复跑或 checkpoint-level reproducibility，应将服务器端权重同步到独立 archive/package 路径并进行 hash 检查，不应默认覆盖本地 \path{results/} 或 Stage 5A/5B 根目录。
+
+运行时证据也不是完整部署证据。当前聚合材料不支持 CPU latency、FLOPs/MACs 或 STFT preprocessing-inclusive latency 结论；\path{complexity_latency_table.csv} 仅支持 \texttt{CONTROLLED\_LATENCY} 范围内的 CUDA forward-pass 讨论。
+
+\section{排除规则}
+
+Stage~6B smoke 或 diagnostic 输出不得进入 Stage 5A/5B 主表、low-SNR 表、paired bootstrap、McNemar 检验、摘要结论或总结性实验结论。若未来执行 tiny subset diagnostic，也必须使用独立输出目录、独立模型标识和 \texttt{DIAGNOSTIC} evidence label，并明确其不能替代当前 Stage 5A/5B 主证据。
+
+本附录只整理 evidence package、manifest、环境和同步边界，不新增实验结果。任何后续候选方案在完成新的完整协议前，都只能作为工程诊断或未来工作线索记录，不能写作当前课程报告的主结果。

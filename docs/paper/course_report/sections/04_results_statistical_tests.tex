@@ -14,9 +14,10 @@
 
 \begin{table}[htbp]
   \centering
-  \caption{固定划分主实验结果摘录（证据源：\path{main_table_metrics.csv}）}
+  \caption{固定划分主实验结果摘录（证据源：\texttt{main\_table\_metrics.csv}）}
   \label{tab:course-main-results-excerpt}
-  \begin{tabularx}{\textwidth}{lcccccX}
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{llcccrl}
     \toprule
     模型行 & 输入视图 & Overall Acc. & Macro-F1 & Low-SNR Acc. & 参数量 & 说明边界 \\
     \midrule
@@ -30,7 +31,8 @@
     \path{iq_param_matched} & I/Q & $0.594462\pm0.000468$ & $0.612415$ & $0.216345$ & 136,395 & 参数匹配 I/Q 控制模型。 \\
     \path{gated_fusion_iq_stft} & I/Q+STFT & $0.571947\pm0.002025$ & $0.585340$ & $0.211307$ & 134,780 & 门控双视图融合候选。 \\
     \bottomrule
-  \end{tabularx}
+  \end{tabular}%
+  }
 \end{table}
 
 在当前固定划分协议下，\path{cldnn} 的 overall accuracy 为 $0.612932$，macro-F1 为 $0.633238$，是本轮 9 个模型行中观察到的最高 overall accuracy 与 macro-F1。该表述仅限定在 \datasetname{}、\splitname{}、三训练种子聚合和本报告证据包范围内，不外推到其他数据集或其他划分协议。I/Q 基线中，\path{resnet1d} 的 overall accuracy 为 $0.595917$，\path{iq_param_matched} 的 overall accuracy 为 $0.594462$，二者构成接近的 I/Q baseline 与参数匹配控制参照。
@@ -47,14 +49,16 @@ resamples 为 10,000，随机种子为 42。McNemar 检验使用同一批 paired
   \centering
   \caption{CLDNN 与主要 I/Q baseline 的整体准确率配对统计检验}
   \label{tab:course-cldnn-overall-tests}
-  \begin{tabularx}{\textwidth}{lccccX}
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{llcccl}
     \toprule
     比较 & Scope & $\Delta$ & 95\% CI & McNemar $p$ & 解释边界 \\
     \midrule
     \path{cldnn} vs. \path{resnet1d} & overall & $0.017015$ & $[0.015318,\,0.018697]$ & $1.52\times10^{-87}$ & 在当前 paired test 中支持 \path{cldnn} 高于 \path{resnet1d}。 \\
     \path{cldnn} vs. \path{iq_param_matched} & overall & $0.018470$ & $[0.016788,\,0.020159]$ & $2.86\times10^{-104}$ & 在当前 paired test 中支持 \path{cldnn} 高于参数匹配 I/Q 控制模型。 \\
     \bottomrule
-  \end{tabularx}
+  \end{tabular}%
+  }
 \end{table}
 
 表~\ref{tab:course-cldnn-overall-tests} 表明，\path{cldnn} 相对 \path{resnet1d} 的 overall bootstrap delta 为 $0.017015$，95\% 置信区间为 $[0.015318,0.018697]$，McNemar 检验 $p=1.52\times10^{-87}$；相对 \path{iq_param_matched} 的 overall bootstrap delta 为 $0.018470$，95\% 置信区间为 $[0.016788,0.020159]$，McNemar 检验 $p=2.86\times10^{-104}$。这些结论仅对应本报告已经执行并归档的 paired comparisons，不构成对未检验模型对、未测试数据集或不同训练协议的结论。
@@ -83,7 +87,8 @@ resamples 为 10,000，随机种子为 42。McNemar 检验使用同一批 paired
   \centering
   \caption{模型参数量与受控 CUDA forward latency 摘录}
   \label{tab:course-cuda-latency}
-  \begin{tabularx}{\textwidth}{lcccX}
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{lcccl}
     \toprule
     模型行 & 参数量 & Batch 1 latency (ms) & Batch 256 latency (ms) & 测量边界 \\
     \midrule
@@ -93,7 +98,8 @@ resamples 为 10,000，随机种子为 42。McNemar 检验使用同一批 paired
     \path{fusion_iq_stft} & 98,299 & 1.844381 & 1.857622 & 不含 STFT 预处理。 \\
     \path{gated_fusion_iq_stft} & 134,780 & 2.535083 & 2.545334 & 不含 STFT 预处理。 \\
     \bottomrule
-  \end{tabularx}
+  \end{tabular}%
+  }
 \end{table}
 
 这些数值可用于说明不同模型行在受控 CUDA forward 测量下的参数量和前向耗时差异。例如，\path{cldnn} 的参数量为 241,675，batch 1/256 forward latency 分别为 1.306352 ms 和 1.543833 ms；\path{fusion_iq_stft} 的参数量为 98,299，对应 latency 为 1.844381 ms 和 1.857622 ms；\path{gated_fusion_iq_stft} 的参数量为 134,780，对应 latency 为 2.535083 ms 和 2.545334 ms。由于该表不包含 CPU latency、FLOPs/MACs，也不包含 STFT preprocessing-inclusive latency，本报告不据此推导部署场景中的优越性或端到端系统结论。
