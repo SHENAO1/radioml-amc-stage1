@@ -1,0 +1,71 @@
+# Paper-Stage 6B candidate template.
+# DIAGNOSTIC only. The model is not implemented in the current registry.
+
+execution:
+  auto_run: false
+  stage: paper_stage6b_screening
+  evidence_tag: DIAGNOSTIC
+  status: planning_only_until_model_registry_support_exists
+  guardrails:
+    - Do not run RadioML2018.01A.
+    - Do not run full RadioML2016.10A training.
+    - Do not write under results/paper_stage2/rml2016a.
+    - Do not merge outputs into Stage 5A or Stage 5B tables.
+
+candidate:
+  id: tcn_gru_temporal_hybrid
+  models:
+    - tcn_gru
+  required_code:
+    model_registry: missing
+    tcn_gru_model: missing
+  screening_goal: Add a bounded-cost temporal hybrid only after mock forward tests exist.
+  pass_gate: model forward/parameter-count unit tests, then mock overfit smoke.
+
+project:
+  name: radioml-amc-stage6b
+  stage: paper_stage6b
+  seed: 42
+
+evidence:
+  tag: DIAGNOSTIC
+  note: TCN-GRU placeholder; current code will reject train.model=tcn_gru.
+
+data:
+  mode: mock
+  dataset: mock_rml2016a_style
+  num_samples: 128
+  num_classes: 4
+  snr_values: [-8, -4, 0, 8]
+  signal_length: 128
+  split_strategy: stratified_by_mod_snr
+  split_seed: 42
+  test_size: 0.2
+  val_size: 0.1
+
+features:
+  views: ["iq"]
+
+train:
+  model: tcn_gru
+  epochs: 1
+  batch_size: 32
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  num_workers: 0
+  device: cpu
+  early_stopping_patience: 1
+  architecture:
+    tcn_channels: 64
+    kernel_size: 5
+    dilations: [1, 2, 4]
+    gru_hidden: 64
+    bidirectional: false
+
+outputs:
+  run_root: results/paper_stage6/diagnostic/stage6b/tcn_gru
+  protected_roots:
+    - results/paper_stage2/rml2016a
+  save_checkpoint: false
+  save_plots: false
+  save_report: false

@@ -1,0 +1,70 @@
+# Paper-Stage 6B candidate template.
+# DIAGNOSTIC only. Keep original Stage 5A MCLDNN artifacts unchanged.
+
+execution:
+  auto_run: false
+  stage: paper_stage6b_screening
+  evidence_tag: DIAGNOSTIC
+  status: planning_only_until_stable_v2_model_exists
+  guardrails:
+    - Do not delete or rerun Stage 5A mcldnn seed 2025 or seed 3407 artifacts.
+    - Do not run RadioML2018.01A.
+    - Do not run full RadioML2016.10A training.
+    - Do not write under results/paper_stage2/rml2016a.
+    - Do not merge outputs into Stage 5A or Stage 5B tables.
+
+candidate:
+  id: mcldnn_stable_v2_diagnostic
+  models:
+    - mcldnn_stable_v2
+  required_code:
+    stable_v2_model_registry: missing
+    gradient_diagnostic_logging: missing
+  screening_goal: Diagnose seed-collapse risk separately from the original mcldnn baseline.
+  pass_gate: mock forward, one-batch overfit, and tiny subset stability across seeds 42/2025/3407.
+
+project:
+  name: radioml-amc-stage6b
+  stage: paper_stage6b
+  seed: 42
+
+evidence:
+  tag: DIAGNOSTIC
+  note: Stable-v2 diagnostic placeholder; current code will reject train.model=mcldnn_stable_v2.
+
+data:
+  mode: mock
+  dataset: mock_rml2016a_style
+  num_samples: 128
+  num_classes: 4
+  snr_values: [-8, -4, 0, 8]
+  signal_length: 128
+  split_strategy: stratified_by_mod_snr
+  split_seed: 42
+  test_size: 0.2
+  val_size: 0.1
+
+features:
+  views: ["iq"]
+
+train:
+  model: mcldnn_stable_v2
+  epochs: 1
+  batch_size: 32
+  learning_rate: 0.0005
+  weight_decay: 0.0001
+  num_workers: 0
+  device: cpu
+  early_stopping_patience: 1
+  optimizer_candidates:
+    - adamw
+    - adam
+  gradient_clip_norm: 1.0
+
+outputs:
+  run_root: results/paper_stage6/diagnostic/stage6b/mcldnn_stable_v2
+  protected_roots:
+    - results/paper_stage2/rml2016a
+  save_checkpoint: false
+  save_plots: false
+  save_report: false

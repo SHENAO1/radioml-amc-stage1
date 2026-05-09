@@ -1,7 +1,28 @@
 data/raw/*
 data/processed/*
 runs/*
+results/*
+paper_package/*
+pytest_tmp/
 checkpoints/*
+
+# Local helper scripts that take credentials via argv; never commit
+scripts/_remote_*.py
+_uncommitted_code.tar.gz
+
+# LaTeX build artifacts (keep main.tex, main.pdf only)
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.toc
+*.xdv
+*.synctex.gz
 *.pkl
 *.h5
 *.hdf5
@@ -28,3 +49,18 @@ venv/
 !docs/**
 !configs/**
 !reports/**
+
+# LaTeX build artifacts inside docs/paper/course_report/ — re-exclude after
+# the !docs/** un-ignore above; keep main.tex, main.pdf, sections/, figures/, tables/
+docs/paper/course_report/main.aux
+docs/paper/course_report/main.bbl
+docs/paper/course_report/main.bcf
+docs/paper/course_report/main.blg
+docs/paper/course_report/main.fdb_latexmk
+docs/paper/course_report/main.fls
+docs/paper/course_report/main.log
+docs/paper/course_report/main.out
+docs/paper/course_report/main.run.xml
+docs/paper/course_report/main.toc
+docs/paper/course_report/main.xdv
+docs/paper/course_report/main.synctex.gz

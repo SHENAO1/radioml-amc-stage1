@@ -1,0 +1,80 @@
+# Paper-Stage 6B candidate template.
+# DIAGNOSTIC only. The augmentation hook is not implemented in the current trainer.
+
+execution:
+  auto_run: false
+  stage: paper_stage6b_screening
+  evidence_tag: DIAGNOSTIC
+  status: planning_only_until_augmentation_hook_exists
+  guardrails:
+    - Do not run RadioML2018.01A.
+    - Do not run full RadioML2016.10A training.
+    - Do not write under results/paper_stage2/rml2016a.
+    - Do not merge outputs into Stage 5A or Stage 5B tables.
+
+candidate:
+  id: cheap_signal_augmentation
+  models:
+    - cldnn
+    - resnet1d
+  required_code:
+    augmentation_hook: missing
+  screening_goal: Test label-preserving robustness transforms before larger architecture changes.
+  pass_gate: deterministic transform unit tests, then mock smoke with evidence tag.
+
+project:
+  name: radioml-amc-stage6b
+  stage: paper_stage6b
+  seed: 42
+
+evidence:
+  tag: DIAGNOSTIC
+  note: Augmentation candidate; current trainer ignores train.augmentation until hook is added.
+
+data:
+  mode: mock
+  dataset: mock_rml2016a_style
+  num_samples: 128
+  num_classes: 4
+  snr_values: [-8, -4, 0, 8]
+  signal_length: 128
+  split_strategy: stratified_by_mod_snr
+  split_seed: 42
+  test_size: 0.2
+  val_size: 0.1
+
+features:
+  views: ["iq"]
+
+train:
+  model: cldnn
+  epochs: 1
+  batch_size: 32
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  num_workers: 0
+  device: cpu
+  early_stopping_patience: 1
+  augmentation:
+    status: not_implemented
+    time_shift:
+      enabled: true
+      max_shift: 8
+    phase_rotation:
+      enabled: true
+      max_degrees: 15
+    amplitude_scaling:
+      enabled: true
+      min_scale: 0.9
+      max_scale: 1.1
+    calibrated_noise:
+      enabled: true
+      snr_db_delta: [-1.0, 1.0]
+
+outputs:
+  run_root: results/paper_stage6/diagnostic/stage6b/cheap_augmentation
+  protected_roots:
+    - results/paper_stage2/rml2016a
+  save_checkpoint: false
+  save_plots: false
+  save_report: false

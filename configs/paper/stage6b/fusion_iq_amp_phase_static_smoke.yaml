@@ -1,0 +1,67 @@
+# Paper-Stage 6B candidate template.
+# SMOKE TEST only. Mock data cannot support research conclusions.
+
+execution:
+  auto_run: false
+  stage: paper_stage6b_screening
+  evidence_tag: SMOKE TEST
+  status: runnable_mock_smoke_if_user_approves
+  guardrails:
+    - Do not run RadioML2018.01A.
+    - Do not run full RadioML2016.10A training.
+    - Do not write under results/paper_stage2/rml2016a.
+    - Do not merge outputs into Stage 5A or Stage 5B tables.
+
+candidate:
+  id: fusion_iq_amp_phase_static
+  models:
+    - fusion_iq_amp_phase
+  required_code:
+    model_registry: supported
+    feature_views: supported
+  screening_goal: Forward/smoke check static I/Q plus amplitude-phase fusion before any tiny real subset.
+  pass_gate: mock forward/training smoke succeeds; tiny subset may compare against iq_param_matched and cldnn.
+
+project:
+  name: radioml-amc-stage6b
+  stage: paper_stage6b
+  seed: 42
+
+evidence:
+  tag: SMOKE TEST
+  note: Static fusion of I/Q and amplitude-phase views; diagnostic root only.
+
+data:
+  mode: mock
+  dataset: mock_rml2016a_style
+  num_samples: 128
+  num_classes: 4
+  snr_values: [-8, -4, 0, 8]
+  signal_length: 128
+  split_strategy: stratified_by_mod_snr
+  split_seed: 42
+  test_size: 0.2
+  val_size: 0.1
+
+features:
+  views: ["iq", "amp_phase"]
+  amp_phase:
+    normalize: true
+
+train:
+  model: fusion_iq_amp_phase
+  epochs: 1
+  batch_size: 32
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  num_workers: 0
+  device: cpu
+  early_stopping_patience: 1
+
+outputs:
+  run_root: results/paper_stage6/diagnostic/stage6b/fusion_iq_amp_phase_static
+  protected_roots:
+    - results/paper_stage2/rml2016a
+  save_checkpoint: false
+  save_plots: false
+  save_report: false

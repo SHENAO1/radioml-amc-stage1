@@ -113,5 +113,84 @@ class MultiViewFusionNet(nn.Module):
         return self.classifier(fused)
 
 
+class CLDNNIQBranch(nn.Module):
+    """CLDNN-style I/Q encoder used as a branch inside multi-view fusion.
+
+    This is the CLDNN feature stack (3 Conv1d + BN + ReLU + 2 MaxPool) followed
+    by an LSTM whose final hidden state is the branch embedding. It mirrors
+    `radioml_amc.models.baselines.CLDNN` minus the classification head, so
+    `FusionCldnnStftNet` can stack a fusion classifier on top.
+
+    Output shape: ``[B, embedding_dim]`` with ``embedding_dim = 128``.
+    """
+
+    def __init__(self, embedding_dim: int = 128) -> None:
+        super().__init__()
+        self.embedding_dim = embedding_dim
+        self.features = nn.Sequential(
+            nn.Conv1d(2, 64, kernel_size=7, padding=3, bias=False),
+            nn.BatchNorm1d(64),
+            nn.ReLU(inplace=True),
+            nn.MaxPool1d(kernel_size=2),
+            nn.Conv1d(64, 128, kernel_size=5, padding=2, bias=False),
+            nn.BatchNorm1d(128),
+            nn.ReLU(inplace=True),
+            nn.MaxPool1d(kernel_size=2),
+            nn.Conv1d(128, 128, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm1d(128),
+            nn.ReLU(inplace=True),
+        )
+        self.temporal = nn.LSTM(
+            input_size=128,
+            hidden_size=embedding_dim,
+            num_layers=1,
+            batch_first=True,
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.ndim != 3 or x.shape[1] != 2:
+            raise ValueError(f"CLDNNIQBranch expects [B, 2, L], got {tuple(x.shape)}")
+        feats = self.features(x).transpose(1, 2)  # -> [B, T, 128]
+        _, (hidden, _) = self.temporal(feats)
+        return hidden[-1]  # [B, embedding_dim]
+
+
+class FusionCldnnStftNet(nn.Module):
+    """I/Q + STFT static fusion with a CLDNN-style I/Q encoder.
+
+    Replaces the lightweight `IQBranch1D` used by `MultiViewFusionNet` with a
+    CNN+LSTM I/Q backbone (`CLDNNIQBranch`), keeping the same STFT 2D-CNN
+    branch (`TimeFrequencyBranch2D`) and the same fused-MLP head.
+
+    The motivation comes from project evidence (P1.2): the existing fusion
+    model has a *lighter* I/Q backbone than ResNet1D and is therefore
+    backbone-capacity-limited rather than compute-limited. Putting CLDNN's
+    capacity directly into the fusion path tests whether a stronger I/Q
+    encoder closes the fusion-vs-CLDNN overall-accuracy gap.
+    """
+
+    def __init__(self, num_classes: int) -> None:
+        super().__init__()
+        self.views = ["iq", "stft"]
+        self.iq_branch = CLDNNIQBranch(embedding_dim=128)
+        self.stft_branch = TimeFrequencyBranch2D(in_channels=1, embedding_dim=64)
+        total_dim = 128 + 64
+        hidden_dim = max(96, min(256, total_dim))
+        self.classifier = nn.Sequential(
+            nn.Linear(total_dim, hidden_dim),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=0.1),
+            nn.Linear(hidden_dim, num_classes),
+        )
+
+    def forward(self, x: TensorInput) -> torch.Tensor:
+        iq = _select_view(x, "iq")
+        stft = _select_view(x, "stft")
+        iq_emb = self.iq_branch(iq)
+        stft_emb = self.stft_branch(stft)
+        fused = torch.cat([iq_emb, stft_emb], dim=1)
+        return self.classifier(fused)
+
+
 def count_parameters(model: nn.Module) -> int:
     return sum(p.numel() for p in model.parameters() if p.requires_grad)

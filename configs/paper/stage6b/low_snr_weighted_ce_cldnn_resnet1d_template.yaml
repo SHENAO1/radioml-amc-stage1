@@ -1,0 +1,73 @@
+# Paper-Stage 6B candidate template.
+# DIAGNOSTIC / SMOKE TEST only. Do not use for full training.
+
+execution:
+  auto_run: false
+  stage: paper_stage6b_screening
+  evidence_tag: DIAGNOSTIC
+  status: planning_only_until_loss_hook_exists
+  guardrails:
+    - Do not run RadioML2018.01A.
+    - Do not run full RadioML2016.10A training.
+    - Do not write under results/paper_stage2/rml2016a.
+    - Do not merge outputs into Stage 5A or Stage 5B tables.
+
+candidate:
+  id: low_snr_weighted_ce_cldnn_resnet1d
+  models:
+    - cldnn
+    - resnet1d
+  required_code:
+    trainer_loss_hook: missing
+    snr_group_sample_weighting: missing
+  screening_goal: Check whether low-SNR emphasis can improve low-SNR accuracy without mid/high collapse.
+  pass_gate: mock/unit loss-hook validation, then tiny subset only after explicit approval.
+
+project:
+  name: radioml-amc-stage6b
+  stage: paper_stage6b
+  seed: 42
+
+evidence:
+  tag: DIAGNOSTIC
+  note: Low-SNR weighted CE candidate; current trainer ignores train.loss until hook is added.
+
+data:
+  mode: mock
+  dataset: mock_rml2016a_style
+  num_samples: 128
+  num_classes: 4
+  snr_values: [-8, -4, 0, 8]
+  signal_length: 128
+  split_strategy: stratified_by_mod_snr
+  split_seed: 42
+  test_size: 0.2
+  val_size: 0.1
+
+features:
+  views: ["iq"]
+
+train:
+  model: cldnn
+  epochs: 1
+  batch_size: 32
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  num_workers: 0
+  device: cpu
+  early_stopping_patience: 1
+  loss:
+    name: weighted_cross_entropy
+    status: not_implemented
+    snr_group_weights:
+      low: 2.0
+      mid: 1.0
+      high: 1.0
+
+outputs:
+  run_root: results/paper_stage6/diagnostic/stage6b/low_snr_weighted_ce
+  protected_roots:
+    - results/paper_stage2/rml2016a
+  save_checkpoint: false
+  save_plots: false
+  save_report: false

@@ -485,3 +485,20 @@ Stage 3 低 SNR 分析输出位于：
 ```text
 runs/stage3_low_snr_analysis/
 ```
+
+## 19. Workload and Innovation Plan
+
+当前结课报告建议围绕以下工作量展开：
+
+- 工程复现闭环：mock、subset、full、GitHub、docs、configs 和 runs comparison。
+- Baseline 复现：CNN1D 与 ResNet1D，覆盖 RadioML2016.10A subset 和 full。
+- 时频特征工程：STFT/CWT on-the-fly 计算，不离线保存全量图片。
+- 多视图融合实验：I/Q、STFT、CWT、amplitude/phase 与融合模型。
+- Full dataset 实验：RadioML2016.10A full，220000 samples、11 类、20 个 SNR。
+- 低 SNR 分析：`fusion_iq_stft` 不是 overall 最优，但在 low SNR 分组上提示 STFT 可能有补充价值。
+
+最推荐的后续增强是 Stage 3.1：low-SNR weighted loss 或 SNR-balanced sampler，并补充 prediction-level 误差分析。完整文献调研、GitHub 对照仓库和创新点规划见：
+
+```text
+docs/stages/STAGE_035_WORKLOAD_INNOVATION_PLAN.md
+```

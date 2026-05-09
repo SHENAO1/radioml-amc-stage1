@@ -418,3 +418,125 @@ Stage 3.1 目标：
 5. 是否还建议补 Stage 3.1。
 6. Git 状态。
 ```
+
+## Stage 3.5 → Stage 3.1
+
+当前 Stage 3.5 已完成文献调研、工作量表达和创新点规划。下一步如果希望在结课报告中体现更强的“问题发现 - 改进策略 - 实验验证”闭环，优先进入低 SNR 轻量改进实验。
+
+```text
+你现在继续维护项目 radioml-amc-stage1，角色是机器学习实验复现工程师、AMC 低 SNR 鲁棒性研究助理和 PyTorch 训练策略工程师。
+
+请进入 Stage 3.1：
+low-SNR weighted loss / SNR-balanced sampler 小规模改进实验。
+
+启动前请读取：
+1. README.md
+2. docs/STAGE_INDEX.md
+3. docs/PROGRESS_LOG.md
+4. docs/stages/STAGE_03_LOW_SNR_ANALYSIS.md
+5. docs/stages/STAGE_035_WORKLOAD_INNOVATION_PLAN.md
+6. runs/stage3_low_snr_analysis/stage3_low_snr_summary.md
+7. runs/stage3_low_snr_analysis/stage3_low_snr_summary.json
+8. runs/20260507_193019_resnet1d/metrics.json
+9. runs/20260507_193548_fusion_iq_stft/metrics.json
+
+当前事实：
+- RadioML2016.10A full overall 最佳：ResNet1D，0.5968。
+- 当前 low SNR 最佳：fusion_iq_stft，0.2222。
+- fusion_iq_stft 相比 ResNet1D：low SNR +0.0131，overall -0.0186。
+- 当前还没有 sample-level predictions，因此 low-SNR-only confusion matrix 暂缺。
+
+本阶段目标：
+1. 不重建项目。
+2. 不删除已有 runs 或 docs。
+3. 不破坏 Stage 1/1.5/1.6/2/2.1/2.2/3/3.5 流程。
+4. 在现有 trainer 中以最小侵入方式支持 low-SNR weighted loss 或 SNR-balanced sampler。
+5. 优先做 subset 或小规模 full 子集 smoke，确认训练链路可运行。
+6. 如资源允许，只选择 ResNet1D 或 fusion_iq_stft 中的一个模型做 full 轻量复跑，不要重跑所有模型。
+7. 新增 evaluate/save_predictions 能力或配置草案，用于后续生成 low-SNR-only confusion matrix。
+8. 输出 comparison，重点观察 low SNR 是否提升、overall 是否严重下降。
+9. 更新 docs/stages/STAGE_031_LOW_SNR_IMPROVEMENT.md、STAGE_INDEX、PROGRESS_LOG、EXPERIMENT_LOG、NEXT_STAGE_PROMPTS。
+
+严格限制：
+- 不引入 Transformer 或复杂注意力机制。
+- 不进入 RadioML2018.01A。
+- 不自动下载大数据集。
+- 不把 data/raw、runs、checkpoint、.venv 加入 Git。
+- 不离线保存全量 STFT/CWT 图片。
+- 不用 mock 或 subset 小实验冒充 full 正式结果。
+
+完成后请输出：
+1. 新增配置/代码文件。
+2. 实际运行命令。
+3. smoke 或小规模实验结果。
+4. low SNR 是否提升。
+5. overall 是否下降。
+6. 是否值得在服务器 full 上正式复跑。
+7. Git 状态和是否误加入数据/runs/checkpoint。
+```
+
+## Stage 3.5 → Stage 5.0
+
+当前 Stage 3.5 已经把文献调研和创新点规划整理到 `docs/stages/STAGE_035_WORKLOAD_INNOVATION_PLAN.md`。如果课程时间优先，可以直接进入结课报告初稿，把 Stage 3.1 作为可选增强实验或未来工作。
+
+```text
+你现在继续维护项目 radioml-amc-stage1，角色是机器学习课程报告写作助手、AMC 实验复现工程师、结果图表整理助手和 GitHub 文档维护助手。
+
+请进入 Stage 5.0：
+机器学习结课报告初稿生成。
+
+启动前请读取：
+1. README.md
+2. docs/STAGE_INDEX.md
+3. docs/PROGRESS_LOG.md
+4. docs/EXPERIMENT_LOG.md
+5. docs/stages/STAGE_016_REAL_DATA_EXECUTION.md
+6. docs/stages/STAGE_021_REAL_SUBSET_ABLATION.md
+7. docs/stages/STAGE_022_FULL_ABLATION.md
+8. docs/stages/STAGE_03_LOW_SNR_ANALYSIS.md
+9. docs/stages/STAGE_035_WORKLOAD_INNOVATION_PLAN.md
+10. runs/stage2_1_real_subset_ablation_comparison/stage2_1_ablation_comparison.md
+11. runs/stage2_2_full_ablation_comparison/stage2_2_full_comparison.md
+12. runs/stage3_low_snr_analysis/stage3_low_snr_summary.md
+
+报告目标：
+1. 生成中文机器学习结课报告初稿，题目为：
+   《基于时频特征与深度神经网络融合的无线电调制识别方法研究——以 RadioML2016.10A 与 RadioML2018.01A 数据集为例》
+2. 当前实际只完成 RadioML2016.10A，因此 RadioML2018.01A 必须写为后续扩展。
+3. 报告相关工作按 4 条主线组织：
+   - I/Q baseline；
+   - 时频/多视图；
+   - 低 SNR 鲁棒性；
+   - 轻量化/可复现工程。
+4. 使用 `docs/stages/STAGE_035_WORKLOAD_INNOVATION_PLAN.md` 中的 30 篇 arXiv 和相关 GitHub 仓库作为相关工作素材。
+5. 报告必须突出 6 类工作量：
+   - 工程复现闭环；
+   - baseline 复现；
+   - 时频特征工程；
+   - 多视图融合实验；
+   - full dataset 实验；
+   - 低 SNR 专项分析。
+6. 结论必须谨慎：
+   - 可以写 ResNet1D 是当前 full overall 最优；
+   - 可以写 STFT 融合在 low SNR 有小幅提升；
+   - 不可以写融合全面优于 baseline；
+   - 不可以写 CWT full 已完成；
+   - 不可以写 RadioML2018.01A 已验证；
+   - 不可以写 SOTA。
+7. 输出到 docs/report/ 或 reports/，并更新 README 或 docs 索引。
+
+严格限制：
+- 不删除已有 docs/runs。
+- 不把 data/raw、runs、checkpoint、.venv 加入 Git。
+- 不伪造结果。
+- 不把 subset 写成 full。
+- 不把 mock 写成真实。
+
+完成后请输出：
+1. 报告文件路径。
+2. 使用的实验结果表。
+3. 引用的图表路径。
+4. 当前结论边界。
+5. 是否还建议补 Stage 3.1。
+6. Git 状态。
+```

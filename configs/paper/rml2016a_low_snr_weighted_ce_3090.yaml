@@ -1,0 +1,104 @@
+# P2.5: SNR-aware weighted cross-entropy on RTX 3090.
+#
+# Same fixed split + 3-seed protocol as Stage 5A. Same epoch=50 + cosine LR +
+# warmup=5 + patience=15 schedule as P1.1. Adds an SNR-group-weighted
+# cross-entropy to test whether emphasising low-SNR gradient signal recovers
+# any of the low-SNR collapse-to-AM-SSB pattern observed in P1.3 (low_snr
+# confusion matrices). Only `cldnn` (strongest baseline) and `fusion_iq_stft`
+# (multi-view candidate) are evaluated, since these two are the only models
+# whose low-SNR behaviour the paper makes an explicit claim about.
+
+execution:
+  stage: paper_stage6_low_snr_weighted_ce
+  evidence_status: in_progress
+  evidence_label: LOW_SNR_WEIGHTED_CE_3090
+  guardrails:
+    - Do not write into results/paper_stage2/ (Stage 5A artifacts are frozen).
+    - Do not overwrite docs/paper/PAPER_STAGE5A_FULL_RML2016A_TRAINING_REPORT.md.
+    - Hardware unchanged from P1.1 (RTX 3090); annotate the architecture difference vs Stage 5A.
+    - Use the same fixed split artifact as Stage 5A for paired statistical comparability across LOW_SNR_WEIGHTED_CE_3090 and EXTENDED_BUDGET_3090.
+
+experiment:
+  dataset_id: rml2016a
+  dataset_name: RML2016.10A
+  split_id: stratified_by_mod_snr_seed42
+  split_artifact_npz: data/splits/rml2016a/stratified_by_mod_snr_seed42.npz
+  split_summary_json: data/splits/rml2016a/stratified_by_mod_snr_seed42_summary.json
+  split_seed: 42
+  train_seeds:
+    - 42
+    - 2025
+    - 3407
+  models:
+    - cldnn
+    - fusion_iq_stft
+
+data:
+  mode: real
+  dataset: RML2016.10A
+  raw_path: auto
+  subset_mode: false
+  subset_mods: null
+  subset_snrs: null
+  max_samples_per_group: null
+  split_strategy: stratified_by_mod_snr
+  split_artifact_npz: data/splits/rml2016a/stratified_by_mod_snr_seed42.npz
+  split_summary_json: data/splits/rml2016a/stratified_by_mod_snr_seed42_summary.json
+  test_size: 0.2
+  val_size: 0.1
+
+features:
+  stft:
+    nperseg: 32
+    noverlap: 16
+    log_scale: true
+    normalize: true
+  cwt:
+    num_scales: 16
+    min_scale: 1.0
+    max_scale: 32.0
+    log_scale: true
+    normalize: true
+
+train:
+  epochs: 50
+  batch_size: 256
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  num_workers: 4
+  device: auto
+  early_stopping_patience: 15
+  scheduler:
+    name: cosine
+    warmup_epochs: 5
+  loss:
+    name: snr_weighted_ce
+    scheme: group
+    snr_group_weights:
+      low: 2.0
+      mid: 1.0
+      high: 0.7
+    boundary:
+      low_max: -6
+      mid_min: -4
+      mid_max: 6
+      high_min: 8
+
+outputs:
+  result_root: results/paper_stage6/low_snr_weighted_ce_3090/rml2016a
+  per_run_shape: results/paper_stage6/low_snr_weighted_ce_3090/rml2016a/<model_id>/seed_<train_seed>
+  aggregate_dir: results/paper_stage6/low_snr_weighted_ce_3090/rml2016a/aggregate
+  save_checkpoint: true
+  save_plots: true
+  save_report: true
+  required_files:
+    - config_resolved.yaml
+    - metrics_test.json
+    - metrics_per_snr.csv
+    - metrics_per_class.csv
+    - predictions_test.csv
+    - confusion_overall.csv
+    - confusion_low_snr.csv
+    - complexity.json
+    - latency.json
+    - training_summary.json

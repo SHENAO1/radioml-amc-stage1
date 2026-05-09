@@ -61,12 +61,14 @@ class SignalDataset(Dataset):
         y: np.ndarray,
         snr: np.ndarray,
         feature_config: dict[str, Any] | None = None,
+        augmenter: Any = None,
     ):
         self.x = torch.as_tensor(x, dtype=torch.float32)
         self.y = torch.as_tensor(y, dtype=torch.long)
         self.snr = torch.as_tensor(snr, dtype=torch.long)
         self.feature_config = normalize_feature_config(feature_config)
         self.views = list(self.feature_config["views"])
+        self.augmenter = augmenter
 
     def __len__(self) -> int:
         return int(self.x.shape[0])
@@ -76,6 +78,8 @@ class SignalDataset(Dataset):
         index: int,
     ) -> tuple[torch.Tensor | dict[str, torch.Tensor], torch.Tensor, torch.Tensor]:
         iq = self.x[index]
+        if self.augmenter is not None:
+            iq = self.augmenter(iq)
         if self.views == ["iq"]:
             return iq, self.y[index], self.snr[index]
 

@@ -1,0 +1,102 @@
+# Paper-Stage 4E full experiment template.
+# This file is intentionally non-executing. It documents the server-side
+# RadioML2016.10A 3-seed main-table plan after preflight approval.
+
+execution:
+  auto_run: false
+  stage: paper_stage2_full_main_table
+  evidence_status: not_started
+  guardrails:
+    - Do not run from a local preflight session.
+    - Do not run until fixed split artifact loading is verified in the trainer.
+    - Do not mix split-seed variance with train-seed variance.
+    - Do not include RadioML2018.01A in this experiment.
+    - Do not claim broad fusion superiority from these configs alone.
+
+experiment:
+  dataset_id: rml2016a
+  dataset_name: RML2016.10A
+  split_id: stratified_by_mod_snr_seed42
+  split_artifact_npz: data/splits/rml2016a/stratified_by_mod_snr_seed42.npz
+  split_summary_json: data/splits/rml2016a/stratified_by_mod_snr_seed42_summary.json
+  split_seed: 42
+  train_seeds:
+    - 42
+    - 2025
+    - 3407
+  models:
+    - cnn1d
+    - resnet1d
+    - tfcnn_stft
+    - fusion_iq_stft
+    - cldnn
+    - mcldnn
+    - lwamcnet
+    - iq_param_matched
+    - gated_fusion_iq_stft
+
+preflight_requirements:
+  fixed_split_artifact_exists: true
+  trainer_loads_fixed_split_artifact: implemented_stage4f
+  config_resolves_model_required_views: required
+  v2_artifacts_per_run: required
+  controlled_complexity_latency: required
+  final_latency_warmup_iters: 50
+  final_latency_measured_iters: 200
+  smoke_latency_warmup_iters: 1
+  smoke_latency_measured_iters: 2
+
+data:
+  mode: real
+  dataset: RML2016.10A
+  raw_path: auto
+  subset_mode: false
+  subset_mods: null
+  subset_snrs: null
+  max_samples_per_group: null
+  split_strategy: stratified_by_mod_snr
+  split_artifact_npz: data/splits/rml2016a/stratified_by_mod_snr_seed42.npz
+  split_summary_json: data/splits/rml2016a/stratified_by_mod_snr_seed42_summary.json
+  test_size: 0.2
+  val_size: 0.1
+
+features:
+  stft:
+    nperseg: 32
+    noverlap: 16
+    log_scale: true
+    normalize: true
+  cwt:
+    num_scales: 16
+    min_scale: 1.0
+    max_scale: 32.0
+    log_scale: true
+    normalize: true
+
+train_defaults:
+  epochs: 20
+  batch_size: 256
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  num_workers: 4
+  device: auto
+  early_stopping_patience: 6
+
+outputs:
+  result_root: results/paper_stage2/rml2016a
+  per_run_shape: results/paper_stage2/rml2016a/<model_id>/seed_<train_seed>
+  aggregate_dir: results/paper_stage2/rml2016a/aggregate
+  save_checkpoint: true
+  save_plots: true
+  save_report: true
+  required_files:
+    - config_resolved.yaml
+    - metrics_test.json
+    - metrics_per_snr.csv
+    - metrics_per_class.csv
+    - predictions_test.csv
+    - confusion_overall.csv
+    - confusion_low_snr.csv
+    - complexity.json
+    - latency.json
+    - training_summary.json

@@ -1,5 +1,160 @@
 # 项目进展日志
 
+## 2026-05-09 Paper-Stage 6 A 方案 — fusion_cldnn_stft + 增强 + label smoothing **(POSITIVE)**
+
+### 本次目标
+
+承接 P2.5 负结果，先做 Stage 2 文献校准（[`docs/paper/LITERATURE_REVIEW_STAGE2_SOTA_HYPERPARAMS_20260509.md`](paper/LITERATURE_REVIEW_STAGE2_SOTA_HYPERPARAMS_20260509.md)），确认 RML2016.10A avg-across-SNR 真实 SOTA ~0.63–0.65（LENet-M 0.6463、SigFormer 0.6371），我们 CLDNN 0.6129 还有 2–3 pp 空间可冲。然后选定 A 方案：在一次训练中叠加三项独立干预——
+
+1. **架构升级**：fusion 的 I/Q 分支从 CNN1D-style (`IQBranch1D`) 换成 CLDNN-style (`CLDNNIQBranch`，CNN+LSTM)；
+2. **信号域增强**（仅 train）：phase rotation θ~U(-π,π) prob 0.5 + cyclic time shift k~U(-8,+8) prob 0.5；
+3. **label smoothing 0.1**。
+
+evidence label `FUSION_CLDNN_STFT_AUG_LS_3090`，独立输出根；Stage 5A/5B 与之前所有 Stage 6 子证据均不动。
+
+### 本次完成
+
+- 文献调研落档；`.ai-context/04-decisions.md` 加 ADR；`05-current-state.md` 同步 Stage 2 文献校准要点。
+- 代码：`CLDNNIQBranch` + `FusionCldnnStftNet`（`src/radioml_amc/models/multiview.py`）；`SignalAugmenter` + `build_augmenter`（`src/radioml_amc/data/augmentation.py`）；`SignalDataset` 加可选 `augmenter` 参数；trainer 的 `_make_loaders` 加可选 `augment_config`，**只对 train loader 创建带 augmenter 的 dataset**；loss factory 支持 `label_smoothing`。所有改动**默认 None / disabled**，对 Stage 5A 完全向后兼容。
+- 新增 `configs/paper/rml2016a_fusion_cldnn_stft_aug_ls_3090.yaml` + orchestrator `scripts/paper/run_fusion_cldnn_stft_aug_ls_training.py`。
+- 服务器 smoke check 通过：fusion_cldnn_stft 286k 参数，CUDA forward + augmenter + LS CE 全部 OK。
+- tmux session `pa` 跑完 3 cells × epoch 50，27.4 分钟，0 失败。
+
+### Headline 结果（mean across 3 seeds）
+
+| Metric | A 方案 fusion_cldnn_stft + aug + LS | Stage 5A CLDNN | Δ |
+|---|---:|---:|---:|
+| Overall | **0.6264** (σ=0.0005) | 0.6129 | **+0.0135** ✅ |
+| Low-SNR | **0.2258** (σ=0.0008) | 0.2224 | +0.0034 ✅ |
+| Mid-SNR | **0.8606** (σ=0.0009) | 0.8396 | +0.0210 ✅ |
+| High-SNR | **0.9264** (σ=0.0003) | 0.9070 | +0.0194 ✅ |
+
+**4 个指标全部正向；fusion 首次超过 CLDNN baseline。** Best-epoch 31/42/31 均在预算内，结果不是 budget 截断驱动；3-seed std 0.0005 远小于 +0.0135 增量，结果稳健。
+
+vs Stage 5A `fusion_iq_stft` 0.5771 → +0.0493 overall；vs P1.1 `fusion_iq_stft` 0.5851（同 schedule）→ +0.0413 overall。证实是 **架构 + 增强 + LS 的组合贡献**，不是 budget 或单一干预效应。
+
+vs 2024 公开 SOTA（同口径）：贴近 CC-MSNet 0.6286 / CCTL-Net 0.6297；距 LENet-M 0.6463 / SigFormer 0.6371 仍 1–2 pp。深低 SNR (-20 至 -16 dB) 仍 ~chance level，是信息论下限不是模型容量问题（与 P1.3 collapse-to-AM-SSB 分析一致）。
+
+### 修改/新增文件
+
+- 新增 `src/radioml_amc/models/multiview.py` 中 `CLDNNIQBranch` + `FusionCldnnStftNet`
+- 新增 `src/radioml_amc/data/augmentation.py`（`SignalAugmenter`, `build_augmenter`）
+- 修改 `src/radioml_amc/data/dataset.py`（`SignalDataset` 加可选 `augmenter`）
+- 修改 `src/radioml_amc/training/trainer.py`（`_make_loaders` 加 `augment_config`，build_model 注册 fusion_cldnn_stft；调用点一处加 `augment_config=train_cfg.get("augmentation")`）
+- 修改 `src/radioml_amc/training/losses.py`（CE 路径支持 `label_smoothing`）
+- 修改 `src/radioml_amc/models/__init__.py`（导出 `FusionCldnnStftNet`）
+- 新增 `configs/paper/rml2016a_fusion_cldnn_stft_aug_ls_3090.yaml`
+- 新增 `scripts/paper/run_fusion_cldnn_stft_aug_ls_training.py`
+- 新增 `docs/paper/LITERATURE_REVIEW_STAGE2_SOTA_HYPERPARAMS_20260509.md`
+- 新增 `docs/paper/PAPER_STAGE6_FUSION_CLDNN_STFT_AUG_LS_ANALYSIS.md`
+- 新增 `docs/paper/PAPER_STAGE6_FUSION_CLDNN_STFT_AUG_LS_3090_REPORT.md`（auto-generated）
+- 新增 manuscript `docs/paper/manuscript/section5_6_proposed_fusion_cldnn_stft.md`（**Section 5.6 正面贡献**）
+- 修改 `docs/paper/PAPER_STAGE_INDEX.md`（加 Stage 2 lit + A 方案两行 + `FUSION_CLDNN_STFT_AUG_LS_3090` evidence label policy）
+- 修改 `.ai-context/04-decisions.md`、`05-current-state.md`、`06-session-log.md`
+
+### 服务器侧产物（未本地归档）
+
+- `/hy-tmp/radioml-amc-stage1/results/paper_stage6/fusion_cldnn_stft_aug_ls_3090/rml2016a/fusion_cldnn_stft/seed_<train_seed>/` 共 3 个 cell × 11 个 required artifact + `best_model.pt` + `plots/`。
+- 至此服务器累计未归档权重：Stage 5A 27 + P1.1 12 + P2.5 6 + A 3 = **48 个 best_model.pt**。
+
+### 限制
+
+- A 方案是三干预 stacked 单次实验，**未做 per-intervention 消融**，无法说哪一项贡献多少。manuscript 5.6 末段已注明，作为 future work 候选。
+- A 方案 GPU = RTX 3090 ≠ Stage 5A 的 RTX 4070；prediction-level paired bootstrap/McNemar 不能跨硬件直接做，3-seed-mean 是唯一支持的对比层级。
+- A 方案仅在 RadioML2016.10A 测试，2018.01A 未跑。
+
+## 2026-05-09 Paper-Stage 6 串行三连：低 SNR 混淆 + 复杂度/CPU 延迟 + SNR 加权 CE
+
+### 本次目标
+
+承接 P1.1 结论，按 A → B → C 顺序补齐 manuscript 三个空缺：
+- A: 低 SNR-only 混淆矩阵（Section 5.2 失踪 figures）；
+- B: MACs / FLOPs / CPU 延迟（Section 5.4 失踪 cells）；
+- C: SNR 加权 CE 干预实验（验证 P1.3 揭示的 collapse-to-AM-SSB 是否能用最简单的 loss 重写解决）。
+
+每一项走独立 evidence label + 独立输出根，**Stage 5A/5B 主表与 P1.1 数据不动**。
+
+### 本次完成
+
+**A — P1.3 低 SNR 混淆矩阵**：纯后处理 27 份 Stage 5A `predictions_test.csv`。本地 CPU 运行，~1 分钟。输出 27 张 PNG（9 模型 × {raw / normalized / per-seed} 视角）+ summary CSV/MD 到 `results/paper_stage6/low_snr_confusion_extended/`。**关键发现**：7/9 稳定模型在 SNR≤−6 dB 时把数字调制类（8PSK/BPSK/QPSK/CPFSK/GFSK）误判成 AM-SSB 的比例 0.63–0.81；AM-SSB 自身 low-SNR acc 0.87–0.95。
+
+**B — P1.2 扩展 complexity / latency**：新增 `scripts/paper/measure_extended_complexity_latency.py`，在服务器（EPYC 7B12, num_threads=1, torch 2.9.1+cu128）跑 `thop` + `torch.utils.benchmark`。286 秒完成，输出 `results/paper_stage6/extended_complexity_latency/`。**关键发现**：MCLDNN 49 M MACs / 573 ms CPU bs=256 最重；CLDNN 8.7 M / 183 ms 居中；fusion_iq_stft 2.0 M MACs **比 ResNet1D 4.9 M 还少** → fusion 不是因为算力少才输；lwamcnet 参数最少（20k）但 CPU bs=1 第二慢（depthwise/grouped conv 在单线程 CPU 不划算）。
+
+**C — P2.5 SNR 加权 CE**：新增 `src/radioml_amc/training/losses.py`（`SnrWeightedCrossEntropy` + `build_criterion` + `compute_loss`）。Trainer 接入 `train.loss` 配置，向后兼容（无 cfg = plain CE）。新 config + orchestrator + tmux session `p25` 跑 6 cells（cldnn + fusion_iq_stft × 3 seed），22.8 分钟，0 失败。**关键结果**（mean across 3 seeds）：
+
+| 模型 | Overall | Δ vs Stage 5A | Low-SNR | Δ vs Stage 5A | Mid-SNR | High-SNR |
+|---|---:|---:|---:|---:|---:|---:|
+| cldnn (P2.5) | 0.5896 | **−0.0233** | 0.2281 | **+0.0058** | 0.7958 | 0.8652 |
+| fusion_iq_stft (P2.5) | 0.5704 | −0.0067 | 0.2255 | +0.0042 | 0.7679 | 0.8331 |
+
+低 SNR 涨幅集中在 −8 至 −4 dB 转折区；−20 至 −16 dB 仍 ~chance level (0.09–0.11)。**简单 2× 加权改不动深度低 SNR 的 collapse**；mid/high SNR 的代价大于 low SNR 的收益 → manuscript 写为**负结果**，强化 limitations。
+
+### 修改/新增文件
+
+- 新增 `src/radioml_amc/training/losses.py`（loss factory）
+- 修改 `src/radioml_amc/training/trainer.py`（接入 `train.loss` 钩子，向后兼容）
+- 新增 `configs/paper/rml2016a_low_snr_weighted_ce_3090.yaml`
+- 新增 `scripts/paper/build_low_snr_confusion_matrices.py`
+- 新增 `scripts/paper/measure_extended_complexity_latency.py`
+- 新增 `scripts/paper/run_low_snr_weighted_ce_training.py`
+- 新增分析 `docs/paper/PAPER_STAGE6_LOW_SNR_CONFUSION_ANALYSIS.md`
+- 新增分析 `docs/paper/PAPER_STAGE6_EXTENDED_COMPLEXITY_ANALYSIS.md`
+- 新增分析 `docs/paper/PAPER_STAGE6_LOW_SNR_WEIGHTED_CE_ANALYSIS.md`
+- 新增报告 `docs/paper/PAPER_STAGE6_LOW_SNR_WEIGHTED_CE_3090_REPORT.md`（auto-generated）
+- 新增 manuscript `docs/paper/manuscript/section5_2_addendum_low_snr_per_class.md`
+- 新增 manuscript `docs/paper/manuscript/section5_4_addendum_complexity_latency_filled.md`
+- 新增 manuscript `docs/paper/manuscript/section7_8_low_snr_weighted_ce_outcome.md`
+- 修改 `docs/paper/PAPER_STAGE_INDEX.md`：新增 3 行 stage 状态 + 3 个 evidence label policy
+- 修改 `.ai-context/04-decisions.md`、`.ai-context/05-current-state.md`、`.ai-context/06-session-log.md`
+
+### 服务器侧产物（未本地归档）
+
+- `/hy-tmp/radioml-amc-stage1/results/paper_stage6/low_snr_weighted_ce_3090/rml2016a/<model>/seed_<train_seed>/` 共 6 个 cell × 11 个 required artifact + `best_model.pt` + `plots/`。
+- 算上 P1.1 的 12 个，共 18 个 best_model.pt 在服务器，未本地归档。
+
+### 限制
+
+- P2.5 vs Stage 5A 同时存在硬件（4070→3090）和 loss（plain→weighted）两个变更；不能直接做 paired bootstrap/McNemar。
+- 干预实验仅覆盖 cldnn 和 fusion_iq_stft；其余 7 个 Stage 5A 模型的 manuscript 主表解释**继续来自 Stage 5A 原结果**。
+- Group 加权方案 (low=2.0, mid=1.0, high=0.7) 是单一选择；focal loss、连续 SNR 加权、SNR-balanced sampler、per-(class, SNR) 加权 都未测试。
+
+## 2026-05-09 Paper-Stage 6 Extended Budget：RTX 3090 robustness check 完成
+
+### 本次目标
+
+- 验证 Stage 5A 的 epoch=20 budget 是否欠训练。
+- 在新租 gpushare RTX 3090 实例上对 4 个核心模型重训：epoch 50 + 5-epoch 线性 warmup + cosine LR + early-stop patience 15。
+- 输出走独立 evidence label `EXTENDED_BUDGET_3090` 和独立输出根，**不**修改 Stage 5A/5B 主表。
+
+### 本次完成
+
+- 部署：`paper-sci-track` 分支推到 GitHub；本地未提交的 59 个文件 SFTP 同步到服务器；上传数据集 612 MB（MD5 `61bf35ac7f0b7d8843613453447ea290`）；安装 scipy/sklearn/matplotlib/pandas/pywavelets/thop/pytest/tqdm；mock smoke 与 GPU forward+backward 验证通过。
+- Trainer 新增可选 `train.scheduler` 配置（cosine + warmup），默认 `None`，与 Stage 5A 完全向后兼容。
+- 12/12 cells 完成，0 失败，54.4 分钟。模型 × seed：`cldnn`、`resnet1d`、`iq_param_matched`、`fusion_iq_stft` × `42`、`2025`、`3407`。
+- 关键发现：ΔOverall 全部在 ±1 pp 内（ranking 不变，`cldnn` 仍最强 0.6145）；ΔLow-SNR 全部为负，`fusion_iq_stft` 跌幅最大 −0.89 pp；best_epoch 显示 `resnet1d` 完全没欠训练（15–20），`fusion_iq_stft` 欠训练最严重（34–42）但收益仅 +0.80 pp，仍输给 cldnn 3 pp。
+- 结论：**Stage 5A 没有被显著欠训练**；延长 budget 无法救低 SNR，反而轻微伤害；融合架构与 cldnn 的差距不是 budget 问题。
+
+### 修改/新增文件
+
+- 新增 `configs/paper/rml2016a_extended_budget_3090.yaml`
+- 新增 `scripts/paper/run_extended_budget_training.py`
+- 新增 `docs/paper/PAPER_STAGE6_EXTENDED_BUDGET_3090_REPORT.md`（自动生成）
+- 新增 `docs/paper/PAPER_STAGE6_EXTENDED_BUDGET_ANALYSIS.md`（分析附录）
+- 新增 `docs/paper/manuscript/section7_7_training_budget_sensitivity.md`
+- 修改 `src/radioml_amc/training/trainer.py`：增加可选 cosine LR scheduler
+- 修改 `docs/paper/PAPER_STAGE_INDEX.md`：登记 Stage 6 Extended Budget 行 + `EXTENDED_BUDGET_3090` evidence label policy
+- 修改 `.ai-context/04-decisions.md`、`.ai-context/05-current-state.md`、`.ai-context/06-session-log.md`
+
+### 服务器侧产物（未本地归档）
+
+- `/hy-tmp/radioml-amc-stage1/results/paper_stage6/extended_budget_3090/rml2016a/<model>/seed_<train_seed>/` 共 12 个 cell，每个 cell 含 11 个 required artifact + `best_model.pt` + `plots/`。
+- `run.log`、`status.json` 同目录可读；如需要本地归档权重，沿用 Stage 5A 策略：单独 archive 路径并 hash-check，不要覆盖 `results/`。
+
+### 限制
+
+- 新 GPU 是 RTX 3090（Ampere sm_86），与 Stage 5A 的 RTX 4070（Ada sm_89）架构不同。即使 seed 相同，cuDNN kernel 选择可能不同，**与 Stage 5A 不能跨硬件做 paired bootstrap/McNemar**。
+- 本轮只跑了 4 个模型（核心强基线 + 融合控制 + 静态融合），其余 5 个 Stage 5A 模型（`cnn1d`、`tfcnn_stft`、`mcldnn`、`lwamcnet`、`gated_fusion_iq_stft`）的论文主表解释**继续来自 Stage 5A 原结果**。
+
 ## 2026-05-07 Stage 1：本地 mock 工程闭环
 
 ### 本次目标
@@ -549,3 +704,33 @@ git diff --check
 
 - 如果目标是强化低 SNR 证据，进入 Stage 3.1：low-SNR weighted loss / SNR-balanced sampler。
 - 如果目标是尽快完成课程报告，可以进入 Stage 5.0：结课报告初稿生成。
+
+## 2026-05-07 Stage 3.5：文献调研、工作量表达与创新点规划
+
+### 本次目标
+
+- 将 AMC 相关 arXiv 论文和 GitHub 仓库调研结果整理成可引用的项目文档。
+- 明确结课报告中如何体现工程工作量、实验工作量和分析工作量。
+- 基于 Stage 3 full 结果选择后续最合适的创新点，不盲目增加复杂模型。
+
+### 本次完成
+
+- 新增 Stage 3.5 文档，整理 30 篇 arXiv 相关论文和 12 个相关 GitHub 仓库。
+- 将相关工作归纳为 I/Q baseline、时频/多视图、低 SNR 鲁棒性、轻量化/可复现工程 4 条主线。
+- 固定后续最推荐创新点：low-SNR weighted loss / SNR-balanced sampler、prediction-level 误差分析、成本感知时频特征分析、subset-to-full generalization gap 和多视图输入体系。
+- 更新 README 的 Workload and Innovation Plan 摘要。
+- 更新阶段索引和下一阶段提示词。
+
+### 修改/新增文件
+
+- `docs/stages/STAGE_035_WORKLOAD_INNOVATION_PLAN.md`
+- `README.md`
+- `docs/STAGE_INDEX.md`
+- `docs/PROGRESS_LOG.md`
+- `docs/NEXT_STAGE_PROMPTS.md`
+
+### 当前结论
+
+- 当前最适合体现新增工作量的方向是 Stage 3.1：low-SNR weighted loss 或 SNR-balanced sampler。
+- 若课程时间有限，当前材料已经足够进入 Stage 5.0 结课报告初稿。
+- 暂不建议进入 RadioML2018.01A，也不建议引入 Transformer 或强跑 full CWT。

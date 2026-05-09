@@ -9,6 +9,8 @@ data:
   test_size: 0.2
   val_size: 0.1
   split_strategy: stratified_by_mod_snr
+  split_artifact_npz: data/splits/rml2016a/stratified_by_mod_snr_seed42.npz
+  split_summary_json: data/splits/rml2016a/stratified_by_mod_snr_seed42_summary.json
   subset_mode: false
   subset_mods: null
   subset_snrs: null

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -103,3 +105,109 @@ def summarize_splits(
             "modulation_snr_counts": dict(sorted(group_counts.items())),
         }
     return summary
+
+
+def make_split_id(strategy: str, seed: int) -> str:
+    return f"{strategy}_seed{int(seed)}"
+
+
+def save_split_artifact(
+    splits: dict[str, np.ndarray],
+    y: np.ndarray,
+    snr: np.ndarray,
+    class_names: list[str],
+    output_dir: str | Path,
+    strategy: str,
+    seed: int,
+    dataset_name: str = "rml2016a",
+    split_ratios: dict[str, float] | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> tuple[Path, Path]:
+    output = Path(output_dir)
+    output.mkdir(parents=True, exist_ok=True)
+    split_id = make_split_id(strategy, seed)
+    npz_path = output / f"{split_id}.npz"
+    summary_path = output / f"{split_id}_summary.json"
+
+    np.savez_compressed(
+        npz_path,
+        train_idx=np.asarray(splits["train"], dtype=np.int64),
+        val_idx=np.asarray(splits["val"], dtype=np.int64),
+        test_idx=np.asarray(splits["test"], dtype=np.int64),
+    )
+
+    summary = summarize_splits(
+        splits=splits,
+        y=y,
+        snr=snr,
+        class_names=class_names,
+        strategy=strategy,
+        seed=seed,
+    )
+    summary.update(
+        {
+            "dataset": dataset_name,
+            "split_id": split_id,
+            "split_ratios": split_ratios or {},
+            "class_mapping": {name: idx for idx, name in enumerate(class_names)},
+            "snr_values": [int(value) for value in sorted(np.unique(snr).tolist())],
+            "metadata": dict(metadata or {}),
+            "artifact_npz": str(npz_path),
+        }
+    )
+    with summary_path.open("w", encoding="utf-8") as f:
+        json.dump(summary, f, ensure_ascii=False, indent=2)
+    return npz_path, summary_path
+
+
+def load_split_artifact(path: str | Path) -> dict[str, np.ndarray]:
+    artifact = Path(path)
+    with np.load(artifact) as data:
+        return {
+            "train": np.asarray(data["train_idx"], dtype=np.int64),
+            "val": np.asarray(data["val_idx"], dtype=np.int64),
+            "test": np.asarray(data["test_idx"], dtype=np.int64),
+        }
+
+
+def load_split_summary(path: str | Path) -> dict[str, Any]:
+    with Path(path).open("r", encoding="utf-8") as f:
+        payload = json.load(f)
+    if not isinstance(payload, dict):
+        raise ValueError(f"Split summary must be a JSON object: {path}")
+    return payload
+
+
+def create_split_artifact(
+    y: np.ndarray,
+    snr: np.ndarray,
+    class_names: list[str],
+    output_dir: str | Path,
+    test_size: float = 0.2,
+    val_size: float = 0.1,
+    strategy: str = "stratified_by_mod_snr",
+    seed: int = 42,
+    dataset_name: str = "rml2016a",
+    metadata: dict[str, Any] | None = None,
+) -> tuple[dict[str, np.ndarray], Path, Path]:
+    splits = make_splits(
+        y=y,
+        snr=snr,
+        test_size=test_size,
+        val_size=val_size,
+        strategy=strategy,
+        seed=seed,
+    )
+    npz_path, summary_path = save_split_artifact(
+        splits=splits,
+        y=y,
+        snr=snr,
+        class_names=class_names,
+        output_dir=output_dir,
+        strategy=strategy,
+        seed=seed,
+        dataset_name=dataset_name,
+        split_ratios={"train": 1.0 - test_size - val_size, "val": val_size, "test": test_size},
+        metadata=metadata,
+    )
+    return splits, npz_path, summary_path

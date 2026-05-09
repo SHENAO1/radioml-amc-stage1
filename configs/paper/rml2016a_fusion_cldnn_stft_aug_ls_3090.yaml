@@ -1,0 +1,105 @@
+# A 方案: fusion_cldnn_stft + signal-domain augmentation + label smoothing.
+#
+# Tests three independent interventions in one registered run:
+#  1. Architecture: replace fusion's I/Q branch with a CLDNN-style backbone
+#     (CNN+LSTM). Direct test of whether fusion underperformance vs CLDNN is
+#     a backbone-capacity issue.
+#  2. Data augmentation (train-only): phase rotation theta~U(-pi,pi) prob 0.5
+#     + cyclic time shift k~U(-8,+8) prob 0.5. Both label-preserving and
+#     SNR-preserving.
+#  3. Label smoothing 0.1 in cross-entropy.
+#
+# Same fixed split + 3 seeds + extended-budget schedule as P1.1. Output goes
+# to a new evidence label and a new output root; Stage 5A/5B, P1.1, P2.5,
+# P1.2, P1.3 artefacts are not modified.
+
+execution:
+  stage: paper_stage6_fusion_cldnn_stft_aug_ls
+  evidence_status: in_progress
+  evidence_label: FUSION_CLDNN_STFT_AUG_LS_3090
+  guardrails:
+    - Do not write into results/paper_stage2/ (Stage 5A artifacts are frozen).
+    - Do not overwrite docs/paper/PAPER_STAGE5A_FULL_RML2016A_TRAINING_REPORT.md.
+    - Do not touch results/paper_stage6/extended_budget_3090/, results/paper_stage6/low_snr_weighted_ce_3090/, results/paper_stage6/extended_complexity_latency/, or results/paper_stage6/low_snr_confusion_extended/.
+    - Hardware unchanged from P1.1 (RTX 3090); annotate the architecture difference vs Stage 5A.
+    - Use the same fixed split artifact as Stage 5A for paired statistical comparability across all Stage 6 evidence labels.
+
+experiment:
+  dataset_id: rml2016a
+  dataset_name: RML2016.10A
+  split_id: stratified_by_mod_snr_seed42
+  split_artifact_npz: data/splits/rml2016a/stratified_by_mod_snr_seed42.npz
+  split_summary_json: data/splits/rml2016a/stratified_by_mod_snr_seed42_summary.json
+  split_seed: 42
+  train_seeds:
+    - 42
+    - 2025
+    - 3407
+  models:
+    - fusion_cldnn_stft
+
+data:
+  mode: real
+  dataset: RML2016.10A
+  raw_path: auto
+  subset_mode: false
+  subset_mods: null
+  subset_snrs: null
+  max_samples_per_group: null
+  split_strategy: stratified_by_mod_snr
+  split_artifact_npz: data/splits/rml2016a/stratified_by_mod_snr_seed42.npz
+  split_summary_json: data/splits/rml2016a/stratified_by_mod_snr_seed42_summary.json
+  test_size: 0.2
+  val_size: 0.1
+
+features:
+  stft:
+    nperseg: 32
+    noverlap: 16
+    log_scale: true
+    normalize: true
+  cwt:
+    num_scales: 16
+    min_scale: 1.0
+    max_scale: 32.0
+    log_scale: true
+    normalize: true
+
+train:
+  epochs: 50
+  batch_size: 256
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  num_workers: 4
+  device: auto
+  early_stopping_patience: 15
+  scheduler:
+    name: cosine
+    warmup_epochs: 5
+  loss:
+    name: ce
+    label_smoothing: 0.1
+  augmentation:
+    enabled: true
+    phase_rotation_prob: 0.5
+    time_shift_prob: 0.5
+    time_shift_max: 8
+
+outputs:
+  result_root: results/paper_stage6/fusion_cldnn_stft_aug_ls_3090/rml2016a
+  per_run_shape: results/paper_stage6/fusion_cldnn_stft_aug_ls_3090/rml2016a/<model_id>/seed_<train_seed>
+  aggregate_dir: results/paper_stage6/fusion_cldnn_stft_aug_ls_3090/rml2016a/aggregate
+  save_checkpoint: true
+  save_plots: true
+  save_report: true
+  required_files:
+    - config_resolved.yaml
+    - metrics_test.json
+    - metrics_per_snr.csv
+    - metrics_per_class.csv
+    - predictions_test.csv
+    - confusion_overall.csv
+    - confusion_low_snr.csv
+    - complexity.json
+    - latency.json
+    - training_summary.json
