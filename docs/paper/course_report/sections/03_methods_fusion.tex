@@ -170,10 +170,10 @@ STFT 视图通过对 I/Q 序列进行窗口化傅里叶变换得到。设窗函�
 
 所有模型在 PyTorch~2.9.1+cu128\cite{paszke2019pytorch} 与 NVIDIA driver 570.\(\ast\) 上训练。Stage 5A 主表使用 RTX 4070 (Ada sm\_89)，所有 Stage 6 扩展实验与提案模型使用 RTX 3090 (Ampere sm\_86)；该硬件差异作为协议混淆因素登记。
 
-主实验与提案模型共用以下训练设置：优化器 AdamW\cite{loshchilov2019adamw,kingma2015adam} 学习率 \(\eta=10^{-3}\)、权重衰减 \(10^{-4}\)\cite{krogh1992weightdecay}，批量大小 256，最大训练轮数 50（Stage 5A 主表为 30），早停耐心值 15（Stage 5A 主表为 8），早停依据为验证集准确率。提案模型与所有 Stage 6 扩展实验额外采用 5 轮线性 warmup 加 cosine annealing 学习率\cite{loshchilov2017sgdr}。损失函数默认为标准交叉熵；提案模型使用 \(\epsilon=0.1\) 的标签平滑\cite{szegedy2016inception}。Stage 6 的 \texttt{LOW\_SNR\_WEIGHTED\_CE\_3090} 实验使用分组 SNR 加权交叉熵替代普通交叉熵；其权重组与边界登记在第~\ref{sec:results-extended}.2 节。
+主实验与提案模型共用以下训练设置：优化器 AdamW\cite{loshchilov2019adamw,kingma2015adam} 学习率 \(\eta=10^{-3}\)、权重衰减 \(10^{-4}\)\cite{krogh1992weightdecay}，批量大小 256，最大训练轮数 50（Stage 5A 主表为 30），早停耐心值 15（Stage 5A 主表为 8），早停依据为验证集准确率。提案模型与所有 Stage 6 扩展实验额外采用 5 轮线性 warmup 加 cosine annealing 学习率\cite{loshchilov2017sgdr}。损失函数默认为标准交叉熵；提案模型使用 \(\epsilon=0.1\) 的标签平滑\cite{szegedy2016inception}。Stage 6 的 \texttt{LOW\_SNR\_WEIGHTED\_CE\_3090} 实验使用分组 SNR 加权交叉熵替代普通交叉熵；其权重组与边界见第~\ref{sec:results-extended-summary}~节摘要。
 
 学习率 \(10^{-3}\) 是 AMR 文献中卷积网络的常用值\cite{xu2020mcldnn,zhang2021petcgdnn}；本文沿用该取值并以同一数值作用于 9 个主表模型，目的是保持比较纪律，不为单个模型做事后调参（其代价已在第~5~节 MCLDNN 异常分析中讨论）。
 
 \section{方法边界}
 
-本章的目的在于说明主实验中已经登记的模型身份、输入视图和比较目的，并描述提案模型 \path{fusion_cldnn_stft} 与其训练侧增强、标签平滑设置；不把诊断性候选、mock 路径或后续计划项写入主模型矩阵。任何关于性能、显著性或稳定性的判断都必须回到第~2~章实验协议和第~4~章结果证据。提案模型由架构、增强与标签平滑三项干预联合构成；本报告在第~\ref{sec:results-extended}.7 节给出三个单干预消融变体的协议化评估，但解释边界与未来工作方向仍在第~5~章末尾说明。
+本章的目的在于说明主实验中已经登记的模型身份、输入视图和比较目的，并描述提案模型 \path{fusion_cldnn_stft} 与其训练侧增强、标签平滑设置；不把诊断性候选、mock 路径或后续计划项写入主模型矩阵。任何关于性能、显著性或稳定性的判断都必须回到第~2~章实验协议和第~4~章结果证据。提案模型由架构、增强与标签平滑三项干预联合构成；本报告在第~\ref{sec:proposed-ablation}~节给出三个单干预消融变体的协议化评估，但解释边界与未来工作方向仍在第~5~章末尾说明。

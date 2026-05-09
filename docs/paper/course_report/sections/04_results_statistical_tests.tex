@@ -204,28 +204,38 @@
 
 \section{扩展实验与提案模型}\label{sec:results-extended}
 
-为回答“Stage 5A 主表是否被训练预算截断”、“是否被 SNR 损失偷懒造成”，以及探索一个能反超 CLDNN 基线的提案模型，本节登记五个独立证据标签下的扩展实验。所有扩展实验**仅作为本节内的协议化解释证据**：不修改主表均值、宏平均 F1、低/中/高信噪比分组、配对自助法置信区间或 McNemar 检验结果。所有训练在 RTX 3090（Ampere sm\_86）上进行，与 Stage 5A 的 RTX 4070（Ada sm\_89）不同。该硬件变更被显式作为协议混淆因素登记，三种子均值层面的解释仍受支持，但样本级配对统计检验不能跨硬件直接做。
+本节扩展实验在 RTX 3090 上完成，与 Stage 5A 的 RTX 4070 硬件不同；跨硬件的样本级配对统计检验因此不可直接执行，三种子均值层面的解释仍受支持。所有扩展实验仅在本节用作协议化解释证据，不修改主表数值与统计检验。
 
-\subsection{延长训练预算（\texttt{EXTENDED\_BUDGET\_3090}）}
+\subsection{扩展实验摘要}\label{sec:results-extended-summary}
 
-把训练轮数由 30 调到 50，并加入 5 轮线性 warmup 与余弦退火学习率，对 \path{cnn1d}、\path{resnet1d}、\path{iq_param_matched} 与 \path{fusion_iq_stft} 共 4 个模型 \(\times\) 3 个种子重训。延长预算后，4 个模型的整体准确率均值变化分别为 \(+0.002\)、\(+0.000\)、\(+0.007\) 和 \(+0.008\) 个百分点，全部在 \(\pm 1\) 个百分点以内；最佳轮在 15--42 之间，均未触及 50 轮上限或在 warmup 区段过早早停。低信噪比均值变化分别为 \(-0.000\)、\(-0.001\)、\(-0.002\) 和 \(-0.009\)，没有改善。该结果排除“Stage 5A 主表是欠训练造成”的常见 reviewer 质疑，并表明仅延长预算不能改写主表结论或缓解低信噪比退化。
+四类敏感性／诊断扩展实验（延长预算、低信噪比加权交叉熵、扩展复杂度、低信噪比混淆后处理）的发现汇总于表~\ref{tab:extended-summary}；详细每 cell 数据见同名独立证据标签的报告文档。
 
-\subsection{低信噪比加权交叉熵（\texttt{LOW\_SNR\_WEIGHTED\_CE\_3090}）}
-
-把交叉熵替换为分组 SNR 加权交叉熵，权重为 low\(=2.0\)、mid\(=1.0\)、high\(=0.7\)，其余训练计划同上一小节，仅对 \path{cldnn} 与 \path{fusion_iq_stft} \(\times\) 3 个种子训练。结果相对 Stage 5A 表现：CLDNN 整体 \(-2.33\)、低 SNR \(+0.58\)、中 SNR \(-4.38\)、高 SNR \(-4.18\) 个百分点；\path{fusion_iq_stft} 整体 \(-0.67\)、低 SNR \(+0.42\)、中 SNR \(-1.79\)、高 SNR \(-0.97\) 个百分点。该结果说明最简单形式的 SNR-aware 损失可以让低信噪比指标小幅上行，但代价是中、高信噪比及整体准确率的更大下降，因此不构成合算的干预。
-
-\subsection{扩展复杂度与单线程 CPU 延迟（\texttt{CONTROLLED\_LATENCY\_EXTENDED}）}
-
-补全主表中空缺的 MACs/FLOPs 与单线程 CPU 前向延迟。测量在 \texttt{torch.set\_num\_threads(1)} 下使用 50 轮预热、200 轮计时迭代，与 Stage 5A 同 PyTorch 与 CUDA 构建，仅设备目标改为 CPU。表~\ref{tab:extended-complexity-cpu-latency} 摘录与解释最相关的几行。
+\begin{table}[htbp]
+  \centering
+  \caption{四类扩展实验摘要。Δ 列均为相对 Stage 5A 同模型的整体准确率均值变化。}
+  \label{tab:extended-summary}
+  \small
+  \begin{tabularx}{\textwidth}{lXcX}
+    \toprule
+    证据标签 & 模型范围 / 干预 & Δ overall & 主要发现 \\
+    \midrule
+    \texttt{EXTENDED\_BUDGET\_3090} & 4 模型 \(\times\) 3 seed；epoch \(50\) + 5 轮 warmup + cosine annealing & \(\pm 1\) pp 内 & 排除欠训练假设；最佳轮 15--42，未触上限。 \\
+    \texttt{LOW\_SNR\_WEIGHTED\_CE\_3090} & 2 模型 \(\times\) 3 seed；分组 SNR 加权 CE (low\(=2.0\), mid\(=1.0\), high\(=0.7\)) & cldnn \(-2.3\)，fusion \(-0.7\) & 低 SNR 微涨 \(+0.4\)--\(0.6\) pp，但中高 SNR 跌 \(2\)--\(4\) pp；不合算干预。 \\
+    \texttt{CONTROLLED\_LATENCY\_EXTENDED} & 9 模型；CPU 单线程前向延迟 + thop MACs，warmup 50/measured 200 & — & 见表~\ref{tab:extended-complexity-cpu-latency}；fusion\_iq\_stft MACs (2.0 M) \textbf{少于} resnet1d (4.9 M)。 \\
+    Stage 5A predictions 后处理 & 9 模型 \(\times\) 3 seed；行归一化低信噪比混淆矩阵 & — & 8 稳定模型在 \lowSNR{} 共同退化为偏置预测 AM-SSB（数字调制 \(\to\) AM-SSB 比例 0.63--0.81）；构成信息论级下限。 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
 
 \begin{table}[htbp]
   \centering
   \caption{扩展复杂度（\texttt{thop} MACs）与单线程 CPU 前向延迟}
   \label{tab:extended-complexity-cpu-latency}
-  \small
+  \scriptsize
+  \setlength{\tabcolsep}{4pt}
   \begin{tabularx}{\textwidth}{lrrrr}
     \toprule
-    模型行 & 参数量 & MACs（单样本） & CPU bs=1 / ms 中位数 & CPU bs=256 / ms 中位数 \\
+    模型行 & 参数量 & MACs（单样本） & CPU bs=1 / ms & CPU bs=256 / ms \\
     \midrule
     \path{tfcnn_stft} & 24,123 & 424,704 & 0.363 & 21.992 \\
     \path{cnn1d} & 37,131 & 1,553,920 & 0.411 & 61.285 \\
@@ -240,13 +250,7 @@
   \end{tabularx}
 \end{table}
 
-两点观察对后续解释有用。第一，静态 \path{fusion_iq_stft} 的乘加运算量为 \(2.0\) M，**少于** \path{resnet1d} 的 \(4.9\) M；这说明融合输给 CLDNN 不是因为参数或运算量过大，而更可能是 I/Q 分支表征容量不足。第二，\path{lwamcnet} 参数量最低（\(20\)k），但单线程 CPU 批量 1 延迟反而排第二慢，深度可分离与分组卷积在单线程 CPU 上不一定占优；轻量化的部署收益与具体硬件目标强相关，不能直接由参数量推断。
-
-\subsection{低信噪比类别混淆模式}
-
-对已归档的 27 份 Stage 5A \texttt{predictions\_test.csv} 做行归一化后处理，得到 9 个模型行在 \lowSNR{} 下的类别混淆矩阵。除 MCLDNN 异常外，其余 8 个稳定模型均出现共同失败模式：\path{8PSK}、\path{BPSK}、\path{QPSK}、\path{CPFSK}、\path{GFSK} 等数字调制的真实样本被预测为 \path{AM-SSB} 的比例普遍达到 \(0.63\)--\(0.81\)。同一模型在 \path{AM-SSB} 自身上的低信噪比准确率达到 \(0.87\)--\(0.95\)。
-
-这一“崩塌为 AM-SSB”模式与一个信息论级失败下限一致：单边带调幅在频域表现出非对称结构，是噪声背景下最容易识别的类别；当样本被噪声主导时，模型退化为对 \path{AM-SSB} 的偏置预测。该失败下限解释了为何 P1.1 仅延长训练预算和上一小节的 SNR 加权交叉熵都无法实质改写深低信噪比（\(\le -16\) dB）行为：在原始信号已基本被噪声覆盖的样本上，没有信息量可供模型“更努力地学习”。
+三条要点支撑后续提案模型解释。其一，延长预算不改写主表排序，也不缓解低信噪比退化，**Stage 5A 主表不是欠训练造成**。其二，分组 SNR 加权 CE 是不合算干预，单凭损失加权无法同时改善低信噪比与整体性能。其三，深低信噪比 (\(\le -16\) dB) 退化为偏置预测 AM-SSB 是信息论级失败下限，**没有信息量可供模型"更努力地学习"**；任何架构改动都不能改写这一下限。\path{fusion_iq_stft} MACs 仅为 \(2.0\) M（**少于** \path{resnet1d} 的 \(4.9\) M）这一事实，把 ``静态融合输给 CLDNN'' 的瓶颈定位到 I/Q 分支表征容量不足，为提案模型的架构升级提供动机。
 
 \subsection{文献校准与可比 SOTA}\label{sec:results-literature}
 
@@ -305,7 +309,7 @@
   \end{tabularx}
 \end{table}
 
-提案模型在四个指标（整体、低、中、高信噪比）上**同时**正向超过 Stage 5A 的 CLDNN 基线，整体准确率的相对增量 \(+1.35\) 个百分点显著大于三种子标准差 \(0.0005\)（约 \(27\sigma\)），不属于种子噪声范围。提案模型的最佳轮在 \(31\)、\(42\)、\(31\)，全部位于 \(50\) 轮上限之内，证明该计划对提案模型已经收敛。图~\ref{fig:proposed-per-snr} 给出提案模型与三个对照（Stage 5A CLDNN、Stage 5A fusion\_iq\_stft、P1.1 fusion\_iq\_stft 同 schedule）的逐 SNR 准确率曲线，可直观看到提案模型在中、高信噪比上一致领先，并在低信噪比仍略高于 Stage 5A CLDNN，但与所有对照在深低信噪比一同退化到 \(\sim 1/11\) 的随机水平，与第~\ref{sec:results-extended}.4 节的“塌陷为 AM-SSB”信息论下限一致。
+提案模型在四个指标（整体、低、中、高信噪比）上**同时**正向超过 Stage 5A 的 CLDNN 基线，整体准确率的相对增量 \(+1.35\) 个百分点显著大于三种子标准差 \(0.0005\)（约 \(27\sigma\)），不属于种子噪声范围。提案模型的最佳轮在 \(31\)、\(42\)、\(31\)，全部位于 \(50\) 轮上限之内，证明该计划对提案模型已经收敛。图~\ref{fig:proposed-per-snr} 给出提案模型与三个对照（Stage 5A CLDNN、Stage 5A fusion\_iq\_stft、P1.1 fusion\_iq\_stft 同 schedule）的逐 SNR 准确率曲线，可直观看到提案模型在中、高信噪比上一致领先，并在低信噪比仍略高于 Stage 5A CLDNN，但与所有对照在深低信噪比一同退化到 \(\sim 1/11\) 的随机水平，与第~\ref{sec:results-extended-summary}~节的 ``塌陷为 AM-SSB'' 信息论下限一致。
 
 \begin{figure}[htbp]
   \centering
