@@ -8,9 +8,9 @@
 
 \section{预测归档与统计检验}
 
-预测归档位于 \path{paper_package/predictions_archive_20260508}。该归档包含 27 个 Stage 5A \path{predictions_test.csv} 文件，覆盖 9 个模型行和 3 个训练种子 \mainseeds{}，其 manifest 记录均为 \path{archive_hash_match}。这些预测文件是 paired bootstrap 与 McNemar 检验的输入来源，使统计比较可以按照 \path{split_id}、\path{train_seed} 和 \path{sample_id} 对同一样本进行配对。
+预测归档位于 \path{paper_package/predictions_archive_20260508}。该归档包含 27 个 Stage 5A \path{predictions_test.csv} 文件，覆盖 9 个模型行和 3 个训练种子 \mainseeds{}，其 manifest 记录均为 \path{archive_hash_match}。这些预测文件是配对自助法与 McNemar 检验的输入来源，使统计比较可以按照 \path{split_id}、\path{train_seed} 和 \path{sample_id} 对同一样本进行配对。
 
-统计检验包位于 \path{paper_package/statistical_tests_20260508}。该目录包含 \path{paired_bootstrap_accuracy_deltas.csv}、\path{mcnemar_tests.csv}、\path{significance_tests.json}、\path{statistical_tests_summary.md} 以及统计检验 manifest。统计检验摘要明确说明，这些 artifacts 基于 Stage 5A archived predictions 生成，没有训练模型、没有运行 tiny subset、没有重建或覆盖 Stage 5A/5B 主表，也没有使用 Stage~6B \texttt{SMOKE TEST} 或 \texttt{DIAGNOSTIC} 输出。
+统计检验包位于 \path{paper_package/statistical_tests_20260508}。该目录包含 \path{paired_bootstrap_accuracy_deltas.csv}、\path{mcnemar_tests.csv}、\path{significance_tests.json}、\path{statistical_tests_summary.md} 以及统计检验清单。统计检验摘要明确说明，这些文件基于 Stage 5A 测试集预测归档生成，没有训练模型、没有运行微型子集、没有重建或覆盖 Stage 5A/5B 主表，也没有使用 Stage~6B \texttt{SMOKE TEST} 或 \texttt{DIAGNOSTIC} 输出。
 
 \section{证据标签}
 
@@ -24,8 +24,8 @@
     \toprule
     证据标签 & 含义 & 课程报告使用范围 \\
     \midrule
-    \texttt{PROJECT\_SUPPORTED} & Stage 5A/5B 完整固定协议证据 & 可用于主表、low-SNR 表、模型矩阵、predictions archive 和 paired statistical tests。 \\
-    \texttt{CONTROLLED\_LATENCY} & 受控 CUDA forward latency 测量 & 仅用于参数量与 CUDA forward latency 范围内的复杂度讨论。 \\
+    \texttt{PROJECT\_SUPPORTED} & Stage 5A/5B 完整固定协议证据 & 可用于主表、低信噪比表、模型矩阵、测试集预测归档和配对统计检验。 \\
+    \texttt{CONTROLLED\_LATENCY} & 受控 CUDA 前向延迟测量 & 仅用于参数量与 CUDA 前向延迟范围内的复杂度讨论。 \\
     \texttt{SMOKE TEST} & mock 或 synthetic code-path 检查 & 仅用于工程路径说明，不得作为性能证据。 \\
     \texttt{DIAGNOSTIC} & mock、subset 或调试筛查 & 仅用于后续诊断边界说明，不得进入主表或统计检验。 \\
     \bottomrule
@@ -81,27 +81,27 @@ Stage~6B smoke 或 diagnostic 输出不得进入 Stage 5A/5B 主表、low-SNR �
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig08_low_snr_confusion_panels.pdf}
-  \caption{代表模型在 low-SNR scope 下的行归一化混淆矩阵，三训练种子聚合。Data source: \texttt{confusion\_low\_snr.csv} for seeds 42, 2025, and 3407.}
+  \caption{代表模型在低信噪比范围内的行归一化混淆矩阵，三训练种子聚合。证据源：\texttt{confusion\_low\_snr.csv}。}
   \label{fig:low-snr-confusion-panels}
 \end{figure}
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig16_overall_confusion_panels.pdf}
-  \caption{代表模型在 overall scope 下的行归一化混淆矩阵，三训练种子聚合。Data source: \texttt{confusion\_overall.csv} for seeds 42, 2025, and 3407.}
+  \caption{代表模型在整体测试集上的行归一化混淆矩阵，三训练种子聚合。证据源：\texttt{confusion\_overall.csv}。}
   \label{fig:overall-confusion-panels}
 \end{figure}
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.82\textwidth]{fig09_mcldnn_seed_anomaly.pdf}
-  \caption{MCLDNN 在三个训练种子上的 overall accuracy 与 macro-F1。Data source: \texttt{mcldnn/seed\_*/metrics\_test.json}; seeds 2025 and 3407 are retained negative evidence.}
+  \caption{MCLDNN 在三个训练种子上的整体准确率与宏平均 F1。证据源：MCLDNN 各种子测试指标；seed 2025 与 seed 3407 作为负结果保留。}
   \label{fig:mcldnn-seed-anomaly}
 \end{figure}
 
 \begin{figure}[htbp]
   \centering
   \input{figures/fig10_evidence_boundary}
-  \caption{本文证据标签与排除规则示意图。Data source: \texttt{REPORT\_EVIDENCE\_MAP.md}, paper package manifests, and environment audit.}
+  \caption{本文证据标签与排除规则示意图。证据源：证据边界文档、证据包清单和环境审计记录。}
   \label{fig:evidence-boundary}
 \end{figure}

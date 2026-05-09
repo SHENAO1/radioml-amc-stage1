@@ -3,17 +3,17 @@
   node distance=1.05cm and 1.1cm,
   stage/.style={rounded corners, draw=#1!75!black, fill=#1!10, very thick,
     align=center, minimum width=3.0cm, minimum height=1.05cm, font=\small},
-  artifact/.style={rounded corners, draw=black!55, fill=black!4, thick,
+  evidence/.style={rounded corners, draw=black!55, fill=black!4, thick,
     align=center, minimum width=3.0cm, minimum height=0.85cm, font=\small},
   arrow/.style={-{Latex[length=2.5mm]}, thick, draw=black!70}
 ]
-\node[stage=blue] (data) {\datasetname{}\\220k samples};
-\node[stage=teal, right=of data] (split) {Fixed split\\\splitname{}};
-\node[stage=orange, right=of split] (models) {9 model rows\\3 train seeds};
-\node[artifact, below=of models] (pred) {Predictions archive\\27 \texttt{predictions\_test.csv}};
-\node[artifact, left=of pred] (agg) {Aggregate tables\\main / low-SNR / latency};
-\node[artifact, right=of pred] (tests) {Paired statistics\\bootstrap + McNemar};
-\node[stage=green, below=of pred] (report) {Course report claims\\evidence-bounded};
+\node[stage=blue] (data) {\datasetname{}\\220,000 个样本};
+\node[stage=teal, right=of data] (split) {固定划分\\\splitname{}};
+\node[stage=orange, right=of split] (models) {9 个模型行\\3 个训练种子};
+\node[evidence, below=of models] (pred) {测试集预测归档\\27 个预测文件};
+\node[evidence, left=of pred] (agg) {聚合结果表\\主表/低信噪比/延迟};
+\node[evidence, right=of pred] (tests) {配对统计检验\\自助法 + McNemar};
+\node[stage=green, below=of pred] (report) {课程报告结论\\受证据边界约束};
 \draw[arrow] (data) -- (split);
 \draw[arrow] (split) -- (models);
 \draw[arrow] (models) -- (pred);
@@ -21,7 +21,7 @@
 \draw[arrow] (pred) -- (agg);
 \draw[arrow] (agg) -- (report);
 \draw[arrow] (tests) -- (report);
-\node[artifact, below=0.55cm of agg, fill=gray!8] (exclude) {Stage 6B smoke/diagnostic\\excluded from main results};
+\node[evidence, below=0.55cm of agg, fill=gray!8] (exclude) {诊断性/工程检查材料\\不进入主结果};
 \draw[arrow, dashed, draw=gray!70] (exclude) -- (report);
 \end{tikzpicture}%
 }

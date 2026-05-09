@@ -2,24 +2,40 @@
 
 \section{数据集与任务定义}
 
-本文研究对象为无线电自动调制识别（Automatic Modulation Classification, AMC）任务，即在给定接收信号观测的条件下，将样本判别为相应的调制类别。本实验的主结果仅使用 \datasetname{} 数据集，并将所有实验结论限定在该数据集、固定划分与既定模型矩阵内解释。数据集相关引用将在最终报告定稿阶段补充。
-% TODO: add dataset citation
+本文主实验使用 \datasetname{} 数据集\cite{oshea2016radioml}。该数据集在本实验配置下包含 220,000 个样本、11 类调制方式和 20 个信噪比取值，信噪比范围为 \(-20\) dB 至 \(18\) dB，步长为 2 dB。每个“调制方式--信噪比”组合包含 1,000 个样本。单个样本的输入形状为 \(2\times128\)，两个通道分别为同相分量和正交分量，数据类型为 \texttt{float32}。主实验仅以调制类别为分类目标，不进行信噪比估计、信道识别或部署系统优化。
 
-从输入形态看，本报告关注两类互补视图：一类是原始 I/Q 序列视图，用于保留无线电基带信号的时域结构；另一类是由信号变换得到的时频特征视图，用于刻画频域局部结构。分类目标始终为调制类别，而非信噪比估计、信道识别或部署时延预测。主表中的 \path{input_views} 字段记录每个模型实际使用的输入视图，相关证据来自 \path{paper_package/server_sync_20260508/results/paper_stage2/rml2016a/aggregate/main_table_metrics.csv} 与 Stage 5B 审计文档 \path{paper_package/server_sync_20260508/docs/paper/PAPER_STAGE5B_RESULT_AUDIT_AND_TABLES.md}。
+\begin{table}[htbp]
+  \centering
+  \caption{主实验数据集与固定划分摘要}
+  \label{tab:protocol-summary}
+  \begin{tabularx}{\textwidth}{lX}
+    \toprule
+    项目 & 设置 \\
+    \midrule
+    数据集 & \datasetname{}；220,000 个样本，11 类调制方式，20 个信噪比取值。 \\
+    样本形状 & \(2\times128\) I/Q 序列。 \\
+    信噪比范围 & \(-20,-18,\ldots,18\) dB；每个调制方式--信噪比组合 1,000 个样本。 \\
+    固定划分 & \splitname{}；按调制方式与信噪比分层。 \\
+    训练/验证/测试 & 154,000 / 22,000 / 44,000，对应 70\% / 10\% / 20\%。 \\
+    主实验规模 & 9 个模型行，3 个训练种子 \mainseeds{}，共 27 个运行单元。 \\
+    低信噪比分组 & \lowSNR{}；测试集中每个训练种子对应 17,600 个低信噪比样本。 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
 
-需要强调的是，本报告中的“主结果”均指 Stage 5A/5B 已审计的 \datasetname{} 固定协议证据。本文不将其他数据集、工程 smoke 输出或后续诊断候选纳入主结果，也不据此提出跨数据集泛化结论。
+本文同时使用原始 I/Q 视图和 STFT 时频视图。I/Q 视图保留基带信号的时间采样结构；STFT 视图通过窗口化傅里叶变换描述局部频率成分\cite{oppenheim2010dtsp}。主表中的模型身份由模型标识与输入视图共同决定，后续结果均按这一身份汇总。
 
 \section{固定划分与训练种子}
 
-为降低模型比较中由数据划分随机性带来的混杂，本实验采用固定划分 \splitname{}。Stage 5B 审计确认，完成的主实验均以该划分作为 artifact-level protocol component，而不是为每个模型或随机种子重新生成划分。该设计使不同模型行在同一划分口径下比较，便于后续进行成对统计检验。证据来源为 \path{docs/paper/manuscript/section4_experimental_protocol.md}、\path{paper_package/server_sync_20260508/docs/paper/PAPER_STAGE5B_RESULT_AUDIT_AND_TABLES.md} 以及 \path{paper_package/server_sync_20260508/results/paper_stage2/rml2016a/aggregate/main_table_metrics.csv}。
+为降低采样随机性对模型比较的影响，本文采用固定划分 \splitname{}。该划分按调制方式和信噪比联合分层，使训练、验证和测试集合在类别与信噪比分布上保持一致。所有主实验模型行均使用同一划分，不为不同模型或不同训练种子重新生成测试集。
 
-主实验矩阵由 9 个模型行与 3 个训练随机种子组成，共计 $9\times3=27$ 个完整运行单元。训练种子固定为 \mainseeds{}。Stage 5B 审计记录显示，27 个计划单元均已完成，并且每个运行的配置、指标与训练摘要均包含预期的 \path{split_id} 和 \path{train_seed} 元数据。因此，本报告后续结果表中的均值与标准差均应理解为在这三个训练种子上的协议内汇总。
+每个模型行使用 3 个训练种子 \mainseeds{}。因此，表格中的均值和标准差表示在这 3 个训练种子上的协议内汇总。固定划分提高了模型行之间的可比性，但并不能替代多数据集、多划分或真实信道条件验证；第~4~章所有结论均只能在这一协议范围内解释。
 
-MCLDNN 行保留同一三种子协议。审计文档记录，\path{mcldnn} 的 seed 2025 与 seed 3407 出现 chance-level single-class prediction 行为，但相关运行通过了划分、标签、schema 与 artifact 检查。基于实验协议守恒原则，本报告不删除这两个种子、不重算清洗后的 MCLDNN 汇总值，也不以未来诊断候选替换 Stage 5A/5B 中已经登记的 MCLDNN 证据。
+MCLDNN 行同样遵循该三种子协议。两个训练种子出现近似随机水平的单类预测现象，但相关运行仍保留在主表中。本文不删除异常种子，不重算“清洗后”均值，也不用后续诊断候选替换当前主实验证据。
 
-\section{模型矩阵与输入视图}
+\section{模型矩阵}
 
-本实验的模型矩阵包含九个模型行：\path{cnn1d}、\path{resnet1d}、\path{tfcnn_stft}、\path{fusion_iq_stft}、\path{cldnn}、\path{mcldnn}、\path{lwamcnet}、\path{iq_param_matched} 和 \path{gated_fusion_iq_stft}。这些模型共同构成课程报告中的比较对象，覆盖 I/Q 基线、时频输入、时序模型、轻量化模型、参数匹配控制以及静态或门控的多视图融合方案。模型矩阵来自 Stage 5B 审计与 \path{main_table_metrics.csv} 的 \path{model_id}、\path{input_views} 字段。
+主实验包含九个模型行，覆盖 I/Q 基线、时频输入、时序模型、轻量模型、参数匹配控制和双视图融合。表~\ref{tab:protocol-model-matrix} 给出模型矩阵及其解释边界。
 
 \begin{table}[htbp]
   \centering
@@ -29,70 +45,46 @@ MCLDNN 行保留同一三种子协议。审计文档记录，\path{mcldnn} 的 s
     \toprule
     模型标识 & 输入视图 & 角色 & 协议解释边界 \\
     \midrule
-    \path{cnn1d} & I/Q & 时域卷积基线 & 用于 I/Q-only 基线比较。 \\
-    \path{resnet1d} & I/Q & 残差卷积基线 & 用于 I/Q-only 深层卷积参考。 \\
-    \path{tfcnn_stft} & STFT & 时频单视图模型 & 用于单独评估时频视图。 \\
-    \path{fusion_iq_stft} & I/Q+STFT & 静态融合模型 & 作为待评估多视图方案，不预设优越性。 \\
-    \path{cldnn} & I/Q & 时序模型 & 用于时域卷积与序列建模参考。 \\
-    \path{mcldnn} & I/Q & 时序模型 & 保留三种子协议，包括异常种子。 \\
-    \path{lwamcnet} & I/Q & 轻量化模型 & 用于轻量结构参考。 \\
-    \path{iq_param_matched} & I/Q & 参数匹配控制 & 用于控制融合模型额外参数带来的解释偏差。 \\
-    \path{gated_fusion_iq_stft} & I/Q+STFT & 门控融合模型 & 作为待评估门控方案，不预设鲁棒性或广义优越性。 \\
+    \path{cnn1d} & I/Q & 一维卷积基线 & 用于原始 I/Q 序列基准比较。 \\
+    \path{resnet1d} & I/Q & 残差卷积基线 & 用于深层 I/Q 卷积对照。 \\
+    \path{tfcnn_stft} & STFT & 时频单视图模型 & 单独评估 STFT 视图的判别能力。 \\
+    \path{fusion_iq_stft} & I/Q+STFT & 静态融合模型 & 检验双视图拼接融合，不预设优越性。 \\
+    \path{cldnn} & I/Q & 卷积-循环混合模型 & 作为时域卷积与序列建模参考。 \\
+    \path{mcldnn} & I/Q & 多分支卷积-循环模型 & 保留三种子协议，包括异常种子。 \\
+    \path{lwamcnet} & I/Q & 轻量模型 & 用作较低参数量结构参考。 \\
+    \path{iq_param_matched} & I/Q & 参数匹配控制 & 控制融合模型额外参数带来的解释偏差。 \\
+    \path{gated_fusion_iq_stft} & I/Q+STFT & 门控融合模型 & 检验样本级标量门控，不预设鲁棒性提升。 \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-从输入视图划分看，\path{cnn1d}、\path{resnet1d}、\path{cldnn}、\path{mcldnn}、\path{lwamcnet} 与 \path{iq_param_matched} 属于 I/Q-only 模型；\path{tfcnn_stft} 属于 STFT-only 模型；\path{fusion_iq_stft} 与 \path{gated_fusion_iq_stft} 属于 I/Q+STFT 模型。本文将 fusion 与 gated fusion 视为需要由实验检验的候选结构，而不是在协议定义阶段预先假定其优于 I/Q-only 模型。
+\section{特征与训练设置}
+
+STFT 视图使用窗口长度 \(32\)、重叠长度 \(16\) 的短时傅里叶变换配置。本文只把 STFT 作为输入视图之一，用于比较“仅 I/Q”“仅 STFT”和“I/Q+STFT”三类模型；受控延迟表中的前向耗时不包含完整的 STFT 预处理成本。
+
+训练配置在主实验中保持一致：最大训练轮数为 30，批量大小为 256，优化器学习率为 0.001，权重衰减为 0.0001，早停耐心值为 8。报告中的训练随机性只通过 3 个训练种子的均值和标准差体现，不额外引入未登记的训练轮次或子集实验。
 
 \section{评价指标与信噪比分组}
 
-本实验的主表评价指标包括 overall accuracy、low-SNR accuracy、mid-SNR accuracy、high-SNR accuracy、macro-F1 与 balanced accuracy。整体准确率用于度量固定测试划分上的总体分类正确率；macro-F1 对各调制类别的 F1 分数作宏平均，因而更关注类别维度的均衡表现；balanced accuracy 对类别级召回进行均衡汇总，可作为整体准确率之外的补充指标。上述指标字段来自 \path{main_table_metrics.csv}，其汇总值以三个训练种子的均值和标准差呈现。
+本文报告整体准确率、低/中/高信噪比分组准确率、宏平均 F1 和均衡准确率。整体准确率反映固定测试集上的总体分类正确率；宏平均 F1 对各调制类别等权平均，能补充说明类别层面的均衡性；均衡准确率对各类别召回率作平均，可降低类别难度差异对单一准确率解释的影响。
 
-信噪比分组用于刻画不同信道难度下的模型行为。根据 Stage 5A/5B 聚合协议，low-SNR 子集定义为 \lowSNR{}，并在 \path{low_snr_table.csv} 中单独记录。该表同时给出每个低信噪比子集在单个训练种子下的样本数，以及不同 SNR 点上的准确率和 macro-F1 字段。mid-SNR 与 high-SNR 指标由 Stage 5B 聚合表按协议字段给出。本章只定义指标和分组口径，不在此提前给出模型优劣结论。
+信噪比分组用于观察模型在不同信道难度下的行为。低信噪比定义为 \lowSNR{}；中等信噪比覆盖 \(-4\) dB 至 \(6\) dB；高信噪比覆盖 \(8\) dB 至 \(18\) dB。低信噪比结果在后文单独讨论，因为这是本文判断 STFT 视图是否具有局部补充价值的关键范围。
 
 \section{配对统计检验协议}
 
-除聚合指标外，本报告使用 paired bootstrap 与 McNemar 检验作为后续结果解释的统计工具。两类检验均基于 Stage 5A archived \path{predictions_test.csv} 文件生成，而不是重新运行模型推理或重写 Stage 5A/5B 主表。统计检验证据位于 \path{paper_package/statistical_tests_20260508/}，其生成说明见 \path{paper_package/statistical_tests_20260508/statistical_tests_summary.md} 与 predictions archive manifest \path{docs/paper/ARTIFACT_MANIFEST_PREDICTIONS_ARCHIVE_20260508.csv}。
+除三种子聚合指标外，本文使用配对自助法和 McNemar 检验支撑主要模型对比较\cite{efron1979bootstrap,mcnemar1947note}。两类检验均基于主实验测试集预测结果，匹配键为固定划分标识、训练种子和测试样本标识，因而比较的是同一测试样本上两个模型的正确性差异。
 
-成对比较的匹配键为 \path{split_id}、\path{train_seed} 与 \path{sample_id}。该匹配方式保证两个模型在同一固定划分、同一训练种子分组和同一测试样本上比较，避免将样本集合差异误计为模型差异。paired bootstrap 估计 accuracy delta：
+配对自助法估计准确率差值
 \begin{equation}
-  \Delta_{\mathrm{acc}} = \mathrm{Acc}(m_a)-\mathrm{Acc}(m_b),
+  \Delta_{\mathrm{acc}}=\mathrm{Acc}(m_a)-\mathrm{Acc}(m_b),
   \label{eq:paired-bootstrap-delta}
 \end{equation}
-其中 $m_a$ 与 $m_b$ 为成对比较的两个模型。统计检验 artifacts 记录 bootstrap resamples 为 10000，bootstrap seed 为 42。报告后续如引用置信区间，必须直接来自 \path{paired_bootstrap_accuracy_deltas.csv}，不得在正文中重新计算或扩展到未登记的比较。
+其中 \(m_a\) 和 \(m_b\) 为已登记比较中的两个模型。自助重采样次数为 10,000，随机种子为 42。McNemar 检验基于两个模型在同一样本上的“正确/错误”列联表，关注两个方向的不一致样本数是否存在系统差异。
 
-McNemar 检验基于两个模型在同一样本上的正确/错误配对结果。设 $b$ 表示模型 $m_a$ 正确而 $m_b$ 错误的样本数，$c$ 表示模型 $m_a$ 错误而 $m_b$ 正确的样本数，则 McNemar 检验关注两个方向的 discordant counts 是否存在系统差异。当前统计检验的作用范围为 overall 与 low-SNR 两个 scope；任何 Stage 6B smoke、diagnostic 或未来候选输出均不得进入这些 paired statistical artifacts。
+统计检验只覆盖已登记的 overall 和低信噪比比较。本文未对所有可能模型对做全量假设检验，也未进行多重比较校正；因此，相关 \(p\) 值用于固定协议内的登记比较解释，不应扩展为对任意模型对的显著性结论。
 
-\section{复杂度与延迟测量范围}
+\section{证据边界}
 
-复杂度与延迟证据来自 \path{paper_package/server_sync_20260508/results/paper_stage2/rml2016a/aggregate/complexity_latency_table.csv}。该表的证据标签为 \path{CONTROLLED_LATENCY}，表示其可用于受控 CUDA forward latency 范围内的运行时讨论。Stage 5B 审计确认，延迟测量使用 CUDA 设备，warm-up iterations 为 50，measured iterations 为 200，并在 batch size 1 与 batch size 256 两种设置下记录 forward-pass 相关字段。
-
-该证据范围具有明确限制。首先，本报告不使用该表推断 CPU latency，因为当前证据包没有支持 CPU 延迟比较的完整测量。其次，虽然表中保留了 MACs/FLOPs 相关字段，但这些字段在当前聚合证据中并不完整，因此不得据此提出 FLOPs/MACs 效率结论。再次，STFT 预处理耗时与端到端推理耗时没有形成充分的 preprocessing-inclusive latency 证据，因此本报告不得把受控 CUDA forward latency 扩展为部署优越性或硬件可迁移效率结论。
-
-\section{证据标签与排除规则}
-
-为防止主实验、受控测量和工程诊断相互混淆，本报告采用 evidence label 管理证据使用范围。相关定义来自 \path{docs/paper/course_report/REPORT_EVIDENCE_MAP.md}、\path{docs/paper/EXPERIMENT_ENVIRONMENT_AND_SYNC_STATUS_20260508.md}、Stage 6A 计划 \path{docs/paper/PAPER_STAGE6A_OPTIMIZATION_LITERATURE_AND_EXPERIMENT_PLAN.md} 与 Stage 6B 协议 \path{docs/paper/PAPER_STAGE6B_SCREENING_PROTOCOL_AND_CANDIDATE_QUEUE.md}。
-
-\begin{table}[htbp]
-  \centering
-  \caption{证据标签及其报告使用范围}
-  \label{tab:evidence-label-policy}
-  \begin{tabularx}{\textwidth}{llX}
-    \toprule
-    证据标签 & 含义 & 本报告使用范围 \\
-    \midrule
-    \texttt{PROJECT\_SUPPORTED} & Stage 5A/5B 完整固定协议证据 & 可用于主结果表、low-SNR 表、模型矩阵与统计检验解释。 \\
-    \texttt{CONTROLLED\_LATENCY} & 受控 CUDA forward latency 测量 & 仅用于限定范围内的参数量与 CUDA forward latency 讨论。 \\
-    \texttt{SMOKE TEST} & mock 或 synthetic code-path 检查 & 只能用于工程路径说明，不得作为性能证据。 \\
-    \texttt{DIAGNOSTIC} & mock、subset 或调试筛查 & 只能用于未来诊断边界说明，不得进入主表或统计检验。 \\
-    \bottomrule
-  \end{tabularx}
-\end{table}
-
-表~\ref{tab:figure-evidence-map} 进一步列出本文新增图表与证据源之间的对应关系。凡是涉及模型性能、低信噪比表现或配对统计检验的图表，均只使用 \texttt{PROJECT\_SUPPORTED} 主实验材料；复杂度相关图表仅使用 \texttt{CONTROLLED\_LATENCY} 范围内的 CUDA forward latency 证据。
+正文主结果只使用完整固定协议材料；受控 CUDA 前向延迟仅用于说明参数量和相同测量条件下的推理背景；mock、子集、筛查或后续诊断性运行不得进入主结果、统计检验、摘要或结论。更细的同步路径、环境差异、权重归档状态和排除规则放在附录 A 中说明。
 
 \input{tables/figure_evidence_sources}
-
-Stage 6B smoke 或 diagnostic 输出不得进入 Stage 5A/5B 主表、low-SNR 表、paired bootstrap、McNemar 检验、摘要结论或总结结论。若后续存在新的诊断候选，其输出也必须使用单独模型标识、单独输出目录和明确 evidence label；除非另有完整协议授权，否则不能替代、修复或重写当前 Stage 5A/5B evidence。
-
-本地同步状态也限定了报告写作方式。当前本地已有 paper package、27 个 Stage 5A prediction archive 文件和统计检验 artifacts，足以支撑课程报告的主结果写作与统计解释；但完整 27 个 Stage 5A \path{best_model.pt} 权重尚未同步到本地 package 或本地 Stage 5A 结果树。因此，本报告可以基于已归档预测与聚合表撰写实验结果，但不能宣称本地包已经构成完整训练权重归档。

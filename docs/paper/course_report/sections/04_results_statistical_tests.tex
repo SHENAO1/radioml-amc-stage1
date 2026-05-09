@@ -1,35 +1,31 @@
 \chapter{实验结果与统计检验}
 
-本章在第~2~章给出的固定划分、训练种子和评价指标基础上，整理本报告主实验结果与配对统计检验结论。所有数值均来自已经同步的 paper package 与 predictions archive，主要证据源包括
-\path{paper_package/server_sync_20260508/results/paper_stage2/rml2016a/aggregate/main_table_metrics.csv}、
-\path{paper_package/server_sync_20260508/results/paper_stage2/rml2016a/aggregate/low_snr_table.csv}、
-\path{paper_package/server_sync_20260508/results/paper_stage2/rml2016a/aggregate/complexity_latency_table.csv}、
-\path{paper_package/statistical_tests_20260508/paired_bootstrap_accuracy_deltas.csv}
-和
-\path{paper_package/statistical_tests_20260508/mcnemar_tests.csv}。本章不重新生成主表，不运行任何训练或子集实验，也不纳入 Stage~6B 的 smoke/diagnostic 结果。
+本章在第~2~章定义的固定划分、模型矩阵和评价指标基础上展示主实验结果。除特别说明外，所有数值均来自已同步的主实验聚合表、低信噪比分组表、受控 CUDA 前向延迟表以及配对统计检验表。本章不新增训练、不重建主表，也不把诊断性输出纳入性能结论。
 
-\section{主实验结果}
+\section{主实验整体结果}
 
-主实验采用第~2~章定义的 \splitname{} 固定划分，对 9 个模型行分别使用 3 个训练种子 \mainseeds{} 进行评估，因此主表对应 $9\times3=27$ 个固定协议运行。表~\ref{tab:course-main-results-excerpt} 为主表证据的课程报告摘录，数值直接转写自 \path{main_table_metrics.csv}，其中均值和标准差均按三训练种子聚合得到。
+表~\ref{tab:course-main-results-excerpt} 汇总 9 个模型行在 3 个训练种子上的平均结果。该表同时列出整体准确率、宏平均 F1、均衡准确率、低/中/高信噪比分组准确率和参数量，用于从总体性能、信噪比分组和模型规模三个角度观察结果。
 
 \begin{table}[htbp]
   \centering
-  \caption{固定划分主实验结果摘录（证据源：\texttt{main\_table\_metrics.csv}）}
+  \caption{固定划分主实验结果（三训练种子均值与标准差）}
   \label{tab:course-main-results-excerpt}
+  \scriptsize
+  \setlength{\tabcolsep}{2.5pt}
   \resizebox{\textwidth}{!}{%
-  \begin{tabular}{llcccrl}
+  \begin{tabular}{llccccccr}
     \toprule
-    模型行 & 输入视图 & Overall Acc. & Macro-F1 & Low-SNR Acc. & 参数量 & 说明边界 \\
+    模型行 & 输入视图 & 整体准确率 & 宏平均 F1 & 均衡准确率 & 低信噪比准确率 & 中信噪比准确率 & 高信噪比准确率 & 参数量 \\
     \midrule
-    \path{cnn1d} & I/Q & $0.581992\pm0.004518$ & $0.595238$ & $0.209508$ & 37,131 & 原始 I/Q 卷积基线。 \\
-    \path{resnet1d} & I/Q & $0.595917\pm0.000451$ & $0.612207$ & $0.205871$ & 111,755 & 残差 I/Q 基线。 \\
-    \path{tfcnn_stft} & STFT & $0.506303\pm0.001752$ & $0.509340$ & $0.171307$ & 24,123 & 时频视图单分支。 \\
-    \path{fusion_iq_stft} & I/Q+STFT & $0.577098\pm0.001712$ & $0.584926$ & $0.221326$ & 98,299 & 静态双视图融合候选。 \\
-    \path{cldnn} & I/Q & $0.612932\pm0.000546$ & $0.633238$ & $0.222386$ & 241,675 & 当前协议下 observed 最优整体模型行。 \\
-    \path{mcldnn} & I/Q & $0.250083\pm0.275698$ & $0.199852$ & $0.131307$ & 406,199 & 含 seed 2025/3407 collapse，未清洗。 \\
-    \path{lwamcnet} & I/Q & $0.551091\pm0.001838$ & $0.557940$ & $0.202538$ & 20,395 & 轻量结构对照。 \\
-    \path{iq_param_matched} & I/Q & $0.594462\pm0.000468$ & $0.612415$ & $0.216345$ & 136,395 & 参数匹配 I/Q 控制模型。 \\
-    \path{gated_fusion_iq_stft} & I/Q+STFT & $0.571947\pm0.002025$ & $0.585340$ & $0.211307$ & 134,780 & 门控双视图融合候选。 \\
+    \path{cnn1d} & I/Q & $0.581992\pm0.004518$ & $0.595238\pm0.003937$ & $0.581992\pm0.004518$ & $0.209508\pm0.005465$ & $0.795606\pm0.001772$ & $0.865025\pm0.006640$ & 37,131 \\
+    \path{resnet1d} & I/Q & $0.595917\pm0.000451$ & $0.612207\pm0.000668$ & $0.595917\pm0.000451$ & $0.205871\pm0.002523$ & $0.819722\pm0.004139$ & $0.892172\pm0.001495$ & 111,755 \\
+    \path{tfcnn_stft} & STFT & $0.506303\pm0.001752$ & $0.509340\pm0.006411$ & $0.506303\pm0.001752$ & $0.171307\pm0.003870$ & $0.689975\pm0.005485$ & $0.769293\pm0.003574$ & 24,123 \\
+    \path{fusion_iq_stft} & I/Q+STFT & $0.577098\pm0.001712$ & $0.584926\pm0.003526$ & $0.577098\pm0.001712$ & $0.221326\pm0.006128$ & $0.785808\pm0.006158$ & $0.842753\pm0.005760$ & 98,299 \\
+    \path{cldnn} & I/Q & $0.612932\pm0.000546$ & $0.633238\pm0.003378$ & $0.612932\pm0.000546$ & $0.222386\pm0.005230$ & $0.839596\pm0.002879$ & $0.906995\pm0.003416$ & 241,675 \\
+    \path{mcldnn} & I/Q & $0.250083\pm0.275698$ & $0.199852\pm0.319911$ & $0.250083\pm0.275698$ & $0.131307\pm0.069971$ & $0.318232\pm0.393735$ & $0.340303\pm0.431963$ & 406,199 \\
+    \path{lwamcnet} & I/Q & $0.551091\pm0.001838$ & $0.557940\pm0.008022$ & $0.551091\pm0.001838$ & $0.202538\pm0.008513$ & $0.750960\pm0.006679$ & $0.815960\pm0.003467$ & 20,395 \\
+    \path{iq_param_matched} & I/Q & $0.594462\pm0.000468$ & $0.612415\pm0.004565$ & $0.594462\pm0.000468$ & $0.216345\pm0.007061$ & $0.812146\pm0.007270$ & $0.880934\pm0.003472$ & 136,395 \\
+    \path{gated_fusion_iq_stft} & I/Q+STFT & $0.571947\pm0.002025$ & $0.585340\pm0.004474$ & $0.571947\pm0.002025$ & $0.211307\pm0.006707$ & $0.784015\pm0.004843$ & $0.840732\pm0.004582$ & 134,780 \\
     \bottomrule
   \end{tabular}%
   }
@@ -38,49 +34,46 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig04_accuracy_by_snr_group.pdf}
-  \caption{固定划分下 9 个模型行的 overall、low-SNR、mid-SNR 与 high-SNR accuracy 对比。Data source: \texttt{main\_table\_metrics.csv}.}
+  \caption{固定划分下 9 个模型行的整体、低信噪比、中信噪比和高信噪比准确率对比。证据源：\texttt{main\_table\_metrics.csv}。}
   \label{fig:accuracy-by-snr-group}
 \end{figure}
+
+在当前固定协议内，\path{cldnn} 的整体平均准确率为 0.612932，宏平均 F1 为 0.633238，是 9 个模型行中观察到的最高结果。主要 I/Q 基线中，\path{resnet1d} 的整体准确率为 0.595917，参数匹配控制模型 \path{iq_param_matched} 为 0.594462，二者与 CLDNN 的差距分别约为 1.70 和 1.85 个百分点。该结论只说明本实验矩阵中的固定划分结果，不构成跨数据集排名或最新水平判断。
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig11_full_snr_accuracy_macro_f1.pdf}
-  \caption{代表模型在完整 SNR 轴上的 accuracy 与 macro-F1 曲线。Data source: \texttt{metrics\_per\_snr.csv} for seeds 42, 2025, and 3407.}
+  \caption{代表模型在完整信噪比轴上的准确率与宏平均 F1 曲线。证据源：三训练种子聚合的 \texttt{metrics\_per\_snr.csv}。}
   \label{fig:full-snr-accuracy-macro-f1}
 \end{figure}
 
-在当前固定划分协议下，\path{cldnn} 的 overall accuracy 为 $0.612932$，macro-F1 为 $0.633238$，是本轮 9 个模型行中观察到的最高 overall accuracy 与 macro-F1。该表述仅限定在 \datasetname{}、\splitname{}、三训练种子聚合和本报告证据包范围内，不外推到其他数据集或其他划分协议。I/Q 基线中，\path{resnet1d} 的 overall accuracy 为 $0.595917$，\path{iq_param_matched} 的 overall accuracy 为 $0.594462$，二者构成接近的 I/Q baseline 与参数匹配控制参照。
-
-图~\ref{fig:full-snr-accuracy-macro-f1} 将低信噪比局部结果放回完整 SNR 轨迹中观察。静态融合在若干低 SNR 点接近 \path{cldnn}，但在中高 SNR 区域没有保持同等优势；门控融合曲线也没有相对静态融合形成稳定改善。因此，该图支持的是分 SNR 的 trade-off 解释，而不是融合方法的总体优越性。
+图~\ref{fig:full-snr-accuracy-macro-f1} 显示，静态 I/Q--STFT 融合在低信噪比区间接近 CLDNN，但在中高信噪比区间没有保持同等优势。门控融合曲线也未相对静态融合形成稳定改善。因此，主结果首先支持的是“不同信噪比区间存在性能权衡”，而不是“融合结构整体优于 I/Q 模型”。
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.96\textwidth]{fig12_model_class_accuracy_heatmap.pdf}
-  \caption{9 个模型行在 11 类调制方式上的 overall class accuracy。Data source: \texttt{metrics\_per\_class.csv} for seeds 42, 2025, and 3407.}
+  \caption{9 个模型行在 11 类调制方式上的类别准确率热力图。证据源：三训练种子聚合的 \texttt{metrics\_per\_class.csv}。}
   \label{fig:model-class-accuracy-heatmap}
 \end{figure}
 
-图~\ref{fig:model-class-accuracy-heatmap} 从调制类别维度补充主表。该图用于说明 overall accuracy 并不是各类调制难度相同的结果；不同模型在 AM、PSK、QAM 与 WBFM 等类别上的行为存在差异，后续低信噪比分析也需要回到类别混淆结构中解释。
+图~\ref{fig:model-class-accuracy-heatmap} 从类别维度补充表~\ref{tab:course-main-results-excerpt}。不同模型在 AM、PSK、QAM 和 WBFM 等类别上的表现并不均匀，说明整体准确率不能完全代表每一类调制方式的识别难度。低信噪比分析也应结合类别混淆结构解释。
 
-\section{配对统计检验结果}
+\section{整体性能的配对检验}
 
-为避免仅依赖聚合均值，本实验进一步使用 predictions archive 中的 \path{predictions_test.csv} 进行配对统计检验。配对键为 \path{split_id + train_seed + sample_id}，bootstrap accuracy delta 的定义为
-\[
-  \Delta = \operatorname{Acc}(\text{model\_a})-\operatorname{Acc}(\text{model\_b}) ,
-\]
-resamples 为 10,000，随机种子为 42。McNemar 检验使用同一批 paired sample 的正确/错误二元结果构造列联表。本节只讨论已在 \path{paired_bootstrap_accuracy_deltas.csv} 与 \path{mcnemar_tests.csv} 中存在的比较，不扩展到未检验组合。
+表~\ref{tab:course-cldnn-overall-tests} 给出 CLDNN 与两个主要 I/Q 参照模型的整体准确率配对检验。差值定义为前一个模型准确率减去后一个模型准确率。
 
 \begin{table}[htbp]
   \centering
-  \caption{CLDNN 与主要 I/Q baseline 的整体准确率配对统计检验}
+  \caption{CLDNN 与主要 I/Q 参照模型的整体准确率配对检验}
   \label{tab:course-cldnn-overall-tests}
+  \small
   \resizebox{\textwidth}{!}{%
-  \begin{tabular}{llcccl}
+  \begin{tabular}{lcccc}
     \toprule
-    比较 & Scope & $\Delta$ & 95\% CI & McNemar $p$ & 解释边界 \\
+    比较 & 范围 & 准确率差值 & 95\% 置信区间 & McNemar 检验 \\
     \midrule
-    \path{cldnn} vs. \path{resnet1d} & overall & $0.017015$ & $[0.015318,\,0.018697]$ & $1.52\times10^{-87}$ & 在当前 paired test 中支持 \path{cldnn} 高于 \path{resnet1d}。 \\
-    \path{cldnn} vs. \path{iq_param_matched} & overall & $0.018470$ & $[0.016788,\,0.020159]$ & $2.86\times10^{-104}$ & 在当前 paired test 中支持 \path{cldnn} 高于参数匹配 I/Q 控制模型。 \\
+    \path{cldnn} vs. \path{resnet1d} & 整体测试集 & 0.017015 & [0.015318, 0.018697] & \(p=1.52\times10^{-87}\) \\
+    \path{cldnn} vs. \path{iq_param_matched} & 整体测试集 & 0.018470 & [0.016788, 0.020159] & \(p=2.86\times10^{-104}\) \\
     \bottomrule
   \end{tabular}%
   }
@@ -89,96 +82,92 @@ resamples 为 10,000，随机种子为 42。McNemar 检验使用同一批 paired
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig06_bootstrap_delta_forest.pdf}
-  \caption{已登记 paired bootstrap accuracy delta 及其 95\% 置信区间。Data source: \texttt{paired\_bootstrap\_accuracy\_deltas.csv}; delta = \(\operatorname{Acc}(m_a)-\operatorname{Acc}(m_b)\).}
+  \caption{已登记模型对的配对自助法准确率差值及 95\% 置信区间。差值定义为前一模型准确率减去后一模型准确率。}
   \label{fig:bootstrap-delta-forest}
 \end{figure}
+
+两项比较的置信区间均未跨越 0，McNemar 检验的 \(p\) 值也极小，说明 CLDNN 相对 \path{resnet1d} 和 \path{iq_param_matched} 的整体优势在当前配对样本上得到统计支持。需要注意的是，这些检验只覆盖已登记模型对；未在统计检验表中的模型对，本文不作显著性判断。
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.95\textwidth]{fig14_paired_disagreement_by_snr.pdf}
-  \caption{关键模型对在各 SNR 点上的 paired correctness disagreement。Data source: \texttt{predictions\_test.csv} in \texttt{predictions\_archive\_20260508}; positive bars indicate samples where the first model in the panel is correct and the second is wrong.}
+  \caption{关键模型对在各信噪比点上的配对正确性分歧。正向柱表示前一模型正确而后一模型错误的样本更多，负向柱表示相反方向更多。}
   \label{fig:paired-disagreement-by-snr}
 \end{figure}
 
-表~\ref{tab:course-cldnn-overall-tests} 表明，\path{cldnn} 相对 \path{resnet1d} 的 overall bootstrap delta 为 $0.017015$，95\% 置信区间为 $[0.015318,0.018697]$，McNemar 检验 $p=1.52\times10^{-87}$；相对 \path{iq_param_matched} 的 overall bootstrap delta 为 $0.018470$，95\% 置信区间为 $[0.016788,0.020159]$，McNemar 检验 $p=2.86\times10^{-104}$。这些结论仅对应本报告已经执行并归档的 paired comparisons，不构成对未检验模型对、未测试数据集或不同训练协议的结论。
-
-图~\ref{fig:paired-disagreement-by-snr} 将配对统计检验背后的样本级分歧按 SNR 展开。它不替代 bootstrap 或 McNemar 检验，而是帮助解释 delta 的方向来自哪些 SNR 区间，并显示 \path{gated_fusion_iq_stft} 相对静态融合的负方向分歧在低信噪比区域更明显。
+图~\ref{fig:paired-disagreement-by-snr} 将配对差异按信噪比展开。该图不替代统计检验，但可以帮助判断准确率差值主要来自哪些信噪比区域。
 
 \section{低信噪比下的融合权衡}
 
-本报告将低信噪比区域定义为 \lowSNR{}。在 \path{low_snr_table.csv} 中，每个训练种子对应 17,600 个 low-SNR 测试样本，三种子合计用于配对统计检验的样本数为 52,800。主表摘录显示，\path{cldnn} 的 low-SNR accuracy 为 $0.222386$，\path{fusion_iq_stft} 为 $0.221326$，\path{iq_param_matched} 为 $0.216345$。
+低信噪比区域定义为 \lowSNR{}。在这一范围内，\path{cldnn} 的平均准确率为 0.222386，\path{fusion_iq_stft} 为 0.221326，\path{iq_param_matched} 为 0.216345，\path{gated_fusion_iq_stft} 为 0.211307。静态融合接近 CLDNN，并高于参数匹配 I/Q 控制模型，但差异幅度较小。
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.92\textwidth]{fig05_low_snr_per_snr_curve.pdf}
-  \caption{低信噪比区间内代表模型的 per-SNR accuracy 曲线。Data source: \texttt{low\_snr\_table.csv}; low-SNR scope is \texttt{snr\_db <= -6}.}
+  \caption{低信噪比区间内代表模型的逐信噪比准确率曲线。低信噪比范围为 \lowSNR{}。}
   \label{fig:low-snr-per-snr}
 \end{figure}
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig13_low_snr_class_recall_delta.pdf}
-  \caption{静态 I/Q-STFT 融合在 low-SNR scope 下相对参数匹配 I/Q 控制模型和 CLDNN 的 per-class recall delta。Data source: \texttt{confusion\_low\_snr.csv} aggregated across seeds 42, 2025, and 3407.}
+  \caption{静态 I/Q--STFT 融合在低信噪比范围内相对参数匹配 I/Q 控制模型和 CLDNN 的类别召回率差值。}
   \label{fig:low-snr-class-recall-delta}
 \end{figure}
 
 \input{tables/low_snr_key_comparisons}
 
-相对于 \path{cldnn}，\path{fusion_iq_stft} 在 low-SNR scope 上的 bootstrap delta 为 $-0.001061$，95\% 置信区间为 $[-0.003939,0.001838]$，该区间跨越 0；对应 McNemar 检验 $p=0.476423$。因此，在当前 paired low-SNR 检验下，不能声称静态 I/Q-STFT 融合优于 \path{cldnn}。
+相对于 CLDNN，静态 I/Q--STFT 融合的低信噪比准确率差值为 \(-0.001061\)，95\% 置信区间为 \([-0.003939,0.001838]\)，区间跨越 0；McNemar 检验 \(p=0.476423\)。因此，本文不能声称静态融合在低信噪比范围内优于 CLDNN。
 
-相对于参数匹配 I/Q 控制模型 \path{iq_param_matched}，\path{fusion_iq_stft} 在 low-SNR scope 上的 bootstrap delta 为 $0.004981$，95\% 置信区间为 $[0.001970,0.007973]$，McNemar 检验 $p=0.001063$。但是同一比较在 overall scope 上的 bootstrap delta 为 $-0.017364$，95\% 置信区间为 $[-0.019288,-0.015470]$。因此，静态融合在本协议中的证据边界应表述为 low-SNR 局部小幅正向与 overall penalty 并存的 trade-off，而不是广义融合优越性。
+相对于参数匹配 I/Q 控制模型，静态融合的低信噪比准确率差值为 0.004981，95\% 置信区间为 \([0.001970,0.007973]\)，McNemar 检验 \(p=0.001063\)。但同一比较在整体测试集上的准确率差值为 \(-0.017364\)，95\% 置信区间为 \([-0.019288,-0.015470]\)。因此，合理结论是：STFT 视图在本实现中提供了低信噪比局部小幅补充，但这一补充伴随整体准确率损失。
 
-图~\ref{fig:low-snr-class-recall-delta} 进一步显示静态融合的 low-SNR 差异并非对所有调制类别同向。附录图~\ref{fig:low-snr-confusion-panels} 给出了代表模型在 low-SNR scope 下的行归一化混淆矩阵，用于补充说明不同模型在低信噪比样本上的类别混淆结构。
+图~\ref{fig:low-snr-class-recall-delta} 进一步说明，静态融合的低信噪比差异并非对所有调制类别同向。附录图~\ref{fig:low-snr-confusion-panels} 给出代表模型在低信噪比范围内的行归一化混淆矩阵，作为类别混淆解释的补充。
 
-\section{门控融合结果}
+\section{门控融合负结果}
 
-\path{gated_fusion_iq_stft} 的 overall accuracy 为 $0.571947$，low-SNR accuracy 为 $0.211307$。与之相比，静态融合 \path{fusion_iq_stft} 的 overall accuracy 为 $0.577098$、low-SNR accuracy 为 $0.221326$，\path{cldnn} 的 overall accuracy 为 $0.612932$、low-SNR accuracy 为 $0.222386$。因此，在当前固定划分和三种子聚合结果中，门控融合行在 overall 与 low-SNR 两个指标上均低于静态融合行和 \path{cldnn} 行。
+\path{gated_fusion_iq_stft} 的整体准确率为 0.571947，低信噪比准确率为 0.211307，均低于静态融合 \path{fusion_iq_stft}。配对检验也支持这一判断：门控融合相对静态融合的整体准确率差值为 \(-0.005152\)，95\% 置信区间为 \([-0.006841,-0.003462]\)，McNemar 检验 \(p=2.43\times10^{-9}\)；低信噪比范围内的差值为 \(-0.010019\)，95\% 置信区间为 \([-0.012746,-0.007292]\)，McNemar 检验 \(p=1.23\times10^{-12}\)。
 
-配对检验进一步支持该负结果。对于 \path{gated_fusion_iq_stft} vs. \path{fusion_iq_stft}，overall bootstrap delta 为 $-0.005152$，95\% 置信区间为 $[-0.006841,-0.003462]$，McNemar 检验 $p=2.43\times10^{-9}$；low-SNR bootstrap delta 为 $-0.010019$，95\% 置信区间为 $[-0.012746,-0.007292]$，McNemar 检验 $p=1.23\times10^{-12}$。由于 delta 定义为 gated minus static，负值和 McNemar 方向共同指向静态融合在该比较中更强。基于这些证据，本报告不能写作“门控融合提升鲁棒性”或类似结论。
+由于差值定义为“门控融合减静态融合”，上述负值说明当前标量门控机制没有改善静态融合。本文因此将门控融合作为负结果保留，不写作“门控提升鲁棒性”或“门控融合优于静态融合”。
 
-\section{复杂度与受控 CUDA 延迟}
+\section{复杂度与受控 CUDA 前向延迟}
 
-复杂度与延迟证据来自 \path{complexity_latency_table.csv}，其 evidence label 为 \texttt{CONTROLLED\_LATENCY}。该测量仅覆盖 CUDA forward latency，不包含 STFT 预处理耗时；测量设置为 warmup=50、measured=200，batch size 分别为 1 和 256。表~\ref{tab:course-cuda-latency} 摘录与第~4~章结果讨论最相关的模型行。
+复杂度与延迟结果只覆盖 CUDA 设备上的受控前向传播测量。测量使用 50 次预热和 200 次计时迭代，批量大小为 1 和 256；表~\ref{tab:course-cuda-latency} 摘录与结果解释最相关的模型行。
 
 \begin{table}[htbp]
   \centering
-  \caption{模型参数量与受控 CUDA forward latency 摘录}
+  \caption{模型参数量与受控 CUDA 前向延迟摘录}
   \label{tab:course-cuda-latency}
-  \resizebox{\textwidth}{!}{%
-  \begin{tabular}{lcccl}
+  \begin{tabularx}{\textwidth}{lrrrX}
     \toprule
-    模型行 & 参数量 & Batch 1 latency (ms) & Batch 256 latency (ms) & 测量边界 \\
+    模型行 & 参数量 & 批量 1 延迟/ms & 批量 256 延迟/ms & 测量边界 \\
     \midrule
-    \path{resnet1d} & 111,755 & 2.081249 & 2.098535 & CUDA forward-only。 \\
-    \path{iq_param_matched} & 136,395 & 1.250068 & 1.273155 & CUDA forward-only。 \\
-    \path{cldnn} & 241,675 & 1.306352 & 1.543833 & CUDA forward-only。 \\
-    \path{fusion_iq_stft} & 98,299 & 1.844381 & 1.857622 & 不含 STFT 预处理。 \\
-    \path{gated_fusion_iq_stft} & 134,780 & 2.535083 & 2.545334 & 不含 STFT 预处理。 \\
+    \path{resnet1d} & 111,755 & 2.081249 & 2.098535 & 仅 CUDA 前向传播。 \\
+    \path{iq_param_matched} & 136,395 & 1.250068 & 1.273155 & 仅 CUDA 前向传播。 \\
+    \path{cldnn} & 241,675 & 1.306352 & 1.543833 & 仅 CUDA 前向传播。 \\
+    \path{fusion_iq_stft} & 98,299 & 1.844381 & 1.857622 & 不包含 STFT 预处理。 \\
+    \path{gated_fusion_iq_stft} & 134,780 & 2.535083 & 2.545334 & 不包含 STFT 预处理。 \\
     \bottomrule
-  \end{tabular}%
-  }
+  \end{tabularx}
 \end{table}
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.86\textwidth]{fig07_accuracy_latency_params_bubble.pdf}
-  \caption{固定协议下 overall accuracy、受控 CUDA batch-1 forward latency 与参数量的关系。Data sources: \texttt{main\_table\_metrics.csv} and \texttt{complexity\_latency\_table.csv}; \texttt{CONTROLLED\_LATENCY} only, excluding STFT preprocessing.}
+  \caption{固定协议下整体准确率、受控 CUDA 批量 1 前向延迟与参数量的关系。该图不包含 STFT 预处理耗时。}
   \label{fig:accuracy-latency-params}
 \end{figure}
 
-这些数值可用于说明不同模型行在受控 CUDA forward 测量下的参数量和前向耗时差异。例如，\path{cldnn} 的参数量为 241,675，batch 1/256 forward latency 分别为 1.306352 ms 和 1.543833 ms；\path{fusion_iq_stft} 的参数量为 98,299，对应 latency 为 1.844381 ms 和 1.857622 ms；\path{gated_fusion_iq_stft} 的参数量为 134,780，对应 latency 为 2.535083 ms 和 2.545334 ms。由于该表不包含 CPU latency、FLOPs/MACs，也不包含 STFT preprocessing-inclusive latency，本报告不据此推导部署场景中的优越性或端到端系统结论。
+这些数值只能说明同一受控测量条件下不同模型的参数量和 CUDA 前向耗时背景。例如，CLDNN 参数量较高但前向延迟并非最高；门控融合参数量低于 CLDNN，却具有更高的受控前向延迟。由于当前证据不包含完整 CPU 延迟、FLOPs/MACs 和 STFT 预处理完整耗时，本文不据此推出端到端部署效率结论。
 
 \section{MCLDNN 异常与负结果保留}
 
-\path{mcldnn} 行在主表中的 overall accuracy 为 $0.250083$，macro-F1 为 $0.199852$，标准差明显高于其他模型行。根据 \path{PAPER_STAGE5B_RESULT_AUDIT_AND_TABLES.md} 与 \path{section5_5_mcldnn_anomaly_retained_negative_evidence.md}，该聚合值包含三个训练种子，其中 seed 42 的 test accuracy 为 $0.568432$，而 seed 2025 和 seed 3407 分别出现 chance-level collapse，二者 test accuracy 均为 $0.090909$，macro-F1 均为 $0.015152$。这些结果已经按协议保留在主表中，没有进行 seed 清洗或主表重算。
+\path{mcldnn} 的整体准确率为 \(0.250083\pm0.275698\)，宏平均 F1 为 \(0.199852\pm0.319911\)，标准差显著高于其他模型行。三个训练种子中，seed 42 的测试准确率为 0.568432，而 seed 2025 和 seed 3407 的测试准确率均为 0.090909，宏平均 F1 均为 0.015152，表现为近似随机水平的单类预测。
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig15_seed_stability_all_models.pdf}
-  \caption{9 个模型行在三个训练种子上的 overall accuracy 与 low-SNR accuracy 稳定性。Data source: \texttt{metrics\_test.json} for seeds 42, 2025, and 3407.}
+  \caption{9 个模型行在三个训练种子上的整体准确率与低信噪比准确率稳定性。}
   \label{fig:seed-stability-all-models}
 \end{figure}
 
-该异常限制了 \path{mcldnn} 行在本报告中的解释方式：它可以作为当前训练配置下的负结果与优化敏感性证据，但不应被用作经过修复后的模型性能结论。与此同时，保留 failed seeds 并不推翻完整 fixed-split 3-seed benchmark 的有效性，因为其余模型行仍遵循相同的数据划分、训练种子集合、评估脚本和 predictions archive 记录。Stage~6B 中与稳定化或候选结构相关的 smoke/diagnostic 项目只能作为后续诊断线索，不得写成本章主结果或修复后结论。
-
-图~\ref{fig:seed-stability-all-models} 将 \path{mcldnn} 放回 9 个模型行的 seed 稳定性背景中观察。附录图~\ref{fig:mcldnn-seed-anomaly} 以单模型 seed 级别展示该异常：seed 42 与 seed 2025/3407 的差异接近一个模型行内部的训练稳定性断裂，而不是普通随机波动。
+本文保留这两个异常种子，因为它们属于已登记的固定协议运行。删除异常种子并重算主表会改变实验协议，也会掩盖训练稳定性问题。合理解释是：当前 MCLDNN 实现和训练配置存在明显优化或初始化敏感性；该结论不能被后续诊断性候选直接修复或替换。附录图~\ref{fig:mcldnn-seed-anomaly} 单独展示 MCLDNN 三个训练种子的差异。

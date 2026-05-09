@@ -2,48 +2,41 @@
 
 \section{研究背景}
 
-无线电自动调制识别（Automatic Modulation Classification, AMC）旨在根据接收信号自动判别其调制方式，是频谱感知、通信监测、认知无线电和非合作通信分析中的基础问题之一。在实际无线环境中，接收信号会受到噪声、信道变化和采样扰动等因素影响，尤其在低信噪比条件下，不同调制类别之间的可分性会显著下降，模型容易同时面临时域结构弱化和频域局部特征不稳定的问题。因此，如何在固定、可复现的实验协议下比较不同特征视图和深度模型结构，是自动调制识别实验报告中需要明确回答的问题。
-% TODO: add AMC / RadioML citation
+无线电自动调制识别（Automatic Modulation Classification, AMC）是在未知调制方式条件下，根据接收信号自动判别调制类别的任务。它是频谱感知、认知无线电、通信监测和非合作通信分析中的基础环节。RadioML 系列数据集和基于卷积神经网络的端到端识别方法推动了深度学习在 AMC 任务中的应用\cite{oshea2016radioml,oshea2016cnn,west2017deep}。与人工统计特征方法相比，深度模型能够直接从原始 I/Q 序列或派生时频表示中学习判别特征，但其结果也更依赖数据划分、训练随机性和评价协议。
 
-传统 AMC 方法通常依赖人工设计的统计特征或高阶特征，而深度神经网络可以直接从原始 I/Q 序列或派生时频表示中学习判别性表征。I/Q 序列保留了基带信号的同相与正交分量，适合刻画时域相位和幅度变化；STFT 等时频视图则显式呈现局部频率结构，为低信噪比下的互补信息分析提供了一个自然入口。不过，引入额外视图并不必然带来整体性能收益，融合结构是否有效仍需要在受控协议、参数控制和统计检验下判断。
+低信噪比条件是 AMC 任务中的主要困难之一。噪声会削弱 I/Q 序列中的相位、幅度和瞬时频率线索，使不同调制类别在观测空间中更加接近。短时傅里叶变换（Short-Time Fourier Transform, STFT）将信号局部频率结构显式展开\cite{oppenheim2010dtsp}，理论上可能为低信噪比样本提供与原始 I/Q 序列互补的判别信息。然而，额外视图和更复杂的融合结构并不必然带来整体收益；融合模型是否有效，需要在固定数据划分、统一模型矩阵和配对统计检验下谨慎判断。
 
-为使报告中的图表安排与 AMC 论文常见呈现方式一致，本文在已有项目文献综述基础上补充梳理了 20 篇开放论文或开放全文论文的图表类型。表~\ref{tab:literature-figure-patterns} 显示，结构图、accuracy-vs-SNR 曲线、消融或结果对比表、混淆矩阵以及复杂度/延迟表是该方向中反复出现的表达方式。因此，本文后续图表并非装饰性补充，而是围绕固定协议、模型矩阵、低信噪比行为、统计检验和复杂度边界组织证据。
+已有 AMC 深度学习研究通常使用结构图、准确率随信噪比变化曲线、混淆矩阵、消融表和复杂度表展示模型行为\cite{huynhthe2021survey}。表~\ref{tab:literature-figure-patterns} 归纳了若干代表性文献中常见的图表用途。本文沿用这一表达方式，但重点不是追求“最新水平”排名，而是在课程实验范围内说明不同输入视图和模型结构在固定协议下的可比结果。
 
 \input{tables/literature_figure_patterns}
 
-\section{问题定义}
+\section{研究问题}
 
-本文研究基于 \datasetname{} 的调制分类问题。给定一个无线电信号样本，其输入可以表示为原始 I/Q 序列，也可以通过预处理得到 STFT 时频视图；模型输出为调制类别标签。本文不研究信噪比估计、信道识别或端到端部署系统优化，而是围绕固定数据划分下的分类性能、低信噪比分组表现和统计检验组织实验。
+本文研究 \datasetname{} 上的 11 类调制分类问题。给定长度为 128 的双通道 I/Q 样本，模型输出对应的调制类别。本文只讨论调制分类性能，不讨论信噪比估计、信道识别、频谱占用检测或端到端部署系统优化。
 
-为减少数据划分随机性对模型比较的干扰，本文主实验仅在固定划分 \splitname{} 下解释。后文所有主结果均限定在 \datasetname{}、该固定 split、9 个模型行和 3 个训练种子 \mainseeds{} 的协议内。若不满足这一协议边界，例如换用其他数据集、其他 split、Stage~6B smoke/diagnostic 输出或未来候选结构，均不能直接纳入本文主结果。
+围绕这一任务，本文关注三个问题：第一，在同一固定划分和相同训练种子集合下，I/Q 序列模型、STFT 时频模型和 I/Q--STFT 融合模型的整体表现如何；第二，STFT 视图是否在低信噪比样本上提供可观察的局部补充信息；第三，门控融合、轻量结构和参数匹配控制在该固定协议中如何帮助解释性能差异。为避免结论漂移，后文所有主结果均限定于 \datasetname{}、固定划分 \splitname{}、9 个模型行和 3 个训练种子 \mainseeds{}。
 
-\section{本文工作}
+\section{本文工作与贡献}
 
-本文完成了一个课程报告范围内的 fixed-split AMC benchmark。实验矩阵包含 9 个模型行与 3 个训练种子，共 27 个主实验单元。模型类别覆盖原始 I/Q baseline、STFT 单分支、I/Q-STFT 静态融合、门控融合、CLDNN/MCLDNN/LWAMCNet 时序或轻量结构，以及用于控制参数规模解释偏差的 \path{iq_param_matched} 模型。
+本文完成了一个证据边界清晰的 AMC 课程实验报告。实验矩阵包含 \path{cnn1d}、\path{resnet1d}、\path{tfcnn_stft}、\path{fusion_iq_stft}、\path{cldnn}、\path{mcldnn}、\path{lwamcnet}、\path{iq_param_matched} 和 \path{gated_fusion_iq_stft} 共 9 个模型行，每个模型使用 3 个训练种子，因此主实验包含 27 个运行单元。模型类型覆盖原始 I/Q 卷积基线、STFT 时频分支、静态多视图融合、门控多视图融合、卷积-循环混合模型、轻量模型和参数匹配 I/Q 控制模型。
 
-在评价层面，本文报告 overall accuracy、low/mid/high SNR accuracy、macro-F1 与 balanced accuracy，并针对已登记的模型对使用 paired bootstrap 和 McNemar 检验。统计检验基于 archived predictions 的同一样本配对，而不是重新训练模型或重写 Stage 5A/5B 主表。复杂度和延迟讨论仅使用 \texttt{CONTROLLED\_LATENCY} 证据，即受控 CUDA forward latency，不扩展为 CPU、FLOPs/MACs 或 STFT preprocessing-inclusive latency 结论。
+本文的主要贡献如下：
+\begin{enumerate}
+  \item 在 \datasetname{} 上整理了固定划分、三训练种子和 9 个模型行的协议化比较，使模型差异不与数据划分变化混杂。
+  \item 在整体性能和低信噪比分组两个层面分析 I/Q--STFT 静态融合，并通过参数匹配 I/Q 控制模型避免把参数规模变化误解释为视图融合收益。
+  \item 使用同一测试样本上的配对预测结果进行自助法置信区间估计和 McNemar 检验\cite{efron1979bootstrap,mcnemar1947note}，区分统计支持、实际差异大小和未被证据支持的外推说法。
+  \item 保留门控融合和 MCLDNN 异常训练种子等负结果，使报告反映完整固定协议，而不是只选择表现更好的运行。
+\end{enumerate}
 
-本文还保留 MCLDNN seed 2025 与 seed 3407 的 chance-level collapse 结果。该处理体现了固定协议下的负结果保留原则：实验报告应忠实记录已登记运行的完整结果，而不是通过删除失败种子来获得更整齐的汇总值。相关异常解释、统计检验和可复现性边界将在后续章节展开。
+需要强调的是，本文不声称提出新的通用最优 AMC 架构，也不包含 RadioML2018.01A 或其他数据集结果。静态融合、门控融合和轻量模型的解释均限于本文固定协议。受控 CUDA 前向延迟只用于说明相同测量条件下的运行时背景，不作为端到端部署效率结论。
 
 \begin{figure}[htbp]
   \centering
   \input{figures/fig01_protocol_pipeline}
-  \caption{本文主实验与统计检验证据链。Data source: Stage 5A/5B protocol documents, paper package manifests, predictions archive, and statistical-test package.}
+  \caption{本文主实验与统计检验的证据链：数据集经固定划分后进入模型矩阵，测试集预测和聚合表共同支撑正文结论；诊断性材料不进入主结果。}
   \label{fig:protocol-pipeline}
 \end{figure}
 
-\section{贡献与边界}
-
-本文的主要贡献可以概括为以下四点：
-\begin{enumerate}
-  \item 构建了 \datasetname{} 上 fixed-split、多训练种子、可追踪 artifact 的 AMC benchmark，覆盖 9 个主实验模型行和 27 个运行单元。
-  \item 在参数匹配控制和低信噪比分组下分析 I/Q-STFT 静态融合的 low-SNR trade-off，避免将局部现象写成广义融合优越性。
-  \item 基于 archived predictions 进行 paired bootstrap 与 McNemar 检验，使主要比较建立在 split、seed 和 sample 级别的配对样本上。
-  \item 记录受控 CUDA forward latency 的证据范围，并保留 MCLDNN failed seeds 作为协议内负结果，强化结果解释的透明度。
-\end{enumerate}
-
-上述贡献具有明确边界。本文不包含 RadioML2018.01A 实验，不进行跨数据集泛化判断；不声称 fusion 或 gated fusion 在一般 AMC 场景中优于单视图模型；不基于当前 latency 表作部署效率结论；Stage~6B smoke/diagnostic 输出只可作为工程或后续诊断边界说明，不属于本文主结果。
-
 \section{全文结构}
 
-第~2~章介绍数据集、固定划分、训练种子、模型矩阵、评价指标和统计检验协议。第~3~章说明各模型家族、输入视图、静态融合与门控融合结构，并明确方法描述不预设结果优劣。第~4~章给出固定协议下的主实验结果、低信噪比分析、配对统计检验、受控 CUDA latency 以及 MCLDNN 异常保留。第~5~章讨论结果解释边界、融合权衡、门控负结果、复杂度证据限制和 artifact 可复现性。第~6~章对全文工作、主要发现和后续工作边界进行总结。
+第~2~章介绍数据集、固定划分、模型矩阵、评价指标和配对统计检验协议。第~3~章说明输入视图、模型家族、静态融合、门控融合和参数匹配控制。第~4~章给出主实验结果、低信噪比权衡、统计检验、复杂度边界和 MCLDNN 异常。第~5~章讨论固定协议下的解释范围、负结果意义、运行时证据限制和可复现性边界。第~6~章总结全文发现与后续工作方向。

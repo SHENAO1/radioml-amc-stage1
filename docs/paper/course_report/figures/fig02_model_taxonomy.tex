@@ -6,7 +6,7 @@
     align=center, minimum width=2.9cm, minimum height=0.75cm, font=\scriptsize},
   arrow/.style={-{Latex[length=2.1mm]}, thick, draw=black!60}
 ]
-\node[group=blue] (iq) at (0,0) {I/Q-only models};
+\node[group=blue] (iq) at (0,0) {仅 I/Q 模型};
 \node[model] (cnn) at (-1.8,-1.25) {\texttt{cnn1d}\\\texttt{resnet1d}};
 \node[model] (temporal) at (1.8,-1.25) {\texttt{cldnn}\\\texttt{mcldnn}};
 \node[model] (light) at (0,-2.45) {\texttt{lwamcnet}\\\texttt{iq\_param\_matched}};
@@ -14,18 +14,18 @@
 \draw[arrow] (iq) -- (temporal);
 \draw[arrow] (iq) -- (light);
 
-\node[group=teal] (stft) at (5.0,0) {STFT-only model};
+\node[group=teal] (stft) at (5.0,0) {仅 STFT 模型};
 \node[model] (tfcnn) at (5.0,-1.25) {\texttt{tfcnn\_stft}};
 \draw[arrow] (stft) -- (tfcnn);
 
-\node[group=orange] (fusion) at (10.0,0) {I/Q + STFT models};
-\node[model] (static) at (8.25,-1.25) {Static fusion\\\texttt{fusion\_iq\_stft}};
-\node[model] (gated) at (11.75,-1.25) {Scalar gated fusion\\\texttt{gated\_fusion\_iq\_stft}};
+\node[group=orange] (fusion) at (10.0,0) {I/Q + STFT 模型};
+\node[model] (static) at (8.25,-1.25) {静态融合\\\texttt{fusion\_iq\_stft}};
+\node[model] (gated) at (11.75,-1.25) {标量门控融合\\\texttt{gated\_fusion\_iq\_stft}};
 \draw[arrow] (fusion) -- (static);
 \draw[arrow] (fusion) -- (gated);
 
 \node[draw=black!55, rounded corners, fill=gray!7, align=center, font=\scriptsize,
   minimum width=12.6cm, minimum height=0.7cm] at (5.0,-3.55)
-  {All rows use \datasetname{}, \splitname{}, and train seeds \mainseeds{}. Method labels do not imply performance superiority.};
+  {所有模型行均使用 \datasetname{}、\splitname{} 和训练种子 \mainseeds{}；方法类别本身不代表性能优劣。};
 \end{tikzpicture}%
 }

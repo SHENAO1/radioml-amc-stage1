@@ -3,7 +3,7 @@
 \setlength{\tabcolsep}{2.5pt}
 \renewcommand{\arraystretch}{1.12}
 \begin{longtable}{p{0.08\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.20\textwidth}p{0.07\textwidth}}
-\caption{模型与图表证据源映射表}\label{tab:figure-evidence-map}\\
+\caption{图表证据源映射表}\label{tab:figure-evidence-map}\\
 \toprule
 图号 & 文件 & 主要数据源 & 证据标签 & 使用位置 \\
 \midrule
@@ -12,22 +12,22 @@
 图号 & 文件 & 主要数据源 & 证据标签 & 使用位置 \\
 \midrule
 \endhead
-Fig. 1 & \path{fig01_protocol_pipeline.tex} & Protocol docs, manifest, statistical package & \path{PROJECT_SUPPORTED} & 正文 \\
-Fig. 2 & \path{fig02_model_taxonomy.tex} & \path{main_table_metrics.csv}; code registry & \path{PROJECT_SUPPORTED} & 正文 \\
-Fig. 3 & \path{fig03_fusion_architecture.tex} & \path{src/radioml_amc/models} & \path{PROJECT_SUPPORTED} & 正文 \\
-Fig. 4 & \path{fig04_accuracy_by_snr_group.pdf} & \path{main_table_metrics.csv} & \path{PROJECT_SUPPORTED} & 正文 \\
-Fig. 5 & \path{fig05_low_snr_per_snr_curve.pdf} & \path{low_snr_table.csv} & \path{PROJECT_SUPPORTED} & 正文 \\
-Fig. 6 & \path{fig06_bootstrap_delta_forest.pdf} & \path{paired_bootstrap_accuracy_deltas.csv} & \path{PROJECT_SUPPORTED} & 正文 \\
-Fig. 7 & \path{fig07_accuracy_latency_params_bubble.pdf} & \path{main_table_metrics.csv}; \path{complexity_latency_table.csv} & \path{CONTROLLED_LATENCY} & 正文 \\
-Fig. 8 & \path{fig08_low_snr_confusion_panels.pdf} & \path{confusion_low_snr.csv} & \path{PROJECT_SUPPORTED} & 附录 \\
-Fig. 9 & \path{fig09_mcldnn_seed_anomaly.pdf} & \path{mcldnn/seed_*/metrics_test.json} & \path{PROJECT_SUPPORTED} & 附录 \\
-Fig. 10 & \path{fig10_evidence_boundary.tex} & \path{REPORT_EVIDENCE_MAP.md}; environment audit & Mixed labels & 附录 \\
-Fig. 11 & \path{fig11_full_snr_accuracy_macro_f1.pdf} & \path{metrics_per_snr.csv} & \path{PROJECT_SUPPORTED} & 正文 \\
-Fig. 12 & \path{fig12_model_class_accuracy_heatmap.pdf} & \path{metrics_per_class.csv} & \path{PROJECT_SUPPORTED} & 正文 \\
-Fig. 13 & \path{fig13_low_snr_class_recall_delta.pdf} & \path{confusion_low_snr.csv} & \path{PROJECT_SUPPORTED} & 正文 \\
-Fig. 14 & \path{fig14_paired_disagreement_by_snr.pdf} & \path{predictions_test.csv} & \path{PROJECT_SUPPORTED} & 正文 \\
-Fig. 15 & \path{fig15_seed_stability_all_models.pdf} & \path{metrics_test.json} & \path{PROJECT_SUPPORTED} & 正文 \\
-Fig. 16 & \path{fig16_overall_confusion_panels.pdf} & \path{confusion_overall.csv} & \path{PROJECT_SUPPORTED} & 附录 \\
+图 1 & \path{fig01_protocol_pipeline.tex} & 协议文档、清单、统计检验包 & \texttt{PROJECT\_SUPPORTED} & 正文 \\
+图 2 & \path{fig02_model_taxonomy.tex} & \path{main_table_metrics.csv}；模型注册代码 & \texttt{PROJECT\_SUPPORTED} & 正文 \\
+图 3 & \path{fig03_fusion_architecture.tex} & 模型源码 & \texttt{PROJECT\_SUPPORTED} & 正文 \\
+图 4 & \path{fig04_accuracy_by_snr_group.pdf} & \path{main_table_metrics.csv} & \texttt{PROJECT\_SUPPORTED} & 正文 \\
+图 5 & \path{fig05_low_snr_per_snr_curve.pdf} & \path{low_snr_table.csv} & \texttt{PROJECT\_SUPPORTED} & 正文 \\
+图 6 & \path{fig06_bootstrap_delta_forest.pdf} & \path{paired_bootstrap_accuracy_deltas.csv} & \texttt{PROJECT\_SUPPORTED} & 正文 \\
+图 7 & \path{fig07_accuracy_latency_params_bubble.pdf} & \path{main_table_metrics.csv}；\path{complexity_latency_table.csv} & \texttt{CONTROLLED\_LATENCY} & 正文 \\
+图 8 & \path{fig08_low_snr_confusion_panels.pdf} & \path{confusion_low_snr.csv} & \texttt{PROJECT\_SUPPORTED} & 附录 \\
+图 9 & \path{fig09_mcldnn_seed_anomaly.pdf} & MCLDNN 各种子测试指标 & \texttt{PROJECT\_SUPPORTED} & 附录 \\
+图 10 & \path{fig10_evidence_boundary.tex} & 证据边界文档与环境审计记录 & 混合标签 & 附录 \\
+图 11 & \path{fig11_full_snr_accuracy_macro_f1.pdf} & \path{metrics_per_snr.csv} & \texttt{PROJECT\_SUPPORTED} & 正文 \\
+图 12 & \path{fig12_model_class_accuracy_heatmap.pdf} & \path{metrics_per_class.csv} & \texttt{PROJECT\_SUPPORTED} & 正文 \\
+图 13 & \path{fig13_low_snr_class_recall_delta.pdf} & \path{confusion_low_snr.csv} & \texttt{PROJECT\_SUPPORTED} & 正文 \\
+图 14 & \path{fig14_paired_disagreement_by_snr.pdf} & \path{predictions_test.csv} & \texttt{PROJECT\_SUPPORTED} & 正文 \\
+图 15 & \path{fig15_seed_stability_all_models.pdf} & 测试集指标文件 & \texttt{PROJECT\_SUPPORTED} & 正文 \\
+图 16 & \path{fig16_overall_confusion_panels.pdf} & \path{confusion_overall.csv} & \texttt{PROJECT\_SUPPORTED} & 附录 \\
 \bottomrule
 \end{longtable}
 \endgroup

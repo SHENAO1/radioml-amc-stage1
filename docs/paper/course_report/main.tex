@@ -15,23 +15,24 @@
 \usetikzlibrary{arrows.meta,positioning,fit,calc,shapes.geometric}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
+\setlength{\emergencystretch}{3em}
 
 \graphicspath{{figures/}{coverimg/}}
 \addbibresource{ref.bib}
 
 \newcommand{\reporttitle}{基于时频特征与深度神经网络融合的无线电调制识别方法研究}
 \newcommand{\datasetname}{RadioML2016.10A}
-\newcommand{\splitname}{\texttt{stratified\_by\_mod\_snr\_seed42}}
+\newcommand{\splitname}{\path{stratified_by_mod_snr_seed42}}
 \newcommand{\mainseeds}{\texttt{42, 2025, 3407}}
-\newcommand{\lowSNR}{\texttt{snr\_db <= -6}}
+\newcommand{\lowSNR}{\(\mathrm{SNR}\le -6\,\mathrm{dB}\)}
 
 \setup{
   Type = 机器学习课程作业报告,
   Header = 中国传媒大学作业报告,
-  StudentID = 待填写,
+  StudentID = 请填写学号,
   TitleinCover = \customtitle{\reporttitle},
   TitleinBody = \reporttitle,
-  Author = 待填写,
+  Author = 请填写姓名,
   Date = 2026年5月
 }
 

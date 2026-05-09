@@ -6,16 +6,16 @@
     align=center, minimum width=2.4cm, minimum height=0.75cm, font=\scriptsize},
   arrow/.style={-{Latex[length=2.1mm]}, thick, draw=black!65}
 ]
-\node[block=blue] (iqin) at (0,1.35) {I/Q input\\$x_{\mathrm{IQ}}$};
-\node[smallblock] (iqbranch) at (2.9,1.35) {1D Conv branch\\$h_{\mathrm{IQ}}$};
-\node[block=teal] (stftin) at (0,-1.35) {STFT input\\$x_{\mathrm{STFT}}$};
-\node[smallblock] (stftbranch) at (2.9,-1.35) {2D Conv branch\\$h_{\mathrm{STFT}}$};
-\node[smallblock] (proj1) at (5.6,1.35) {Projection\\$z_{\mathrm{IQ}}$};
-\node[smallblock] (proj2) at (5.6,-1.35) {Projection\\$z_{\mathrm{STFT}}$};
-\node[block=orange] (concat) at (8.7,1.35) {Static fusion\\concat + classifier};
-\node[block=purple] (gate) at (8.7,-1.35) {Scalar gate\\$(1-g)z_{\mathrm{IQ}}+gz_{\mathrm{STFT}}$};
-\node[smallblock] (out1) at (11.8,1.35) {Class logits};
-\node[smallblock] (out2) at (11.8,-1.35) {Class logits};
+\node[block=blue] (iqin) at (0,1.35) {I/Q 输入\\$x_{\mathrm{IQ}}$};
+\node[smallblock] (iqbranch) at (2.9,1.35) {一维卷积分支\\$h_{\mathrm{IQ}}$};
+\node[block=teal] (stftin) at (0,-1.35) {STFT 输入\\$x_{\mathrm{STFT}}$};
+\node[smallblock] (stftbranch) at (2.9,-1.35) {二维卷积分支\\$h_{\mathrm{STFT}}$};
+\node[smallblock] (proj1) at (5.6,1.35) {投影\\$z_{\mathrm{IQ}}$};
+\node[smallblock] (proj2) at (5.6,-1.35) {投影\\$z_{\mathrm{STFT}}$};
+\node[block=orange] (concat) at (8.7,1.35) {静态融合\\拼接 + 分类器};
+\node[block=purple] (gate) at (8.7,-1.35) {标量门控\\$(1-g)z_{\mathrm{IQ}}+gz_{\mathrm{STFT}}$};
+\node[smallblock] (out1) at (11.8,1.35) {类别得分};
+\node[smallblock] (out2) at (11.8,-1.35) {类别得分};
 \draw[arrow] (iqin) -- (iqbranch);
 \draw[arrow] (stftin) -- (stftbranch);
 \draw[arrow] (iqbranch) -- (proj1);
@@ -28,6 +28,6 @@
 \draw[arrow] (gate) -- (out2);
 \node[draw=black!45, rounded corners, fill=gray!7, align=center, font=\scriptsize,
   minimum width=11.7cm] at (5.95,-2.75)
-  {The gate is a tested candidate, not a supported robustness claim; Stage 5A/5B results decide its interpretation.};
+  {门控结构是被检验的候选机制，并不预设低信噪比鲁棒性结论。};
 \end{tikzpicture}%
 }

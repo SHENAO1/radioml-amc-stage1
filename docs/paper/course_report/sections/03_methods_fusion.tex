@@ -1,10 +1,26 @@
 \chapter{模型方法与融合结构}
 
-\section{总体模型矩阵}
+\section{输入表示}
 
-第 2 章已经给出本实验的数据集、固定划分、训练种子与评价协议。本章在该协议边界内说明模型方法与融合结构，重点回答“哪些模型被纳入比较、各模型使用何种输入视图、各结构在实验矩阵中的作用是什么”。本章不讨论模型排名、显著性或结果解释；相关内容留待第 4 章基于主表与统计检验证据展开。
+本文的输入表示分为原始 I/Q 序列和 STFT 时频图两类。原始 I/Q 输入记为 \(x_{\mathrm{IQ}}\in\mathbb{R}^{2\times128}\)，两个通道分别为同相分量和正交分量。该表示保留基带信号的时间采样结构，是 CNN、ResNet、CLDNN、MCLDNN、LWAMCNet 和参数匹配控制模型的共同输入。
 
-本实验的主模型矩阵包含 9 个模型行：\path{cnn1d}、\path{resnet1d}、\path{tfcnn_stft}、\path{fusion_iq_stft}、\path{cldnn}、\path{mcldnn}、\path{lwamcnet}、\path{iq_param_matched} 与 \path{gated_fusion_iq_stft}。这些模型行来自 Stage 5A/5B 固定协议证据，模型身份与输入视图由 \path{paper_package/server_sync_20260508/results/paper_stage2/rml2016a/aggregate/main_table_metrics.csv} 中的 \path{model_id} 和 \path{input_views} 字段记录；代码实现和注册关系主要对应 \path{src/radioml_amc/models/} 与 \path{src/radioml_amc/training/trainer.py}。
+STFT 视图通过对 I/Q 序列进行窗口化傅里叶变换得到。设窗函数为 \(w[n]\)，窗口起点为 \(\tau\)，频率索引为 \(k\)，则单通道短时傅里叶变换可写为
+\begin{equation}
+  X(\tau,k)=\sum_{n} x[n]\,w[n-\tau]\exp\left(-j2\pi kn/N\right).
+  \label{eq:stft-definition}
+\end{equation}
+实验中窗口长度为 32，重叠长度为 16。STFT 分支使用幅度型二维时频表示作为卷积输入。本文只把 STFT 作为可检验输入视图，不预设其相对 I/Q 序列必然更优。
+
+\section{模型家族与比较目的}
+
+图~\ref{fig:model-taxonomy} 概括了主实验模型行的输入视图和方法角色。模型矩阵的设计目标是覆盖课程报告所需的主要比较维度：原始 I/Q 基线、时频单视图、多视图融合、卷积-循环混合结构、轻量模型和参数匹配控制。
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/fig02_model_taxonomy}
+  \caption{主实验模型行的输入视图与方法角色。所有模型均在同一数据集、固定划分和训练种子集合下评估，方法类别本身不表示性能优劣。}
+  \label{fig:model-taxonomy}
+\end{figure}
 
 \begin{table}[htbp]
   \centering
@@ -14,121 +30,83 @@
     \toprule
     模型家族 & 模型行 & 输入视图 & 方法角色 \\
     \midrule
-    基础一维卷积 & \path{cnn1d} & I/Q & 原始 I/Q 序列卷积基线。 \\
-    残差卷积 & \path{resnet1d} & I/Q & 引入残差连接的一维卷积对照。 \\
-    时频分支 & \path{tfcnn_stft} & STFT & 使用时频图的单视图分支。 \\
-    时序模型 & \path{cldnn}, \path{mcldnn} & I/Q & 结合卷积特征与序列建模的 I/Q 模型。 \\
-    轻量模型 & \path{lwamcnet} & I/Q & 轻量化卷积结构对照。 \\
-    参数匹配控制 & \path{iq_param_matched} & I/Q & 控制参数规模的 I/Q-only 对照。 \\
-    静态融合 & \path{fusion_iq_stft} & I/Q+STFT & 连接 I/Q 与 STFT 分支特征的多视图候选。 \\
-    门控融合 & \path{gated_fusion_iq_stft} & I/Q+STFT & 使用标量门控调节两个视图贡献的多视图候选。 \\
+    基础一维卷积 & \path{cnn1d} & I/Q & 原始 I/Q 卷积基线，承接早期 CNN 调制识别思路\cite{oshea2016cnn}。 \\
+    残差卷积 & \path{resnet1d} & I/Q & 提供更深的一维卷积对照。 \\
+    时频卷积 & \path{tfcnn_stft} & STFT & 单独检验 STFT 视图的判别性。 \\
+    卷积-循环混合 & \path{cldnn}, \path{mcldnn} & I/Q & 比较卷积局部特征与序列建模结合的结构\cite{sainath2015cldnn,west2017deep,xu2020mcldnn}。 \\
+    轻量结构 & \path{lwamcnet} & I/Q & 提供较低参数量网络参考\cite{wang2021lwamcnet}。 \\
+    参数匹配控制 & \path{iq_param_matched} & I/Q & 控制参数规模，辅助解释融合结果。 \\
+    静态融合 & \path{fusion_iq_stft} & I/Q+STFT & 拼接两个视图表征，检验多视图互补性。 \\
+    门控融合 & \path{gated_fusion_iq_stft} & I/Q+STFT & 用标量门控调节两个视图贡献，作为候选机制接受实验检验。 \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-\begin{figure}[htbp]
-  \centering
-  \input{figures/fig02_model_taxonomy}
-  \caption{主实验模型行的输入视图与方法角色分类。Data source: \texttt{main\_table\_metrics.csv} and Stage 5A/5B model registry.}
-  \label{fig:model-taxonomy}
-\end{figure}
+\section{I/Q 序列模型}
 
-从方法设计角度看，上述矩阵并不预设任何结构必然优于其他结构。I/Q-only 模型用于提供原始时域信号基线；STFT-only 模型用于评估时频视图本身；I/Q+STFT 模型用于检验多视图融合在固定协议下的行为；参数匹配控制用于降低“参数量增加”对融合解释的混杂。上述边界与 \path{docs/paper/manuscript/section4_experimental_protocol.md} 和 \path{docs/paper/course_report/REPORT_EVIDENCE_MAP.md} 中的证据约束一致。
-
-\section{I/Q 序列基础模型}
-
-I/Q 序列基础模型直接以形状为 $[B,2,L]$ 的基带信号张量作为输入，其中两个通道分别对应同相分量与正交分量。该类模型不显式构造时频图，也不引入额外视图，因此适合作为检验其他结构是否带来额外信息的基础参照。相关实现见 \path{src/radioml_amc/models/cnn1d.py}、\path{src/radioml_amc/models/resnet1d.py} 以及模型构建函数 \path{src/radioml_amc/training/trainer.py}。
-
-\path{cnn1d} 采用顺序一维卷积、批归一化、ReLU 激活、池化和全局池化，将 I/Q 序列映射为固定长度表征后进行调制类别分类。其作用是提供一个结构直接、可解释的时域卷积基线。设输入为 $x_{\mathrm{IQ}}\in\mathbb{R}^{2\times L}$，该类模型可抽象表示为
+\path{cnn1d} 直接以 \(x_{\mathrm{IQ}}\) 为输入，通过一维卷积、归一化、非线性激活、池化和分类头输出调制类别。其抽象形式为
 \begin{equation}
-  h_{\mathrm{IQ}} = f_{\mathrm{1DConv}}(x_{\mathrm{IQ}}), \qquad
+  h_{\mathrm{IQ}}=f_{\mathrm{1D}}(x_{\mathrm{IQ}}),\qquad
   \hat{y}=c(h_{\mathrm{IQ}}),
   \label{eq:cnn1d-abstraction}
 \end{equation}
-其中 $f_{\mathrm{1DConv}}$ 表示一维卷积特征提取器，$c(\cdot)$ 表示分类头。
+其中 \(f_{\mathrm{1D}}\) 表示一维卷积特征提取器，\(c(\cdot)\) 表示分类头。\path{resnet1d} 在一维卷积堆叠中加入残差连接，用于提供更深的 I/Q 卷积对照。
 
-\path{resnet1d} 同样使用 I/Q 输入，但在卷积堆叠中加入残差连接。残差块将卷积分支与 shortcut 分支相加后再经过非线性激活，目的在于提供与普通一维卷积不同的深层时域建模结构。本文只将其作为协议内 I/Q baseline 之一，不在本章讨论其结果表现。
+\path{cldnn} 和 \path{mcldnn} 属于卷积-循环混合结构。CLDNN 先提取局部卷积特征，再通过 LSTM 建模序列依赖，最后完成分类；这类结构最早在语音识别中形成典型组合\cite{sainath2015cldnn}，也被用于 AMC 架构比较\cite{west2017deep}。本文中的 MCLDNN 对应多通道时空学习思路\cite{xu2020mcldnn}，包含多个 I/Q 分支、后续融合卷积、LSTM 和分类器。由于 MCLDNN 在本实验中存在异常训练种子，本章只说明结构角色，结果解释放在第~4~章和第~5~章。
 
-\section{时序模型与轻量模型}
+\path{lwamcnet} 是轻量化 I/Q 模型，对应轻量 CNN 在 AMC 中的设计思路\cite{wang2021lwamcnet}。本文把“轻量”限定为参数量和受控前向耗时背景，不直接等同于完整部署效率。完整部署效率还需要 CPU、预处理、数据搬运和端到端推理协议支持。
 
-时序模型用于在卷积局部特征之上引入序列建模机制。本文纳入 \path{cldnn} 与 \path{mcldnn} 两个 I/Q-only 时序模型，它们均在 \path{src/radioml_amc/models/baselines.py} 中实现，并在 \path{src/radioml_amc/models/__init__.py} 与 \path{src/radioml_amc/training/trainer.py} 中注册为可训练模型。相关模型来源引用将在最终报告定稿阶段补充。
-% TODO: add CLDNN/MCLDNN/LWAMCNet citation
+\section{STFT 单视图模型}
 
-\path{cldnn} 使用一维卷积网络提取 I/Q 局部模式，再将卷积输出转置为时间序列形式输入 LSTM，最后使用全连接分类头输出调制类别 logits。其方法抽象为
+\path{tfcnn_stft} 只使用 STFT 时频图。模型通过二维卷积从时频平面中提取局部模式，再经池化和分类头输出调制类别。其抽象形式为
 \begin{equation}
-  u_t = f_{\mathrm{conv}}(x_{\mathrm{IQ}})_t,\qquad
-  h = f_{\mathrm{LSTM}}(u_1,\ldots,u_T),\qquad
-  \hat{y}=c(h).
-  \label{eq:cldnn-abstraction}
-\end{equation}
-该模型在本报告中作为卷积-序列混合结构对照存在，本章不对其结果作排序性描述。
-
-\path{mcldnn} 也是协议内 I/Q 模型。源码中该模型包含联合 I/Q 空间卷积分支、独立 I/Q 因果卷积分支、后续融合卷积、LSTM 与多层分类器。该结构的纳入目的在于覆盖 MCLDNN-style 的多分支时序建模思路。根据第 2 章协议，\path{mcldnn} 的三个训练种子均保留在 Stage 5A/5B 证据内；本章只说明其结构角色，异常细节和解释边界留待第 4 章与第 5 章讨论。
-
-\path{lwamcnet} 作为轻量模型纳入比较。其实现使用二维卷积起始层、depthwise separable convolution residual stack、grouped depthwise convolution reconstruction 与线性分类头，目标是在 I/Q 输入上提供较低参数量的结构参照。本文不在方法章节中将“轻量”直接等同于效率或部署优势；复杂度与延迟范围仍以第 2 章定义的受控证据为准。
-
-\section{STFT 时频分支}
-
-除原始 I/Q 序列外，本文还纳入 STFT 视图对应的 \path{tfcnn_stft} 模型。该模型由 \path{src/radioml_amc/models/multiview.py} 中的 \path{TimeFrequencyCNN} 实现，使用 \path{TimeFrequencyBranch2D} 对二维时频输入进行卷积、归一化、激活、池化和自适应池化，再接线性分类层输出调制类别。
-
-从方法动机看，STFT 视图提供了与时域 I/Q 序列不同的观测方式。I/Q 序列强调时间采样点上的相位与幅度关系，而 STFT 视图将局部频率结构显式展开，有助于在方法层面检验时频表征能否提供互补信息。设 STFT 输入为 $x_{\mathrm{STFT}}$，单视图时频分支可写为
-\begin{equation}
-  h_{\mathrm{STFT}} = f_{\mathrm{2DConv}}(x_{\mathrm{STFT}}),\qquad
+  h_{\mathrm{STFT}}=f_{\mathrm{2D}}(x_{\mathrm{STFT}}),\qquad
   \hat{y}=c(h_{\mathrm{STFT}}).
   \label{eq:stft-branch-abstraction}
 \end{equation}
-该节仅描述 STFT 分支的输入与结构，不评价其相对有效性。
+该模型用于回答“时频视图本身是否具有判别性”，而不是作为融合模型的直接性能上界。
 
 \section{参数匹配 I/Q 控制模型}
 
-\path{iq_param_matched} 是本实验中的参数匹配 I/Q-only 控制模型，对应 \path{src/radioml_amc/models/baselines.py} 中的 \path{ParameterMatchedIQOnlyNet}。该模型仍只使用 I/Q 输入，但通过调整一维卷积通道数和分类头规模，使其参数预算接近融合模型的量级。其设置目的不是提出新的 AMC 架构，而是为融合解释提供控制条件。
+\path{iq_param_matched} 仍只使用 I/Q 输入，但通过通道数和分类头规模调整，使参数量接近融合模型。引入该控制模型的原因是，多视图融合通常会增加分支和投影参数；如果只与较小 I/Q 基线比较，难以判断性能差异来自额外输入视图还是参数量变化。参数匹配控制将输入视图固定为 I/Q，因此为第~4~章解释低信噪比局部收益提供更清晰的参照。
 
-引入该控制模型的理由在于，多视图融合模型通常会增加分支、投影或分类器参数。如果只比较融合模型与较小的 I/Q baseline，可能难以区分性能变化来自额外输入视图，还是来自参数量增加。参数匹配控制模型将输入视图固定为 I/Q，从而为后续分析提供更清晰的对照。本文在本章只说明控制变量设计，不写其与其他模型的结果胜负。
+\section{静态 I/Q--STFT 融合}
 
-\section{静态 I/Q-STFT 融合}
-
-\path{fusion_iq_stft} 是本实验中的静态 I/Q-STFT 融合候选，由 \path{src/radioml_amc/models/multiview.py} 中的 \path{MultiViewFusionNet} 实现。该模型包含两个分支：I/Q 分支使用一维卷积提取 $h_{\mathrm{IQ}}$，STFT 分支使用二维卷积提取 $h_{\mathrm{STFT}}$；随后将两个分支的表示拼接并输入分类器。其基本形式可写为
+\path{fusion_iq_stft} 包含 I/Q 分支和 STFT 分支。两个分支分别提取表示
 \begin{equation}
-  h_{\mathrm{IQ}} = f_{\mathrm{IQ}}(x_{\mathrm{IQ}}),\qquad
-  h_{\mathrm{STFT}} = f_{\mathrm{STFT}}(x_{\mathrm{STFT}}),
+  h_{\mathrm{IQ}}=f_{\mathrm{IQ}}(x_{\mathrm{IQ}}),\qquad
+  h_{\mathrm{STFT}}=f_{\mathrm{STFT}}(x_{\mathrm{STFT}}),
   \label{eq:static-fusion-branches}
 \end{equation}
+随后进行特征拼接并输入分类器：
 \begin{equation}
-  z = [h_{\mathrm{IQ}}, h_{\mathrm{STFT}}],\qquad
+  z=[h_{\mathrm{IQ}},h_{\mathrm{STFT}}],\qquad
   \hat{y}=c(z).
   \label{eq:static-fusion}
 \end{equation}
+该结构用于检验时域和时频视图在固定协议下是否形成互补。本文不在方法章节预设其优势，所有效果判断均以第~4~章结果为准。
 
-该结构的研究作用是检验在同一固定协议下，显式引入时频视图后模型行为如何变化。本文将其称为待评估 fusion candidate，而不是预设其相对 I/Q-only 模型具有广义优越性。后续任何关于该模型的解释均必须回到第 2 章定义的固定划分、三种子汇总与统计检验协议。
+\section{标量门控融合}
 
-\section{门控 I/Q-STFT 融合}
-
-\path{gated_fusion_iq_stft} 是本实验中的门控 I/Q-STFT 融合候选，由 \path{src/radioml_amc/models/gated_fusion.py} 中的 \path{ScalarGatedIQSTFTFusionNet} 实现。该模型同样包含 I/Q 分支与 STFT 分支，但在投影到相同融合维度后，通过一个标量 gate 调节两个视图表示的组合比例。源码中的 gate 输入包含两个投影表示、二者绝对差以及逐元素乘积：
+\path{gated_fusion_iq_stft} 在两个视图投影到相同维度后，用样本级标量门控调节贡献比例。门控输入由两个投影表示、绝对差和逐元素乘积组成：
 \begin{equation}
-  r = [z_{\mathrm{IQ}}, z_{\mathrm{STFT}}, |z_{\mathrm{IQ}}-z_{\mathrm{STFT}}|, z_{\mathrm{IQ}}\odot z_{\mathrm{STFT}}],
+  r=[z_{\mathrm{IQ}},z_{\mathrm{STFT}},|z_{\mathrm{IQ}}-z_{\mathrm{STFT}}|,z_{\mathrm{IQ}}\odot z_{\mathrm{STFT}}],
   \label{eq:gated-input}
 \end{equation}
 \begin{equation}
-  g=\sigma(W_2\,\phi(W_1 r)),\qquad
-  h=(1-g)z_{\mathrm{IQ}}+g z_{\mathrm{STFT}},
+  g=\sigma(W_2\phi(W_1r)),\qquad
+  h=(1-g)z_{\mathrm{IQ}}+gz_{\mathrm{STFT}},
   \label{eq:gated-fusion}
 \end{equation}
-其中 $g$ 为样本级标量门控权重，$\sigma(\cdot)$ 表示 sigmoid 函数，$\phi(\cdot)$ 表示非线性激活。分类器随后基于融合表示 $h$ 输出调制类别 logits。
-
-需要注意的是，该 gate 不接收显式 SNR 输入，其设计目的是在固定模型矩阵中提供一个可检验的视图加权机制。本章只描述其实现方式与实验角色，不写“门控提升鲁棒性”或类似结果性表述。
+其中 \(g\) 为标量门控权重，\(\sigma(\cdot)\) 为 sigmoid 函数，\(\phi(\cdot)\) 为非线性激活。该门控不显式输入信噪比，因此它只能被视为一个可检验的视图加权候选，而不是先验的低信噪比鲁棒机制。
 
 \begin{figure}[htbp]
   \centering
   \input{figures/fig03_fusion_architecture}
-  \caption{静态 I/Q-STFT 融合与标量门控融合的结构关系。Data source: \texttt{src/radioml\_amc/models/multiview.py} and \texttt{src/radioml\_amc/models/gated\_fusion.py}.}
+  \caption{静态 I/Q--STFT 融合与标量门控融合结构。静态融合直接拼接两个分支表征；门控融合用样本级标量权重组合两个投影表征。}
   \label{fig:fusion-architecture}
 \end{figure}
 
 \section{方法边界}
 
-本报告并不声称提出全新的 SOTA 架构。第 3 章的任务是清晰记录 Stage 5A/5B 主实验中已经登记并完成的模型方法，使后续结果分析能够追溯到明确的输入视图、模型标识和代码实现。模型来源与相关工作引用将在最终报告定稿阶段补充。
-% TODO: add model-family citations
-
-Stage 6B 文档中出现的 \path{fusion_iq_amp_phase}、low-SNR weighted cross entropy、cheap signal augmentation、\path{tcn_gru}、\path{mcldnn_stable_v2} 等方向，只属于 diagnostic candidates 或 planning items。它们不构成本章主实验模型矩阵的一部分，也不能被写成已完成主实验。即使其中某些 mock smoke 路径已经存在，也只能说明工程路径或 artifact writer 可运行，不能支持第 4 章主结果或方法优越性结论。
-
-因此，本文的方法解释遵循三条边界：第一，模型身份以 Stage 5A/5B 主表与代码注册为准；第二，方法描述只说明结构、输入视图与比较目的；第三，任何关于效果、显著性或局限性的判断均依赖第 2 章协议和第 4 章结果证据，而不在本章预先给出。
+本章的目的在于说明主实验中已经登记的模型身份、输入视图和比较目的，而不是提出未经验证的新架构。本文不把诊断性候选、mock 路径或后续计划项写入主模型矩阵。任何关于性能、显著性或稳定性的判断都必须回到第~2~章实验协议和第~4~章结果证据。

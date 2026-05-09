@@ -5,17 +5,16 @@
   arrow/.style={-{Latex[length=2.3mm]}, thick}
 ]
 \node[card=green] (project) at (0,0) {\centering\texttt{PROJECT\_SUPPORTED}\\[0.3em]
-\raggedright Stage 5A/5B fixed-split evidence.\\
-Allowed: main tables, low-SNR results, paired statistics, archived predictions.};
+\raggedright 完整固定协议主实验证据。\\
+可用于主表、低信噪比结果、配对统计检验和测试集预测归档。};
 \node[card=blue] (latency) at (5.0,0) {\centering\texttt{CONTROLLED\_LATENCY}\\[0.3em]
-\raggedright CUDA forward-pass timing only.\\
-Allowed: scoped parameter and latency discussion.\\
-Forbidden: CPU, FLOPs/MACs, preprocessing-inclusive deployment claims.};
+\raggedright 仅限 CUDA 前向传播计时。\\
+可用于参数量和受控延迟讨论；不得外推到 CPU、FLOPs/MACs 或完整部署耗时。};
 \node[card=gray] (diag) at (10.0,0) {\centering\texttt{SMOKE/DIAGNOSTIC}\\[0.3em]
-\raggedright Engineering traceability and future screening only.\\
-Forbidden: main-result tables, statistical tests, abstract, conclusion.};
+\raggedright 仅用于工程追踪和未来筛查说明。\\
+不得进入主结果表、统计检验、摘要或结论。};
 \node[draw=black!55, rounded corners, fill=black!4, align=center, font=\small,
   minimum width=12.2cm] at (5.0,-2.75)
-  {Report rule: do not merge Stage 6B smoke/diagnostic outputs into Stage 5A/5B evidence.};
+  {报告规则：诊断性输出不得合并进完整固定协议主实验证据。};
 \end{tikzpicture}%
 }
