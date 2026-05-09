@@ -52,7 +52,7 @@ STFT 视图通过对 I/Q 序列进行窗口化傅里叶变换得到。设窗函�
 \end{equation}
 其中 \(f_{\mathrm{1D}}\) 表示一维卷积特征提取器，\(c(\cdot)\) 表示分类头。\path{resnet1d} 在一维卷积堆叠中加入残差连接，用于提供更深的 I/Q 卷积对照。
 
-\path{cldnn} 和 \path{mcldnn} 属于卷积-循环混合结构。CLDNN 先提取局部卷积特征，再通过 LSTM 建模序列依赖，最后完成分类；这类结构最早在语音识别中形成典型组合\cite{sainath2015cldnn}，也被用于 AMC 架构比较\cite{west2017deep}。本文中的 MCLDNN 对应多通道时空学习思路\cite{xu2020mcldnn}，包含多个 I/Q 分支、后续融合卷积、LSTM 和分类器。由于 MCLDNN 在本实验中存在异常训练种子，本章只说明结构角色，结果解释放在第~4~章和第~5~章。
+\path{cldnn} 和 \path{mcldnn} 属于卷积-循环混合结构。CLDNN 先提取局部卷积特征，再通过 LSTM 建模序列依赖\cite{hochreiter1997lstm}，最后完成分类；这类结构最早在语音识别中形成典型组合\cite{sainath2015cldnn}，也被用于 AMC 架构比较\cite{west2017deep}。本文中的 MCLDNN 对应多通道时空学习思路\cite{xu2020mcldnn}，包含多个 I/Q 分支、后续融合卷积、LSTM 和分类器。由于 MCLDNN 在本实验中存在异常训练种子，本章只说明结构角色，结果解释放在第~4~章和第~5~章。
 
 \path{lwamcnet} 是轻量化 I/Q 模型，对应轻量 CNN 在 AMC 中的设计思路\cite{wang2021lwamcnet}。本文把“轻量”限定为参数量和受控前向耗时背景，不直接等同于完整部署效率。完整部署效率还需要 CPU、预处理、数据搬运和端到端推理协议支持。
 

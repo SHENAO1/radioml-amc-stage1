@@ -1,107 +1,86 @@
-\chapter{证据包与实验环境}
+\chapter{证据包、环境与补充图表}
 
-\section{主实验证据包}
+\section{证据包与环境摘要}
 
-本文使用的主要证据包位于 \path{paper_package/server_sync_20260508}。该目录用于同步 Stage 5A/5B 固定协议实验的主要审计材料和聚合证据，包括 Stage 5B audit 文档、\path{main_table_metrics.csv}、\path{low_snr_table.csv}、\path{complexity_latency_table.csv} 以及若干小型 artifact 和 manifest 记录。根据 \path{docs/paper/ARTIFACT_MANIFEST_PAPER_PACKAGE_20260508.csv}，paper package manifest 共 299 行，其中 \texttt{PROJECT\_SUPPORTED} 253 行、\texttt{CONTROLLED\_LATENCY} 28 行、\texttt{SMOKE TEST} 18 行。
-
-该证据包中存在 Stage~6B diagnostic 或 smoke metadata，是为了记录工程路径、artifact writer 和后续候选筛查边界。这类 metadata 不属于 Stage 5A/5B 主实验证据，不得进入主结果表、统计检验或课程报告结论。本文正文和附录使用它们时，仅用于说明证据标签和排除规则。
-
-\section{预测归档与统计检验}
-
-预测归档位于 \path{paper_package/predictions_archive_20260508}。该归档包含 27 个 Stage 5A \path{predictions_test.csv} 文件，覆盖 9 个模型行和 3 个训练种子 \mainseeds{}，其 manifest 记录均为 \path{archive_hash_match}。这些预测文件是配对自助法与 McNemar 检验的输入来源，使统计比较可以按照 \path{split_id}、\path{train_seed} 和 \path{sample_id} 对同一样本进行配对。
-
-统计检验包位于 \path{paper_package/statistical_tests_20260508}。该目录包含 \path{paired_bootstrap_accuracy_deltas.csv}、\path{mcnemar_tests.csv}、\path{significance_tests.json}、\path{statistical_tests_summary.md} 以及统计检验清单。统计检验摘要明确说明，这些文件基于 Stage 5A 测试集预测归档生成，没有训练模型、没有运行微型子集、没有重建或覆盖 Stage 5A/5B 主表，也没有使用 Stage~6B \texttt{SMOKE TEST} 或 \texttt{DIAGNOSTIC} 输出。
-
-\section{证据标签}
-
-为避免主实验、受控延迟测量和工程诊断相互混淆，本文采用 evidence label 约束证据使用范围。表~\ref{tab:appendix-evidence-labels} 汇总了课程报告中使用的主要标签及其边界。
+表~\ref{tab:appendix-evidence-compact} 将原附录 A.1--A.6 的证据包路径、同步状态、环境差异和排除规则压缩为课程报告可核查的摘要。主结果来自 Stage 5A/5B 固定协议聚合表、低信噪比分组表、受控 CUDA 前向延迟表和 27 个测试集预测文件；统计检验包基于这些归档预测生成。Stage~6B smoke/diagnostic 材料保留为工程追踪记录，正文性能结论使用 Stage 5A/5B 主证据。
 
 \begin{table}[htbp]
   \centering
-  \caption{证据标签与可用范围}
-  \label{tab:appendix-evidence-labels}
-  \begin{tabularx}{\textwidth}{llX}
+  \caption{证据包、环境与使用规则压缩摘要}
+  \label{tab:appendix-evidence-compact}
+  \small
+  \begin{tabularx}{\textwidth}{lX}
     \toprule
-    证据标签 & 含义 & 课程报告使用范围 \\
+    项目 & 摘要 \\
     \midrule
-    \texttt{PROJECT\_SUPPORTED} & Stage 5A/5B 完整固定协议证据 & 可用于主表、低信噪比表、模型矩阵、测试集预测归档和配对统计检验。 \\
-    \texttt{CONTROLLED\_LATENCY} & 受控 CUDA 前向延迟测量 & 仅用于参数量与 CUDA 前向延迟范围内的复杂度讨论。 \\
-    \texttt{SMOKE TEST} & mock 或 synthetic code-path 检查 & 仅用于工程路径说明，不得作为性能证据。 \\
-    \texttt{DIAGNOSTIC} & mock、subset 或调试筛查 & 仅用于后续诊断边界说明，不得进入主表或统计检验。 \\
+    主实验证据包 & \path{paper_package/server_sync_20260508}；包含主表、低信噪比分组表、复杂度/延迟表和 Stage 5B audit 材料。 \\
+    预测归档 & \path{paper_package/predictions_archive_20260508}；27 个 \path{predictions_test.csv}，覆盖 9 个模型行和 3 个训练种子。 \\
+    统计检验包 & \path{paper_package/statistical_tests_20260508}；包含配对自助法、McNemar 检验、显著性 JSON 和清单。 \\
+    证据标签 & \texttt{PROJECT\_SUPPORTED} 支撑主结果；\texttt{CONTROLLED\_LATENCY} 支撑 CUDA 前向延迟；\texttt{SMOKE TEST}/\texttt{DIAGNOSTIC} 用于工程追踪。 \\
+    环境差异 & 本地 Windows/Python 3.13.7/PyTorch 2.11.0+\texttt{cpu} 用于写作与核查；服务器 Linux/Python 3.11.12/PyTorch 2.9.1+\texttt{cu128}/RTX 4070 用于 GPU 实验。 \\
+    剩余缺口 & 本地材料包含预测和聚合证据；完整 27 个 Stage 5A \path{best_model.pt} 权重需要另行独立同步与哈希核验。 \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-其中，\texttt{PROJECT\_SUPPORTED} 与 \texttt{CONTROLLED\_LATENCY} 可支撑正文中的主表、统计检验和受控延迟讨论；\texttt{SMOKE TEST} 与 \texttt{DIAGNOSTIC} 只能用于工程检查或未来诊断说明，不能支撑实验发现。
+\section{补充超参、训练曲线与混淆矩阵}
 
-\section{本地与服务器环境}
-
-实验环境与同步状态记录见 \path{docs/paper/EXPERIMENT_ENVIRONMENT_AND_SYNC_STATUS_20260508.md}。本地环境与服务器环境的角色不同，表~\ref{tab:appendix-env} 给出与课程报告复现边界相关的主要信息。
+表~\ref{tab:appendix-hparams} 汇总主实验共用训练设置。该表用于解释第~4~章 MCLDNN 异常诊断中的“统一超参”含义。
 
 \begin{table}[htbp]
   \centering
-  \caption{本地与服务器环境摘要}
-  \label{tab:appendix-env}
-  \begin{tabularx}{\textwidth}{lXX}
+  \caption{主实验训练与特征超参摘要}
+  \label{tab:appendix-hparams}
+  \begin{tabularx}{\textwidth}{lX}
     \toprule
-    项目 & 本地环境 & 服务器环境 \\
+    项目 & 设置 \\
     \midrule
-    操作系统/路径 & Windows 11；\path{E:/ML_HomeWork/.../radioml-amc-stage1} & Linux；\path{/hy-tmp/radioml-amc-stage1} \\
-    Python & 3.13.7 & 3.11.12 \\
-    PyTorch & 2.11.0+\texttt{cpu} & 2.9.1+\texttt{cu128} \\
-    CUDA & 不可用 & 可用 \\
-    GPU & 无本地 CUDA GPU 证据 & NVIDIA GeForce RTX 4070 \\
-    角色 & 报告写作、manifest 检查、CSV 只读核验 & 后续经授权的 GPU 实验执行 \\
+    数据划分 & \splitname{}；训练/验证/测试为 154,000 / 22,000 / 44,000。 \\
+    训练种子 & \mainseeds{}。 \\
+    最大轮数与早停 & 最大 30 轮；早停 patience 为 8。 \\
+    优化器核心设置 & 学习率 \(10^{-3}\)，权重衰减 \(10^{-4}\)，batch size 256。 \\
+    STFT 设置 & 窗口长度 32，重叠长度 16；受控延迟表未计入完整 STFT 预处理。 \\
+    低信噪比定义 & \lowSNR{}；每个训练种子测试集中 17,600 个低信噪比样本。 \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-因此，本地环境适合课程报告写作、证据包检查和统计 artifact 审阅，不应用于 GPU full training。若后续需要继续实验，应在服务器环境中按新的协议明确授权后执行，并使用新的输出根目录。
-
-\section{同步状态与剩余缺口}
-
-当前本地已经同步 \path{paper_package/server_sync_20260508}、\path{paper_package/predictions_archive_20260508} 和 \path{paper_package/statistical_tests_20260508}。这些材料足以支撑课程报告正文中的主结果写作、配对统计解释和证据边界说明。
-
-同步状态仍存在若干限制。服务器端存在 27 个 Stage 5A \path{best_model.pt} 权重，但本地 Stage 5A 结果树和 paper package 中没有完整 27 个权重文件。因此，本地证据包不能被描述为完整 checkpoint archive。若后续需要模型加载、推理复跑或 checkpoint-level reproducibility，应将服务器端权重同步到独立 archive/package 路径并进行 hash 检查，不应默认覆盖本地 \path{results/} 或 Stage 5A/5B 根目录。
-
-运行时证据也不是完整部署证据。当前聚合材料不支持 CPU latency、FLOPs/MACs 或 STFT preprocessing-inclusive latency 结论；\path{complexity_latency_table.csv} 仅支持 \texttt{CONTROLLED\_LATENCY} 范围内的 CUDA forward-pass 讨论。
-
-\section{排除规则}
-
-Stage~6B smoke 或 diagnostic 输出不得进入 Stage 5A/5B 主表、low-SNR 表、paired bootstrap、McNemar 检验、摘要结论或总结性实验结论。若未来执行 tiny subset diagnostic，也必须使用独立输出目录、独立模型标识和 \texttt{DIAGNOSTIC} evidence label，并明确其不能替代当前 Stage 5A/5B 主证据。
-
-本附录只整理 evidence package、manifest、环境和同步边界，不新增实验结果。任何后续候选方案在完成新的完整协议前，都只能作为工程诊断或未来工作线索记录，不能写作当前课程报告的主结果。
-
-\section{补充图表清单与诊断性可视化}
-
-表~\ref{tab:figure-inventory} 汇总本文新增图表文件、主要证据源、证据标签和正文引用位置。该清单用于复查图表是否均可回溯到已有 artifact，而不是来自新增训练或 Stage~6B diagnostic 输出。
-
-\input{tables/figure_inventory}
+\begin{figure}[htbp]
+  \centering
+  \begin{tabular}{cc}
+    \includegraphics[width=0.47\textwidth]{../../../paper_package/server_full_results_sync_20260508/results/paper_stage2/rml2016a/cldnn/seed_42/plots/training_curve.png} &
+    \includegraphics[width=0.47\textwidth]{../../../paper_package/server_full_results_sync_20260508/results/paper_stage2/rml2016a/fusion_iq_stft/seed_42/plots/training_curve.png} \\
+    \includegraphics[width=0.47\textwidth]{../../../paper_package/server_full_results_sync_20260508/results/paper_stage2/rml2016a/gated_fusion_iq_stft/seed_42/plots/training_curve.png} &
+    \includegraphics[width=0.47\textwidth]{../../../paper_package/server_full_results_sync_20260508/results/paper_stage2/rml2016a/mcldnn/seed_2025/plots/training_curve.png}
+  \end{tabular}
+  \caption{图中术语对照：Training/Validation=训练/验证，Loss=损失，Accuracy=准确率。代表模型训练曲线补充；MCLDNN seed 2025 对应第~4~章单类塌陷案例。}
+  \label{fig:appendix-training-curves}
+\end{figure}
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig08_low_snr_confusion_panels.pdf}
-  \caption{代表模型在低信噪比范围内的行归一化混淆矩阵，三训练种子聚合。证据源：\texttt{confusion\_low\_snr.csv}。}
+  \caption{图中术语对照：True=真实类别，Predicted=预测类别，Normalized count=归一化比例。代表模型在低信噪比范围内的行归一化混淆矩阵，三训练种子聚合。证据源：\texttt{confusion\_low\_snr.csv}。}
   \label{fig:low-snr-confusion-panels}
 \end{figure}
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig16_overall_confusion_panels.pdf}
-  \caption{代表模型在整体测试集上的行归一化混淆矩阵，三训练种子聚合。证据源：\texttt{confusion\_overall.csv}。}
+  \caption{图中术语对照：True=真实类别，Predicted=预测类别，Normalized count=归一化比例。代表模型在整体测试集上的行归一化混淆矩阵，三训练种子聚合。证据源：\texttt{confusion\_overall.csv}。}
   \label{fig:overall-confusion-panels}
 \end{figure}
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.82\textwidth]{fig09_mcldnn_seed_anomaly.pdf}
-  \caption{MCLDNN 在三个训练种子上的整体准确率与宏平均 F1。证据源：MCLDNN 各种子测试指标；seed 2025 与 seed 3407 作为负结果保留。}
+  \caption{图中术语对照：Accuracy=准确率，Macro F1=宏平均 F1。MCLDNN 在三个训练种子上的整体准确率与宏平均 F1。证据源：MCLDNN 各种子测试指标；seed 2025 与 seed 3407 作为负结果保留。}
   \label{fig:mcldnn-seed-anomaly}
 \end{figure}
 
 \begin{figure}[htbp]
   \centering
   \input{figures/fig10_evidence_boundary}
-  \caption{本文证据标签与排除规则示意图。证据源：证据边界文档、证据包清单和环境审计记录。}
+  \caption{图中术语对照：PROJECT\_SUPPORTED=完整固定协议主实验证据，CONTROLLED\_LATENCY=受控延迟证据，SMOKE/DIAGNOSTIC=工程检查或诊断材料。本文证据标签与排除规则示意图。证据源：证据边界文档、证据包清单和环境审计记录。}
   \label{fig:evidence-boundary}
 \end{figure}
