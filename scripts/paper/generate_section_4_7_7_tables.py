@@ -125,6 +125,9 @@ def main() -> int:
         "    比较 & 范围 & 配对数 & 准确率差值 & 95\\% CI 是否跨 0 & McNemar \\(p\\) \\\\",
         "    \\midrule",
     ]
+    def _escape(s: str) -> str:
+        return s.replace("_", r"\_")
+
     for r in boot:
         scope_disp = "整体" if r["scope"] == "overall" else "低 SNR"
         crosses = "是" if r["crosses_zero"] in ("True", "true", "yes") else "否"
@@ -134,7 +137,7 @@ def main() -> int:
         mcn_row = mcn_idx.get((r["model_a"], r["model_b"], r["scope"]))
         p_str = f"{float(mcn_row['mcnemar_p']):.3e}" if mcn_row else "--"
         plines.append(
-            f"    {r['model_a']} vs.\\ {r['model_b']} & {scope_disp} & {int(r['n_pairs']):,} & "
+            f"    \\texttt{{{_escape(r['model_a'])}}} vs.\\ \\texttt{{{_escape(r['model_b'])}}} & {scope_disp} & {int(r['n_pairs']):,} & "
             f"\\({delta:+.4f}\\) [\\({lo:+.4f},{hi:+.4f}\\)] & {crosses} & \\({p_str}\\) \\\\"
         )
     plines.extend([

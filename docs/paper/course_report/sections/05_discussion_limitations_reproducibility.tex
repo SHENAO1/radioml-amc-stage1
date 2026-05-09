@@ -66,7 +66,7 @@ MCLDNN 的两个训练种子出现近似随机水平的单类预测，说明该�
 
 三项干预联合作用，提案模型的四指标同时正向**与拆东补西失败模式形成对比**——但其机制层面的因果归因仍需要单点消融来确认；本节解释属于事后机制猜测（post-hoc mechanistic speculation），不是已被实验隔离的因果声明。这与第~3~节中标量门控融合的负结果对照鲜明：门控并未学到“低信噪比时增加 STFT、较高信噪比时回退 I/Q”的有效策略\cite{srivastava2014dropout,szegedy2016inception}，而提案模型通过更强的 I/Q 编码器\cite{sainath2015cldnn,hochreiter1997lstm}与更广的训练数据多样性\cite{shorten2019dataaug,huang2022mixingsignals}，可能间接把视图利用做得更扎实，但该解释的强度受限于未做消融。
 
-提案模型也存在三条不能由本报告内证据回答的解释边界。第一，三项干预没有做单点消融，因此“+1.35 pp 各占多少”仍是未解决问题。第二，提案模型与 Stage 5A 的训练硬件不同（RTX 3090 对 RTX 4070），样本级配对自助法和 McNemar 检验不能跨硬件直接做。第三，文献中复值网络（CC-MSNet 0.6286、CCTL-Net 0.6297）与 Transformer 混合（SigFormer 0.6371、LENet-M 0.6463）在同一数据集上分别报告 1--2 个百分点更高的 avg-across-SNR；本提案模型未在复值层与 Transformer 注意力两个文献最一致涨点方向上同步检验。这些限制不否定本节正面发现，但确实约束其表述强度。
+提案模型的解释边界来自第~\ref{sec:proposed-ablation}~节的消融与配对检验证据，可分为三层。第一，**\(+1.35\) pp 的拆分**：单干预消融显示 \texttt{arch\_only} \(0.6116\)、\texttt{arch\_aug} \(0.6284\)、\texttt{arch\_ls} \(0.6108\)、full \(0.6264\)；信号域增强是主要涨点来源（约 \(+1.55\) pp 相对 \texttt{arch\_only}），架构升级单独把 fusion 拉到 CLDNN 量级（差值在种子噪声内），标签平滑在已有增强时反而显著下拉整体准确率约 \(0.19\) 个百分点（\texttt{proposed} vs.\ \texttt{arch\_aug} McNemar \(p=0.0155\)）。这意味着更简单的 \texttt{arch\_aug} 配置（无标签平滑）实际略优于本文登记的 ``full'' 配置；本报告因协议纪律仍以 ``full'' 作为提案模型主结果，但应在未来实验中考虑取消标签平滑。第二，提案模型与 Stage 5A 的训练硬件不同（RTX 3090 对 RTX 4070），样本级配对自助法和 McNemar 检验不能跨硬件直接做（消融变体相互之间和与 ``full'' 之间的同硬件配对检验没有该限制）。第三，文献中复值网络（CC-MSNet 0.6286、CCTL-Net 0.6297）与 Transformer 混合（SigFormer 0.6371、LENet-M 0.6463）在同一数据集上分别报告 1--2 个百分点更高的 avg-across-SNR；本提案模型未在复值层与 Transformer 注意力两个文献最一致涨点方向上同步检验。这些限制不否定本节正面发现，但确实约束其表述强度。
 
 \section{协议局限与后续处理}
 

@@ -18,7 +18,7 @@
 
 第五，扩展实验为主表结论提供了多角度敏感性检验。延长训练预算未显著改变主表排序也未提升低信噪比，排除“主表是欠训练造成”的常见质疑；分组 SNR 加权交叉熵在低信噪比上小幅获益但中高信噪比代价更大；7 个稳定模型在深低信噪比共同退化为对 \path{AM-SSB} 的偏置预测，构成信息论级失败下限；扩展复杂度证据进一步显示静态融合的乘加运算量低于 \path{resnet1d}，提示融合输给 CLDNN 是 I/Q 分支表征容量问题而不是算力问题。
 
-第六，提案模型 \path{fusion_cldnn_stft} 在同一固定划分与三训练种子下，叠加 CLDNN 风格 I/Q 编码器\cite{sainath2015cldnn,hochreiter1997lstm}、相位旋转加循环时移信号域增强（仅训练）\cite{huang2022mixingsignals,shorten2019dataaug}以及标签平滑 0.1\cite{szegedy2016inception}三项干预，在四个 SNR 指标（整体、低、中、高）上同时反超 Stage 5A 的 CLDNN 基线，整体准确率均值 0.6264（相对 CLDNN 提升 1.35 个百分点，三种子标准差 0.0005，约 \(27\sigma\)）。提案模型与近期文献中复值多流\cite{wang2024ccmsnet}和 Transformer 混合方法\cite{cao2024sigformer,liu2024lenetm,li2024icrnna}的报告值（CC-MSNet 0.6286、SigFormer 0.6371、LENet-M 0.6463）量级一致，并在 avg(\(\mathrm{SNR}>0\)) 维度上反超 MCLDNN 原论文报告值\cite{xu2020mcldnn}。该结论仅限于登记的证据标签 \texttt{FUSION\_CLDNN\_STFT\_AUG\_LS\_3090}，且因硬件变更和未做单干预消融而不应被外推为广义部署级声明。
+第六，提案模型 \path{fusion_cldnn_stft} 在同一固定划分与三训练种子下，叠加 CLDNN 风格 I/Q 编码器\cite{sainath2015cldnn,hochreiter1997lstm}、相位旋转加循环时移信号域增强（仅训练）\cite{huang2022mixingsignals,shorten2019dataaug}以及标签平滑 0.1\cite{szegedy2016inception}三项干预，在四个 SNR 指标（整体、低、中、高）上同时反超 Stage 5A 的 CLDNN 基线，整体准确率均值 0.6264（相对 CLDNN 提升 1.35 个百分点，三种子标准差 0.0005）。第~\ref{sec:proposed-ablation}~节的单干预消融进一步把这一收益拆解为：信号域增强贡献约 \(+1.55\) pp（主要来源），架构升级单独把 fusion 拉到 CLDNN 量级，标签平滑在已有增强时使整体准确率反向下降约 \(0.19\) pp（McNemar \(p=0.0155\)），因此更简单的 ``arch+aug'' 配置反而略优于本文登记的 ``full'' 配置。提案模型与近期文献中复值多流\cite{wang2024ccmsnet}和 Transformer 混合方法\cite{cao2024sigformer,liu2024lenetm,li2024icrnna}的报告值（CC-MSNet 0.6286、SigFormer 0.6371、LENet-M 0.6463）量级一致，并在 avg(\(\mathrm{SNR}>0\)) 维度上反超 MCLDNN 原论文报告值\cite{xu2020mcldnn}。该结论仅限于登记的证据标签 \texttt{FUSION\_CLDNN\_STFT\_AUG\_LS\_3090} 与 \texttt{FUSION\_CLDNN\_STFT\_ABLATION\_3090}；因硬件变更而不应被外推为广义部署级声明。
 
 \section{不足与后续工作}
 
