@@ -109,14 +109,47 @@ STFT 视图通过对 I/Q 序列进行窗口化傅里叶变换得到。设窗函�
 
 \section{提案模型 \texttt{fusion\_cldnn\_stft}}
 
-提案模型 \path{fusion_cldnn_stft} 的设计动机来自第~4~章的两项观察。第一，静态 \path{fusion_iq_stft} 的 I/Q 分支在结构上是浅层一维卷积特征堆叠，其乘加运算量在扩展复杂度测量中明显低于 \path{resnet1d}（\(2.0\) M 对 \(4.9\) M），因此“融合输给 CLDNN”更可能是 I/Q 分支表征容量不足，而不是融合范式不可行。第二，CLDNN 在主表中是最强稳定基线，其 CNN 加 LSTM 序列建模可作为现成的 I/Q 编码器。基于这两点，提案模型把静态融合中的轻量 I/Q 分支替换为 CLDNN 风格的 I/Q 编码器（\path{CLDNNIQBranch}），即与 \path{cldnn} 主体相同的卷积特征堆叠加单层 LSTM，再以 LSTM 末态作为分支嵌入；STFT 分支沿用 \path{fusion_iq_stft} 中的二维卷积分支，融合分类头仍为小型 MLP。其抽象形式为
+提案模型 \path{fusion_cldnn_stft} 的设计动机来自第~4~章的两项观察。第一，静态 \path{fusion_iq_stft} 的 I/Q 分支在结构上是浅层一维卷积特征堆叠，其乘加运算量在扩展复杂度测量中明显低于 \path{resnet1d}（\(2.0\) M 对 \(4.9\) M），因此“融合输给 CLDNN”更可能是 I/Q 分支表征容量不足，而不是融合范式不可行。第二，CLDNN 在主表中是最强稳定基线\cite{sainath2015cldnn}，其 CNN 加 LSTM 序列建模可作为现成的 I/Q 编码器。基于这两点，提案模型把静态融合中的轻量 I/Q 分支替换为 CLDNN 风格的 I/Q 编码器（\path{CLDNNIQBranch}），即与 \path{cldnn} 主体相同的卷积特征堆叠加单层 LSTM\cite{hochreiter1997lstm}，再以 LSTM 末态作为分支嵌入；STFT 分支沿用 \path{fusion_iq_stft} 中的二维卷积分支\cite{ioffe2015batchnorm}，融合分类头仍为小型 MLP\cite{srivastava2014dropout}。其抽象形式为
 \begin{equation}
   h_{\mathrm{IQ}}=\mathrm{LSTM}(f_{\mathrm{1D}}(x_{\mathrm{IQ}}))_{\mathrm{last}},\qquad
   h_{\mathrm{STFT}}=f_{\mathrm{2D}}(x_{\mathrm{STFT}}),\qquad
   \hat{y}=c([h_{\mathrm{IQ}},h_{\mathrm{STFT}}]),
   \label{eq:fusion-cldnn-stft}
 \end{equation}
-其中 \(f_{\mathrm{1D}}\) 表示与 \path{cldnn} 主体共享的一维卷积栈，\(\mathrm{LSTM}(\cdot)_{\mathrm{last}}\) 表示取最后时刻隐藏状态作为表征。模型总参数量约为 \(286\)k，介于 \path{cldnn} 的 \(241.7\)k 与 \path{mcldnn} 的 \(406.2\)k 之间。提案模型与主表中的 \path{fusion_iq_stft}、\path{gated_fusion_iq_stft} 等模型行使用同一固定划分与同三训练种子，但通过独立证据标签 \texttt{FUSION\_CLDNN\_STFT\_AUG\_LS\_3090} 与独立输出根登记，不进入主表。
+其中 \(f_{\mathrm{1D}}\) 表示与 \path{cldnn} 主体共享的一维卷积栈，\(\mathrm{LSTM}(\cdot)_{\mathrm{last}}\) 表示取最后时刻隐藏状态作为表征。模型总参数量约为 \(286\)k，介于 \path{cldnn} 的 \(241.7\)k 与 \path{mcldnn} 的 \(406.2\)k 之间。表~\ref{tab:fusion-cldnn-stft-arch} 给出逐层结构。提案模型与主表中的 \path{fusion_iq_stft}、\path{gated_fusion_iq_stft} 等模型行使用同一固定划分与同三训练种子，但通过独立证据标签 \texttt{FUSION\_CLDNN\_STFT\_AUG\_LS\_3090} 与独立输出根登记，不进入主表。
+
+\begin{table}[htbp]
+  \centering
+  \caption{提案模型 \texttt{fusion\_cldnn\_stft} 逐层结构（输入形状均按 batch=1 标记）}
+  \label{tab:fusion-cldnn-stft-arch}
+  \small
+  \begin{tabularx}{\textwidth}{lXll}
+    \toprule
+    分支 / 层 & 操作 & 输入形状 & 输出形状 \\
+    \midrule
+    I/Q 分支 (\path{CLDNNIQBranch}) & & & \\
+    \quad Conv1d-1 & kernel 7, padding 3, 64 通道, BN, ReLU & \([2,128]\) & \([64,128]\) \\
+    \quad MaxPool1d-1 & kernel 2 & \([64,128]\) & \([64,64]\) \\
+    \quad Conv1d-2 & kernel 5, padding 2, 128 通道, BN, ReLU & \([64,64]\) & \([128,64]\) \\
+    \quad MaxPool1d-2 & kernel 2 & \([128,64]\) & \([128,32]\) \\
+    \quad Conv1d-3 & kernel 3, padding 1, 128 通道, BN, ReLU & \([128,32]\) & \([128,32]\) \\
+    \quad LSTM (单层) & hidden=128, batch\_first, 取最后时刻 \(h_T\) & \([32,128]\) & \([128]\) \\
+    \midrule
+    STFT 分支 (\path{TimeFrequencyBranch2D}) & & & \\
+    \quad Conv2d-1 & kernel 3, padding 1, 16 通道, BN, ReLU & \([1,32,7]\) & \([16,32,7]\) \\
+    \quad MaxPool2d-1 & kernel 2 & \([16,32,7]\) & \([16,16,3]\) \\
+    \quad Conv2d-2 & kernel 3, padding 1, 32 通道, BN, ReLU & \([16,16,3]\) & \([32,16,3]\) \\
+    \quad MaxPool2d-2 & kernel 2 & \([32,16,3]\) & \([32,8,1]\) \\
+    \quad Conv2d-3 & kernel 3, padding 1, 64 通道, BN, ReLU & \([32,8,1]\) & \([64,8,1]\) \\
+    \quad AdaptiveAvgPool2d-1 & output 1 \(\times\) 1, flatten & \([64,8,1]\) & \([64]\) \\
+    \midrule
+    融合分类头 & & & \\
+    \quad Concat & 拼接两个分支嵌入 & \([128]+[64]\) & \([192]\) \\
+    \quad Linear-1 & \(192 \to 192\) (max(96,min(256,192))), ReLU, Dropout 0.1 & \([192]\) & \([192]\) \\
+    \quad Linear-2 & \(192 \to 11\) (类别数) & \([192]\) & \([11]\) \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
 
 \section{信号域增强}
 
@@ -133,6 +166,14 @@ STFT 视图通过对 I/Q 序列进行窗口化傅里叶变换得到。设窗函�
 
 提案模型使用 \(\epsilon=0.1\) 的标签平滑代替原始 one-hot 交叉熵，即把目标分布由 one-hot \(\delta_{y}\) 替换为 \((1-\epsilon)\delta_{y}+\epsilon/K\) 的均匀化分布，其中 \(K=11\) 为类别数。该正则化在多类分类中是被广泛使用的轻量手段，常与显式数据增强叠加；其与本文 \texttt{SnrWeightedCrossEntropy} 互斥（一次训练只能选择一种），由配置项 \texttt{train.loss} 显式指定。
 
+\section{实现细节与训练超参}
+
+所有模型在 PyTorch~2.9.1+cu128\cite{paszke2019pytorch} 与 NVIDIA driver 570.\(\ast\) 上训练。Stage 5A 主表使用 RTX 4070 (Ada sm\_89)，所有 Stage 6 扩展实验与提案模型使用 RTX 3090 (Ampere sm\_86)；该硬件差异作为协议混淆因素登记。
+
+主实验与提案模型共用以下训练设置：优化器 AdamW\cite{loshchilov2019adamw,kingma2015adam} 学习率 \(\eta=10^{-3}\)、权重衰减 \(10^{-4}\)\cite{krogh1992weightdecay}，批量大小 256，最大训练轮数 50（Stage 5A 主表为 30），早停耐心值 15（Stage 5A 主表为 8），早停依据为验证集准确率。提案模型与所有 Stage 6 扩展实验额外采用 5 轮线性 warmup 加 cosine annealing 学习率\cite{loshchilov2017sgdr}。损失函数默认为标准交叉熵；提案模型使用 \(\epsilon=0.1\) 的标签平滑\cite{szegedy2016inception}。Stage 6 的 \texttt{LOW\_SNR\_WEIGHTED\_CE\_3090} 实验使用分组 SNR 加权交叉熵替代普通交叉熵；其权重组与边界登记在第~\ref{sec:results-extended}.2 节。
+
+学习率 \(10^{-3}\) 是 AMR 文献中卷积网络的常用值\cite{xu2020mcldnn,zhang2021petcgdnn}；本文沿用该取值并以同一数值作用于 9 个主表模型，目的是保持比较纪律，不为单个模型做事后调参（其代价已在第~5~节 MCLDNN 异常分析中讨论）。
+
 \section{方法边界}
 
-本章的目的在于说明主实验中已经登记的模型身份、输入视图和比较目的，并描述提案模型 \path{fusion_cldnn_stft} 与其训练侧增强、标签平滑设置；不把诊断性候选、mock 路径或后续计划项写入主模型矩阵。任何关于性能、显著性或稳定性的判断都必须回到第~2~章实验协议和第~4~章结果证据。提案模型由架构、增强与标签平滑三项干预联合构成，未在本报告内做单干预消融，相关解释边界与未来工作方向在第~5~章末尾说明。
+本章的目的在于说明主实验中已经登记的模型身份、输入视图和比较目的，并描述提案模型 \path{fusion_cldnn_stft} 与其训练侧增强、标签平滑设置；不把诊断性候选、mock 路径或后续计划项写入主模型矩阵。任何关于性能、显著性或稳定性的判断都必须回到第~2~章实验协议和第~4~章结果证据。提案模型由架构、增强与标签平滑三项干预联合构成；本报告在第~\ref{sec:results-extended}.7 节给出三个单干预消融变体的协议化评估，但解释边界与未来工作方向仍在第~5~章末尾说明。

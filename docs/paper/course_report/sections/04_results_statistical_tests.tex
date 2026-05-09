@@ -17,13 +17,13 @@
     \toprule
     模型行 & 输入视图 & 整体准确率 & 宏平均 F1 & 均衡准确率 & 低信噪比准确率 & 中信噪比准确率 & 高信噪比准确率 & 参数量 \\
     \midrule
-    \path{cnn1d} & I/Q & $0.581992\pm0.004518$ & $0.595238\pm0.003937$ & $0.581992\pm0.004518$ & $0.209508\pm0.005465$ & $0.795606\pm0.001772$ & $0.865025\pm0.006640$ & 37,131 \\
-    \path{resnet1d} & I/Q & $0.595917\pm0.000451$ & $0.612207\pm0.000668$ & $0.595917\pm0.000451$ & $0.205871\pm0.002523$ & $0.819722\pm0.004139$ & $0.892172\pm0.001495$ & 111,755 \\
+    \path{cnn1d} & I/Q\cite{oshea2016cnn} & $0.581992\pm0.004518$ & $0.595238\pm0.003937$ & $0.581992\pm0.004518$ & $0.209508\pm0.005465$ & $0.795606\pm0.001772$ & $0.865025\pm0.006640$ & 37,131 \\
+    \path{resnet1d} & I/Q\cite{he2016resnet} & $0.595917\pm0.000451$ & $0.612207\pm0.000668$ & $0.595917\pm0.000451$ & $0.205871\pm0.002523$ & $0.819722\pm0.004139$ & $0.892172\pm0.001495$ & 111,755 \\
     \path{tfcnn_stft} & STFT & $0.506303\pm0.001752$ & $0.509340\pm0.006411$ & $0.506303\pm0.001752$ & $0.171307\pm0.003870$ & $0.689975\pm0.005485$ & $0.769293\pm0.003574$ & 24,123 \\
-    \path{fusion_iq_stft} & I/Q+STFT & $0.577098\pm0.001712$ & $0.584926\pm0.003526$ & $0.577098\pm0.001712$ & $0.221326\pm0.006128$ & $0.785808\pm0.006158$ & $0.842753\pm0.005760$ & 98,299 \\
-    \path{cldnn} & I/Q & $0.612932\pm0.000546$ & $0.633238\pm0.003378$ & $0.612932\pm0.000546$ & $0.222386\pm0.005230$ & $0.839596\pm0.002879$ & $0.906995\pm0.003416$ & 241,675 \\
-    \path{mcldnn} & I/Q & $0.250083\pm0.275698$ & $0.199852\pm0.319911$ & $0.250083\pm0.275698$ & $0.131307\pm0.069971$ & $0.318232\pm0.393735$ & $0.340303\pm0.431963$ & 406,199 \\
-    \path{lwamcnet} & I/Q & $0.551091\pm0.001838$ & $0.557940\pm0.008022$ & $0.551091\pm0.001838$ & $0.202538\pm0.008513$ & $0.750960\pm0.006679$ & $0.815960\pm0.003467$ & 20,395 \\
+    \path{fusion_iq_stft} & I/Q+STFT & $0.577098\pm0.001712$ & $0.584926\pm0.003526$ & $0.577098\pm0.001712$ & $\mathbf{0.221326\pm0.006128}$ & $0.785808\pm0.006158$ & $0.842753\pm0.005760$ & 98,299 \\
+    \path{cldnn}\cite{sainath2015cldnn} & I/Q & $\mathbf{0.612932\pm0.000546}$ & $\mathbf{0.633238\pm0.003378}$ & $\mathbf{0.612932\pm0.000546}$ & $\mathbf{0.222386\pm0.005230}$ & $\mathbf{0.839596\pm0.002879}$ & $\mathbf{0.906995\pm0.003416}$ & 241,675 \\
+    \path{mcldnn}\cite{xu2020mcldnn} & I/Q & $0.250083\pm0.275698$ & $0.199852\pm0.319911$ & $0.250083\pm0.275698$ & $0.131307\pm0.069971$ & $0.318232\pm0.393735$ & $0.340303\pm0.431963$ & 406,199 \\
+    \path{lwamcnet}\cite{wang2021lwamcnet} & I/Q & $0.551091\pm0.001838$ & $0.557940\pm0.008022$ & $0.551091\pm0.001838$ & $0.202538\pm0.008513$ & $0.750960\pm0.006679$ & $0.815960\pm0.003467$ & 20,395 \\
     \path{iq_param_matched} & I/Q & $0.594462\pm0.000468$ & $0.612415\pm0.004565$ & $0.594462\pm0.000468$ & $0.216345\pm0.007061$ & $0.812146\pm0.007270$ & $0.880934\pm0.003472$ & 136,395 \\
     \path{gated_fusion_iq_stft} & I/Q+STFT & $0.571947\pm0.002025$ & $0.585340\pm0.004474$ & $0.571947\pm0.002025$ & $0.211307\pm0.006707$ & $0.784015\pm0.004843$ & $0.840732\pm0.004582$ & 134,780 \\
     \bottomrule
@@ -254,23 +254,26 @@
 
 \begin{table}[htbp]
   \centering
-  \caption{近期文献在 \datasetname{} 上的可比性能校准}
+  \caption{近期文献在 \datasetname{} 上的可比性能校准。``avg-all-SNR'' 是 \(-20\) 至 \(+18\) dB 共 20 点平均，与本文 \texttt{overall\_accuracy} 同口径；``avg \(\mathrm{SNR}>0\)'' 是 9 点平均（\(+2\) 至 \(+18\) dB）；``peak'' 是单 SNR 最佳点。原论文未给出对应口径数字时记 ``--''。}
   \label{tab:lit-sota-calibration}
-  \small
-  \begin{tabularx}{\textwidth}{Xrlr}
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabularx}{\textwidth}{Xrrrl}
     \toprule
-    方法（来源） & avg-across-SNR & 高 SNR 区间或单点 & 备注 \\
+    方法（来源） & avg-all-SNR & avg \(\mathrm{SNR}>0\) & peak & 备注 \\
     \midrule
-    LENet-M\cite{liu2024lenetm} & 0.6463 & 未单列 & 轻量 CNN+循环；2024 DSP \\
-    SigFormer\cite{cao2024sigformer} & 0.6371 & 未单列 & 金字塔 Transformer；2023 IEEE \\
-    ICRNNA\cite{li2024icrnna} & 0.6324 & 未单列 & RNN+attention；2024 \\
-    CC-MSNet\cite{wang2024ccmsnet} & 0.6286 & 未单列 & 复值多流；2024 Sci Rep \\
-    MCLDNN\cite{xu2020mcldnn} & 未单列 & 0.9112 (avg \(\mathrm{SNR}>0\)) / 0.9227 peak & AMR-Benchmark\cite{zhangxx2022amrbenchmark}与原论文 \\
-    LSTM2 / PET-CGDNN / CLDNN2\cite{zhang2021petcgdnn,zhangxx2022amrbenchmark} & 未单列 & 0.908--0.921 peak & AMR-Benchmark 报告 \\
+    LENet-M\cite{liu2024lenetm} & 0.6463 & -- & -- & 轻量 CNN+循环；2024 DSP \\
+    SigFormer\cite{cao2024sigformer} & 0.6371 & -- & -- & 金字塔 Transformer；2023 IEEE \\
+    ICRNNA\cite{li2024icrnna} & 0.6324 & -- & -- & RNN+attention；2024 \\
+    CC-MSNet\cite{wang2024ccmsnet} & 0.6286 & -- & -- & 复值多流；2024 Sci Rep \\
+    MCLDNN\cite{xu2020mcldnn} & -- & 0.9112 & 0.9227 & 原论文与 AMR-Benchmark\cite{zhangxx2022amrbenchmark} \\
+    LSTM2\cite{zhangxx2022amrbenchmark} & -- & -- & 0.9205 & AMR-Benchmark \\
+    PET-CGDNN\cite{zhang2021petcgdnn,zhangxx2022amrbenchmark} & -- & -- & 0.916 & AMR-Benchmark \\
+    CLDNN2\cite{zhangxx2022amrbenchmark} & -- & -- & 0.908 & AMR-Benchmark \\
     \midrule
-    本文 \path{cldnn}（Stage 5A） & 0.6129 & 0.9070 (avg \(\ge 8\) dB) & 三种子均值 \\
-    本文 \path{fusion_iq_stft}（Stage 5A） & 0.5771 & 0.8428 (avg \(\ge 8\) dB) & 三种子均值 \\
-    本文 \path{fusion_cldnn_stft}+aug+LS（提案，下一小节） & 0.6264 & 0.9264 (avg \(\ge 8\) dB)；0.935 peak (\(+12\) dB) & 三种子均值 \\
+    本文 \path{cldnn}（Stage 5A） & 0.6129 & 0.9044 & 0.9138 & 三种子均值，本文 \\
+    本文 \path{fusion_iq_stft}（Stage 5A） & 0.5771 & 0.8402 & 0.8482 & 三种子均值，本文 \\
+    本文 \path{fusion_cldnn_stft}+aug+LS（提案） & \textbf{0.6264} & \textbf{0.9237} & \textbf{0.9327} & 三种子均值，本文，第~\ref{sec:results-fusion-cldnn-stft}~节 \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -302,8 +305,29 @@
   \end{tabularx}
 \end{table}
 
-提案模型在四个指标（整体、低、中、高信噪比）上**同时**正向超过 Stage 5A 的 CLDNN 基线，整体准确率的相对增量 \(+1.35\) 个百分点显著大于三种子标准差 \(0.0005\)（约 \(27\sigma\)），不属于种子噪声范围。提案模型的最佳轮在 \(31\)、\(42\)、\(31\)，全部位于 \(50\) 轮上限之内，证明该计划对提案模型已经收敛。
+提案模型在四个指标（整体、低、中、高信噪比）上**同时**正向超过 Stage 5A 的 CLDNN 基线，整体准确率的相对增量 \(+1.35\) 个百分点显著大于三种子标准差 \(0.0005\)（约 \(27\sigma\)），不属于种子噪声范围。提案模型的最佳轮在 \(31\)、\(42\)、\(31\)，全部位于 \(50\) 轮上限之内，证明该计划对提案模型已经收敛。图~\ref{fig:proposed-per-snr} 给出提案模型与三个对照（Stage 5A CLDNN、Stage 5A fusion\_iq\_stft、P1.1 fusion\_iq\_stft 同 schedule）的逐 SNR 准确率曲线，可直观看到提案模型在中、高信噪比上一致领先，并在低信噪比仍略高于 Stage 5A CLDNN，但与所有对照在深低信噪比一同退化到 \(\sim 1/11\) 的随机水平，与第~\ref{sec:results-extended}.4 节的“塌陷为 AM-SSB”信息论下限一致。
 
-与文献参照的对比（表~\ref{tab:lit-sota-calibration}）说明，提案模型 \(0.6264\) 落入 2024 年代多流／复值文献基线的同一量级（CC-MSNet \(0.6286\)、CCTL-Net \(0.6297\)），与 \path{LENet-M}（\(0.6463\)）、SigFormer（\(0.6371\)）仍有约 \(1\)--\(2\) 个百分点差距，记入未来工作；高信噪比单点峰值 \(0.935\)（\(+12\) dB）超过 MCLDNN 原论文报告的 \(0.9227\)，与 LSTM2 / PET-CGDNN / CLDNN2 在 AMR-Benchmark 中的 \(0.908\)--\(0.921\) peak 水平相当或更高。
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\textwidth]{fig17_proposed_per_snr_comparison.pdf}
+  \caption{图中术语对照：SNR=信噪比，Test accuracy=测试集准确率。提案模型 (粗实线，红) 与 Stage 5A CLDNN (实线，蓝)、Stage 5A fusion\_iq\_stft (虚线，灰)、P1.1 fusion\_iq\_stft 同 schedule (点线，橙) 的逐 SNR 准确率曲线。所有曲线均为三训练种子均值。灰色阴影区为低信噪比范围 (\(\le -6\) dB)，绿色阴影区为高信噪比范围 (\(\ge 8\) dB)。}
+  \label{fig:proposed-per-snr}
+\end{figure}
 
-但本结果同时受到几条解释边界约束：第一，提案模型由架构升级、信号域增强与标签平滑三项干预联合构成，本报告**未做单干预消融**，因此“+1.35 pp”不能拆分到任一单独干预上；第二，与 Stage 5A 的硬件不同，样本级配对自助法和 McNemar 检验无法跨硬件直接做，本表仅在三种子均值层面解释；第三，深低信噪比（\(\le -16\) dB）准确率仍约为 \(1/11\) 的随机水平，与本节前面的“崩塌为 AM-SSB”分析一致——提案模型不解决信息论级失败下限。这些边界与未来工作方向在第~5~章末尾说明。
+与文献参照的对比（表~\ref{tab:lit-sota-calibration}）说明，提案模型在 avg-all-SNR 维度的 \(0.6264\) 落入 2024 年代多流／复值文献基线的同一量级（CC-MSNet \(0.6286\)、CCTL-Net \(0.6297\)），与 \path{LENet-M}（\(0.6463\)）、SigFormer（\(0.6371\)）仍有约 \(1\)--\(2\) 个百分点差距，记入未来工作；avg(\(\mathrm{SNR}>0\)) 维度的 \(0.9237\) 超过 MCLDNN 原论文报告的 \(0.9112\)，三种子 peak 均值 \(0.9327\) 与 MCLDNN 0.9227、LSTM2 0.9205、PET-CGDNN 0.916 等 AMR-Benchmark 报告 peak 比较，本文提案模型同口径上在该比较族中处于较高位置。需要强调的是，跨论文 peak 比较受不同划分、不同测试集大小和不同种子聚合口径影响，不构成严格 head-to-head 比较。
+
+但本结果同时受到几条解释边界约束：第一，提案模型由架构升级、信号域增强与标签平滑三项干预联合构成，需要对三项干预做单干预消融才能拆分各自贡献；本报告在第~\ref{sec:proposed-ablation}~节给出该消融。第二，与 Stage 5A 的硬件不同，样本级配对自助法和 McNemar 检验无法跨硬件直接做，本表仅在三种子均值层面解释。第三，深低信噪比（\(\le -16\) dB）准确率仍约为 \(1/11\) 的随机水平，与本节前面的“崩塌为 AM-SSB”分析一致——提案模型不解决信息论级失败下限。这些边界与未来工作方向在第~5~章末尾说明。
+
+\subsection{提案模型单干预消融与配对统计检验}\label{sec:proposed-ablation}
+
+为隔离提案模型 +1.35 个百分点中各项干预（CLDNN 风格 I/Q 编码器 / 信号域增强 / 标签平滑）的贡献，本文额外登记证据标签 \texttt{FUSION\_CLDNN\_STFT\_ABLATION\_3090} 下的三个变体：\texttt{arch\_only}（仅替换 backbone，关闭增强与标签平滑）、\texttt{arch\_aug}（架构 + 增强）与 \texttt{arch\_ls}（架构 + 标签平滑）。三个变体共享与“full”相同的固定划分、三训练种子、相同 RTX 3090 硬件与相同 epoch 50 cosine 加 warmup 的训练计划，仅在 \texttt{train.augmentation.enabled} 与 \texttt{train.loss.label\_smoothing} 上区分。
+
+\input{tables/ablation_results}
+
+表~\ref{tab:proposed-ablation-results} 给出三个变体与“full”的同协议比较。``arch\_only'' 行衡量纯架构升级（CLDNN 风格 I/Q 分支）相对原静态融合 \path{fusion_iq_stft} 的贡献；与 ``arch\_only'' 相比，``arch\_aug''、``arch\_ls'' 与 ``full'' 各加入相应一项或两项额外干预，差值即为该项干预相对于纯架构基线的边际收益。
+
+为获得样本级配对证据，本文以提案模型“full”为 \(m_a\)，以三类参照（P1.1 \path{fusion_iq_stft} 同 schedule；三个消融变体）为 \(m_b\)，分别在整体测试集与低信噪比子集上计算配对自助法准确率差值（10000 重采样、自助种子 42）以及 McNemar 配对正确性检验。所有比较在同 RTX 3090 硬件、同固定划分、同三训练种子上完成，因此样本级配对（按 \texttt{(split\_id, train\_seed, sample\_id)} 配对键）可直接执行，跨硬件混淆问题被规避。
+
+\input{tables/paired_tests_summary}
+
+表~\ref{tab:proposed-paired-tests} 中 95\% 置信区间是否跨越 0 与 McNemar \(p\) 值共同给出统计支持的方向。当置信区间不跨越 0 且 McNemar \(p\) 远小于 \(0.05\) 时，本文将该比较解释为统计支持的差异；当置信区间跨越 0 或 McNemar \(p\) 在 \(0.05\) 之上时，本文不主张差异方向。本表与第~\ref{sec:results-extended}.6~节的三种子均值表互补：均值表给出干预的方向与幅度，配对检验给出在同一测试样本族上的统计强度。具体的诊断解释（哪一项干预对低 SNR 贡献更显著，哪一项主要在中、高 SNR 起作用）放在第~5~章 ``提案模型反超的解释'' 中讨论。

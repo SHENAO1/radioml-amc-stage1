@@ -1,0 +1,85 @@
+# Single-intervention ablation for the proposed fusion_cldnn_stft model.
+# This base config is dynamically modified by run_fusion_cldnn_stft_ablation.py
+# according to the --variant argument:
+#   arch_only: augmentation OFF, label_smoothing 0.0  (architecture upgrade only)
+#   arch_aug:  augmentation ON,  label_smoothing 0.0  (architecture + augmentation)
+#   arch_ls:   augmentation OFF, label_smoothing 0.1  (architecture + label smoothing)
+# The full combination (arch + aug + LS) is the existing FUSION_CLDNN_STFT_AUG_LS_3090
+# evidence and is not re-run here; it is used as the reference point.
+
+execution:
+  stage: paper_stage6_fusion_cldnn_stft_ablation
+  evidence_status: in_progress
+  evidence_label: FUSION_CLDNN_STFT_ABLATION_3090
+  guardrails:
+    - Do not write into Stage 5A/5B or any prior Stage 6 output root.
+    - All three variants share the same fixed split + 3 seeds + RTX 3090 hardware as the
+      A 方案 run, so ablation comparisons are within-protocol.
+
+experiment:
+  dataset_id: rml2016a
+  dataset_name: RML2016.10A
+  split_id: stratified_by_mod_snr_seed42
+  split_artifact_npz: data/splits/rml2016a/stratified_by_mod_snr_seed42.npz
+  split_summary_json: data/splits/rml2016a/stratified_by_mod_snr_seed42_summary.json
+  split_seed: 42
+  train_seeds: [42, 2025, 3407]
+  models: [fusion_cldnn_stft]
+
+data:
+  mode: real
+  dataset: RML2016.10A
+  raw_path: auto
+  subset_mode: false
+  subset_mods: null
+  subset_snrs: null
+  max_samples_per_group: null
+  split_strategy: stratified_by_mod_snr
+  split_artifact_npz: data/splits/rml2016a/stratified_by_mod_snr_seed42.npz
+  split_summary_json: data/splits/rml2016a/stratified_by_mod_snr_seed42_summary.json
+  test_size: 0.2
+  val_size: 0.1
+
+features:
+  stft:
+    nperseg: 32
+    noverlap: 16
+    log_scale: true
+    normalize: true
+  cwt:
+    num_scales: 16
+    min_scale: 1.0
+    max_scale: 32.0
+    log_scale: true
+    normalize: true
+
+train:
+  epochs: 50
+  batch_size: 256
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  num_workers: 4
+  device: auto
+  early_stopping_patience: 15
+  scheduler:
+    name: cosine
+    warmup_epochs: 5
+  # `loss` and `augmentation` keys are filled in dynamically by orchestrator
+  # based on the --variant flag, so the same base config supports all 3 variants.
+
+outputs:
+  result_root: results/paper_stage6/fusion_cldnn_stft_ablation_3090/rml2016a
+  save_checkpoint: true
+  save_plots: true
+  save_report: true
+  required_files:
+    - config_resolved.yaml
+    - metrics_test.json
+    - metrics_per_snr.csv
+    - metrics_per_class.csv
+    - predictions_test.csv
+    - confusion_overall.csv
+    - confusion_low_snr.csv
+    - complexity.json
+    - latency.json
+    - training_summary.json

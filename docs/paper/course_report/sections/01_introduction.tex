@@ -39,6 +39,13 @@
   \label{fig:protocol-pipeline}
 \end{figure}
 
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.95\textwidth]{fig18_sota_position_landscape.pdf}
+  \caption{图中术语对照：Trainable parameters=可训练参数量，Avg-across-SNR test accuracy=平均跨 SNR 测试准确率。本文实验矩阵（蓝/青色 Stage 5A 模型行、红色 Stage 5A MCLDNN 异常、红色钻形提案模型）与近期文献基线（紫色三角，CC-MSNet、CCTL-Net、ICRNNA、SigFormer、LENet-M）的位置关系。横轴对数标度，纵轴 avg-across-SNR 准确率与本文 \texttt{overall\_accuracy} 同口径。LENet-M 报告的 \(0.6463\) 与本文 Stage 5A CLDNN 的 \(0.6129\) 由水平虚线标出。}
+  \label{fig:sota-landscape}
+\end{figure}
+
 \section{全文结构}
 
 第~2~章介绍数据集、固定划分、模型矩阵、评价指标、配对统计检验协议以及为后续扩展实验登记的多个证据标签边界。第~3~章说明输入视图、模型家族、静态融合、门控融合、参数匹配控制，以及提案模型 \path{fusion_cldnn_stft}、信号域增强与标签平滑的方法描述。第~4~章给出主实验结果、低信噪比权衡、统计检验、复杂度边界、MCLDNN 异常，以及一组扩展实验与提案模型的协议化比较结果。第~5~章讨论固定协议下的解释范围、负结果意义、提案模型反超的解释、运行时证据限制和可复现性边界。第~6~章总结全文发现与后续工作方向。
