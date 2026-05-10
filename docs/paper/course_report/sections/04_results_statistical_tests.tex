@@ -1,10 +1,47 @@
+% ============================================================
+% 第四章  实验结果与统计检验
+% 重构版本——按 9 条编辑指令修订
+% ============================================================
+%
+% 【处理决定备忘】
+%
+% 1. Bonferroni vs. Holm–Bonferroni：用户指令 6 描述的校正阈值
+%    "α/8 = 0.00625"对应的是简单 Bonferroni 校正。在严格的
+%    Holm 逐步下降法中，p = 0.0155 位于排序第 7 位（共 8 个），
+%    对应阈值 α/2 = 0.025，仍可通过。为与全文"效应量为负且
+%    CI 完全位于负域的工程选择"叙事一致，本章采用更保守的
+%    Bonferroni 校正（α_adj = α/m = 0.05/8 = 0.00625）报告
+%    p = 0.0155 未通过校正。正文同时注明 Holm 逐步法下该 p 值
+%    边际通过（α/2 = 0.025），供读者自行判断。
+%
+% 2. 图 fig22（提案模型 vs Stage 5A 增量热力图）的 MCLDNN 行：
+%    该图 PDF 在本次修订中无法重新生成。正文与图注已声明
+%    MCLDNN 行 Δ 应基于 seed 42 单种子值（0.5684）计算
+%   （Δ ≈ +6.00 pp），原图中基于无效均值 0.2501 的 +37.83 pp
+%    应予忽略。后续排版时须重新生成 PDF。
+%
+% 3. 表 4.1 MCLDNN：整体准确率、宏平均 F1、均衡准确率三列
+%    均改为 N/A†，不再列出三种子逐值；SNR 分组列保留 seed 42
+%    单种子值（与原表脚注口径一致）。
+%
+% 4. 架构升级归因：以同硬件基线 fusion_iq_stft@RTX3090
+%   （0.5851）为演进起点，arch_only(0.6116) − 0.5851 = +2.65 pp。
+%    跨硬件的 0.5771 仅作辅助参照。
+%
+% 5. 经验下限：已按指令 9 软化为"协议内 9 个稳定模型的经验
+%    观察"，不再使用"任何架构改动都无法绕开"的措辞。
+%
+% ============================================================
+
 \chapter{实验结果与统计检验}
 
 本章在第~2~章定义的固定划分、模型矩阵和评价指标基础上展示主实验结果。除特别说明外，所有数值均来自已同步的主实验聚合表、低信噪比分组表、受控 CUDA 前向延迟表以及配对统计检验表。本章不新增训练、不重建主表，也不把诊断性输出纳入性能结论。
 
+% ============================================================
 \section{主实验整体结果}
+% ============================================================
 
-表~\ref{tab:course-main-results-excerpt} 汇总 9 个模型行在 3 个训练种子上的平均结果。该表同时列出整体准确率、宏平均 F1、均衡准确率、低/中/高信噪比分组准确率和参数量，用于从总体性能、信噪比分组和模型规模三个角度观察结果。
+表~\ref{tab:course-main-results-excerpt} 汇总 9 个模型行在 3 个训练种子上的结果。该表同时列出整体准确率、宏平均 F1、均衡准确率、低/中/高信噪比分组准确率和参数量，用于从总体性能、信噪比分组和模型规模三个角度观察结果。
 
 \begin{table}[htbp]
   \centering
@@ -22,12 +59,15 @@
     \path{tfcnn_stft} & STFT & $0.5063\pm0.0018$ & $0.5093\pm0.0064$ & $0.5063\pm0.0018$ & $0.1713\pm0.0039$ & $0.6900\pm0.0055$ & $0.7693\pm0.0036$ & 24,123 \\
     \path{fusion_iq_stft} & I/Q+STFT & $0.5771\pm0.0017$ & $0.5849\pm0.0035$ & $0.5771\pm0.0017$ & $\mathbf{0.2213\pm0.0061}$ & $0.7858\pm0.0062$ & $0.8428\pm0.0058$ & 98,299 \\
     \path{cldnn}\cite{sainath2015cldnn} & I/Q & $\mathbf{0.6129\pm0.0005}$ & $\mathbf{0.6332\pm0.0034}$ & $\mathbf{0.6129\pm0.0005}$ & $\mathbf{0.2224\pm0.0052}$ & $\mathbf{0.8396\pm0.0029}$ & $\mathbf{0.9070\pm0.0034}$ & 241,675 \\
-    \path{mcldnn}\textsuperscript{*}\cite{xu2020mcldnn} & I/Q & 0.5684/0.0909/0.0909\textsuperscript{*} & 0.5891/0.0152/0.0152\textsuperscript{*} & 0.5684/0.0909/0.0909\textsuperscript{*} & $0.2121^{\dag}$ & $0.7729^{\dag}$ & $0.8391^{\dag}$ & 406,199 \\
+    \path{mcldnn}\textsuperscript{$\dag$}\cite{xu2020mcldnn} & I/Q & N/A\textsuperscript{$\dag$} & N/A\textsuperscript{$\dag$} & N/A\textsuperscript{$\dag$} & $0.2121^{\dag\dag}$ & $0.7729^{\dag\dag}$ & $0.8391^{\dag\dag}$ & 406,199 \\
     \path{lwamcnet}\cite{wang2021lwamcnet} & I/Q & $0.5511\pm0.0018$ & $0.5579\pm0.0080$ & $0.5511\pm0.0018$ & $0.2025\pm0.0085$ & $0.7510\pm0.0067$ & $0.8160\pm0.0035$ & 20,395 \\
     \path{iq_param_matched} & I/Q & $0.5945\pm0.0005$ & $0.6124\pm0.0046$ & $0.5945\pm0.0005$ & $0.2163\pm0.0071$ & $0.8121\pm0.0073$ & $0.8809\pm0.0035$ & 136,395 \\
     \path{gated_fusion_iq_stft} & I/Q+STFT & $0.5719\pm0.0020$ & $0.5853\pm0.0045$ & $0.5719\pm0.0020$ & $0.2113\pm0.0067$ & $0.7840\pm0.0048$ & $0.8407\pm0.0046$ & 134,780 \\
     \bottomrule
-    \multicolumn{9}{l}{\scriptsize\textsuperscript{*} MCLDNN 三种子表现为双峰分布（seed 42 收敛、seed 2025 与 3407 单类塌陷至 11 类均匀基准 0.0909），mean $\pm$ std 不适合概括该分布；本章后续 MCLDNN 与其他模型的整体准确率比较仅基于 seed 42 单种子结果（0.5684），并明确标注；三种子均值仅用于稳定性讨论。\textsuperscript{\dag} 该列改用 seed 42 单种子真值，与整体准确率列的口径一致；seed 2025 与 3407 的 SNR 子集准确率因塌陷类别占比不同（均为 0.0909）未列出；不参与模型间比较。详见第~\ref{sec:mcldnn-anomaly}~节。} \\
+    \multicolumn{9}{l}{\scriptsize\textsuperscript{$\dag$} MCLDNN 三种子呈现极端双峰分布（seed 42 正常收敛至 0.5684，seed 2025 与 seed 3407 单类塌陷至 11 类均匀基准 0.0909）。} \\
+    \multicolumn{9}{l}{\scriptsize 算术均值（0.2501）无法反映模型真实拟合能力，属于统计失效，故整体准确率、宏平均 F1 与均衡准确率三列均标记 N/A，不参与模型间排序。} \\
+    \multicolumn{9}{l}{\scriptsize 后续与其他模型的比较一律基于 seed 42 单种子结果（整体准确率 0.5684），并在每处比较中明确标注口径。详见第~\ref{sec:mcldnn-anomaly}~节。} \\
+    \multicolumn{9}{l}{\scriptsize\textsuperscript{$\dag\dag$} SNR 分组列改用 seed 42 单种子真值；seed 2025 与 3407 因单类塌陷不列出、不参与比较。} \\
   \end{tabular}%
   }
 \end{table}
@@ -35,13 +75,13 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig04_accuracy_by_snr_group.pdf}
-  \caption{9 个模型在 4 个 SNR 分组下的准确率对比（三种子均值±std，main\_table\_metrics.csv）。}
+  \caption{9 个模型在 4 个 SNR 分组下的准确率对比（三种子均值$\pm$std，main\_table\_metrics.csv）。MCLDNN 因三种子双峰分布（详见第~\ref{sec:mcldnn-anomaly}~节），均值柱不具统计意义，仅保留用于展示异常形态。}
   \label{fig:accuracy-by-snr-group}
 \end{figure}
 
 在当前固定协议内，\path{cldnn} 的整体平均准确率为 0.6129，宏平均 F1 为 0.6332，是 9 个模型行中测得的最高结果。主要 I/Q 基线中，\path{resnet1d} 的整体准确率为 0.5959，参数匹配控制模型 \path{iq_param_matched} 为 0.5945，二者与 CLDNN 的差距分别约为 1.70 和 1.84 个百分点。该结果说明本实验矩阵中的固定划分表现。
 
-\path{iq_param_matched} 与 \path{resnet1d} 的整体准确率几乎相等，分别为 0.5945 和 0.5959，因此它的价值并不在于形成新的强基线排序，而在于作为融合解释的边际控制。它只使用 I/Q 输入，同时参数量接近双视图融合模型；当 \path{fusion_iq_stft} 相对它在低信噪比范围有小幅正差值、整体范围又为负差值时，这个对照能帮助区分“额外参数规模”与“新增 STFT 视图”带来的影响。
+\path{iq_param_matched} 与 \path{resnet1d} 的整体准确率几乎相等，分别为 0.5945 和 0.5959，因此它的价值并不在于形成新的强基线排序，而在于作为融合解释的边际控制。它只使用 I/Q 输入，同时参数量接近双视图融合模型；当 \path{fusion_iq_stft} 相对它在低信噪比范围有小幅正差值、整体范围又为负差值时，这个对照能帮助区分"额外参数规模"与"新增 STFT 视图"带来的影响。
 
 \begin{figure}[htbp]
   \centering
@@ -50,7 +90,7 @@
   \label{fig:full-snr-accuracy-macro-f1}
 \end{figure}
 
-图~\ref{fig:full-snr-accuracy-macro-f1} 显示，静态 I/Q--STFT 融合在低信噪比区间接近 CLDNN，但在中高信噪比区间没有保持同等优势。门控融合曲线也未相对静态融合形成稳定改善。因此，主结果首先支持的是“不同信噪比区间存在性能权衡”，而不是“融合结构整体优于 I/Q 模型”。
+图~\ref{fig:full-snr-accuracy-macro-f1} 显示，静态 I/Q--STFT 融合在低信噪比区间接近 CLDNN，但在中高信噪比区间没有保持同等优势。门控融合曲线也未相对静态融合形成稳定改善。因此，主结果首先支持的是"不同信噪比区间存在性能权衡"，而不是"融合结构整体优于 I/Q 模型"。
 
 \begin{figure}[htbp]
   \centering
@@ -61,7 +101,9 @@
 
 图~\ref{fig:model-class-accuracy-heatmap} 从类别维度补充表~\ref{tab:course-main-results-excerpt}。不同模型在 AM、PSK、QAM 和 WBFM 等类别上的表现并不均匀，说明整体准确率不能完全代表每一类调制方式的识别难度。低信噪比分析也应结合类别混淆结构解释。
 
+% ============================================================
 \section{整体性能的配对检验}
+% ============================================================
 
 表~\ref{tab:course-cldnn-overall-tests} 给出 CLDNN 与两个主要 I/Q 参照模型的整体准确率配对检验。差值定义为前一个模型准确率减去后一个模型准确率。
 
@@ -82,7 +124,9 @@
   }
 \end{table}
 
-\textbf{关于配对统计检验的说明。}本章配对统计检验所用样本来自按（调制类别 $\times$ SNR）联合分层构成的固定测试集，同 cell 内样本不完全独立。报告的 McNemar $p$ 值以独立样本为假设，因此实际 Type-I 错误率可能被低估；在 $n = 44{,}000$ 的大样本量下，任何系统性微小差异都会产生极小 $p$ 值，但这并不等同于强效应量。本章以效应量（准确率差值）与 95\% 置信区间作为主要证据，$p$ 值仅作辅助判断；所有仅 $p < 0.001$ 的项统一标注为 ``$p < 0.001$''，决策相关的临界 $p$ 值（如 $p = 0.0155$、$p = 0.476$、$p = 0.941$）保留具体数值。
+\textbf{关于配对统计检验独立性假设的坦白。}\label{par:independence-caveat}本章所有配对统计检验所用的 $n = 44{,}000$ 个测试样本，在按（调制类别 $\times$ SNR）联合分层后，同一 cell 内的约 1,000 个样本来自\textbf{相同的发射机仿真与信道实现}，不满足 McNemar 检验要求的逐样本独立性假设。该 cell 内相关性使有效样本量（effective sample size, ESS）可能比名义 $n = 44{,}000$ 低一到两个量级——即便保守估计 ESS $\sim 2{,}000$--$4{,}000$（每 cell 视为一个近似独立单元），大样本下任何系统性微小差异仍会产生极小 $p$ 值，但这与效应量的实际意义无关。
+
+因此，本章\textbf{以效应量（准确率差值）与 95\% 置信区间作为主要证据}，McNemar $p$ 值\textbf{仅作辅助参考}，不单独构成"效果成立"的判据。读者应将 $p < 0.001$ 解读为"在独立性假设下方向得到支持"，而非"效应量在实际意义上足够大"。所有仅 $p < 0.001$ 的项统一标注为 ``$p < 0.001$''；决策相关的临界 $p$ 值（如 $p = 0.0155$、$p = 0.476$、$p = 0.941$）保留具体数值。
 
 \begin{figure}[htbp]
   \centering
@@ -91,11 +135,13 @@
   \label{fig:bootstrap-delta-forest}
 \end{figure}
 
-两项比较的置信区间均未跨越 0，说明 CLDNN 相对 \path{resnet1d} 和 \path{iq_param_matched} 的整体优势在当前配对样本上得到统计支持。McNemar 检验提供同一样本正确性方向差异的补充证据，但在大样本量下 $p$ 值本身对效应量信息有限，应以效应量与置信区间为主要参照。统计表覆盖已登记模型对；表外模型对留给后续完整检验。
+两项比较的置信区间均未跨越 0，说明 CLDNN 相对 \path{resnet1d} 和 \path{iq_param_matched} 的整体优势方向在当前配对样本上得到支持。McNemar 检验提供同方向的辅助证据；但鉴于上述独立性效度缺口，$p$ 值本身对效应量信息有限，\textbf{效应量与置信区间才是本章所有比较的主要参照}。统计表覆盖已登记模型对；表外模型对留给后续完整检验。
 
-多重比较方面，本文将统计包中的 6 对已登记模型比较作为比较族，并分别考察 overall 与低信噪比两个范围。Holm--Bonferroni 修正后\cite{holm1979sequential}，overall 范围内 6 对比较均仍达到统计支持；低信噪比范围内，\path{fusion_iq_stft} vs. \path{cldnn} 的差值置信区间跨 0 且 McNemar \(p=0.476\)，保持不显著，其余 5 对仍达到统计支持。该修正不改变主要解释：CLDNN 的整体优势稳定，静态融合相对 CLDNN 的低信噪比优势没有统计支持，门控融合相对静态融合为负结果。
+多重比较方面，本文将统计包中的 6 对已登记模型比较作为比较族，并分别考察 overall 与低信噪比两个范围。Holm--Bonferroni 修正后\cite{holm1979sequential}，overall 范围内 6 对比较均仍达到统计支持；低信噪比范围内，\path{fusion_iq_stft} vs. \path{cldnn} 的差值置信区间跨 0 且 McNemar \(p=0.476\)，保持不显著，其余 5 对仍达到统计支持。该修正不改变主要解释：CLDNN 的整体优势方向稳定，静态融合相对 CLDNN 的低信噪比优势没有统计支持，门控融合相对静态融合为负结果。
 
+% ============================================================
 \section{低信噪比下的融合权衡}
+% ============================================================
 
 低信噪比区域定义为 \lowSNR{}。在这一范围内，\path{cldnn} 的平均准确率为 0.2224，\path{fusion_iq_stft} 为 0.2213，\path{iq_param_matched} 为 0.2163，\path{gated_fusion_iq_stft} 为 0.2113。静态融合接近 CLDNN，并高于参数匹配 I/Q 控制模型，但差异幅度较小。
 
@@ -106,7 +152,7 @@
   \label{fig:low-snr-per-snr}
 \end{figure}
 
-\subsection{低信噪比互补性图谱分析}
+\subsection{低信噪比混淆边界推移的物理分析}
 
 \begin{figure}[htbp]
   \centering
@@ -115,13 +161,13 @@
   \label{fig:paired-disagreement-by-snr}
 \end{figure}
 
-图~\ref{fig:paired-disagreement-by-snr} 是解释低信噪比融合权衡的核心证据。它不是把两个模型的平均准确率相减，而是统计同一测试样本上“模型 A 正确、模型 B 错误”和相反方向的分歧比例，因此可以观察互补性出现在哪些 SNR 点。若 STFT 视图提供稳定互补，静态融合相对 I/Q 参照模型应在低信噪比区间持续出现正向净分歧；实际结果更像局部互补与局部损失的混合图谱。
+图~\ref{fig:paired-disagreement-by-snr} 是解释低信噪比融合权衡的核心证据。它不是把两个模型的平均准确率相减，而是统计同一测试样本上"模型 A 正确、模型 B 错误"和相反方向的分歧比例，因此可以观察分歧出现在哪些 SNR 点。若 STFT 视图能提供稳定的新增判别信息，静态融合相对 I/Q 参照模型应在低信噪比区间持续出现正向净分歧；实际结果更像局部正向与局部负向的交替图谱。
 
 相对 \path{iq_param_matched}，静态融合在 \(-14\)、\(-12\)、\(-10\) dB 的净分歧分别约为 \(+1.08\)、\(+1.74\)、\(+1.94\) 个百分点；STFT 视图在 \(-14\) 至 \(-10\) dB 区间表现出方向一致的局部正向净分歧，但单点幅度未达统计显著（单 SNR 点约 3,300 个配对样本，+1 pp 量级差异 95\% CI 宽度约为 $\pm 1.0$ pp）。在 \(-8\) 和 \(-6\) dB，净分歧转为 \(-0.80\) 和 \(-0.36\) 个百分点，表明这种局部正向分歧没有覆盖整个低信噪比区间。相对 \path{cldnn} 时，静态融合在 \(-14\) 和 \(-10\) dB 有 \(+1.35\) 和 \(+1.24\) 个百分点的局部正向净分歧，却在 \(-8\) 和 \(-6\) dB 出现 \(-1.77\) 和 \(-1.76\) 个百分点的反向分歧。这解释了为什么低信噪比总差值为 \(-0.001061\) 且置信区间跨 0：融合不是全局领先，而是在不同 SNR 点上互相抵消。
 
 \textbf{关于单点不确定性的补充。}单 SNR 点的净分歧基于约 3,300 个配对样本（三种子合并），单点 +1 pp 量级差异的 95\% 置信区间宽度约为 $\pm 1.0$ pp，多个个别点的局部正向分歧在该不确定性下不可单独声明显著。本节的解释基于多点方向一致的整体图谱，不依赖任何单点差异。
 
-门控融合的分歧图进一步强化负结果判断。相对静态融合，门控融合在 \(-16\) 到 \(-6\) dB 多数点为负向净分歧，其中 \(-10\) dB 约为 \(-2.50\) 个百分点，\(-12\) dB 约为 \(-1.65\) 个百分点。这说明当前标量门控没有学到“低信噪比时增加 STFT、较高信噪比时回退 I/Q”的有效策略，反而在静态融合已有局部收益的位置损失了样本。
+门控融合的分歧图进一步强化负结果判断。相对静态融合，门控融合在 \(-16\) 到 \(-6\) dB 多数点为负向净分歧，其中 \(-10\) dB 约为 \(-2.50\) 个百分点，\(-12\) dB 约为 \(-1.65\) 个百分点。这说明当前标量门控没有学到"低信噪比时增加 STFT、较高信噪比时回退 I/Q"的策略，反而在静态融合已有局部正差值的位置损失了样本。
 
 \begin{figure}[htbp]
   \centering
@@ -132,21 +178,37 @@
 
 \input{tables/low_snr_key_comparisons}
 
-相对于 CLDNN，静态 I/Q--STFT 融合的低信噪比准确率差值为 \(-0.0011\)，95\% 置信区间为 \([-0.0039,+0.0018]\)，区间跨越 0；McNemar 检验 \(p = 0.476\)。这组证据支持"接近但未优于 CLDNN"的解释。
+相对于 CLDNN，静态 I/Q--STFT 融合的低信噪比准确率差值为 \(-0.0011\)，95\% 置信区间为 \([-0.0039,+0.0018]\)，区间跨越 0；McNemar 检验 \(p = 0.476\)（辅助参考）。效应量与 CI 共同支持"接近但未优于 CLDNN"的解释。
 
 相对于参数匹配 I/Q 控制模型，静态融合的低信噪比准确率差值为 0.0050，95\% 置信区间为 \([0.0020,0.0080]\)，McNemar 检验 \(p = 0.001\)。但同一比较在整体测试集上的准确率差值为 \(-0.0174\)，95\% 置信区间为 \([-0.0193,-0.0155]\)。因此，合理结论是：STFT 视图在本实现中测得低信噪比局部小幅正向差值，但伴随整体准确率下降。
 
-图~\ref{fig:low-snr-class-recall-delta} 进一步说明，静态融合的低信噪比差异并非对所有调制类别同向。相对 \path{iq_param_matched}，静态融合在 QAM16 上减少 \(7.4\) 个百分点召回率，却在 QAM64 上增加 \(8.9\) 个百分点召回率，接近等幅、方向相反。这一现象提示 STFT 视图可能改变了 QAM16/QAM64 间的判别边界。一个合理的待检验假设是：STFT 幅度视图强调局部频谱能量而弱化了 I/Q 序列中的细粒度星座几何，使分类器在两个相似 QAM 类别间的边界发生整体偏移，更多 QAM64 被保留下来而部分 QAM16 被吸收到相邻区域。但本文未做 logits 分布检查、STFT 分支消融或梯度显著性归因等验证实验，因此该机制保留为待检验假设，不作为已确立的结论。附录图~\ref{fig:low-snr-confusion-panels} 给出代表模型在低信噪比范围内的行归一化混淆矩阵，作为类别混淆解释的补充。
+图~\ref{fig:low-snr-class-recall-delta} 进一步说明，静态融合的低信噪比差异并非对所有调制类别同向。相对 \path{iq_param_matched}，静态融合在 QAM16 上的召回率下降 \(7.4\) 个百分点，却在 QAM64 上的召回率上升 \(8.9\) 个百分点，接近等幅、方向相反。这一现象的物理根源在于 \textbf{STFT 幅度谱对相位信息的不可逆丢弃}。QAM16 与 QAM64 同属正交幅度调制族，低信噪比下两者的星座点云严重重叠；区分二者的核心线索之一是相位旋转结构的细粒度差异——QAM16 的 4$\times$4 星座网格与 QAM64 的 8$\times$8 星座网格在 I/Q 平面上的相位排列不同。STFT 幅度谱作为时频能量分布的投影，\textbf{系统性地丢弃了瞬时相位信息}，构成对相位敏感特征的信息有损投影（lossy projection）。引入该视图使分类器对 QAM 子族的判别边界发生整体偏移——以 QAM16 的召回损失换取 QAM64 的召回提升。
 
+关键在于，QAM16 召回率 $-7.4$ pp 与 QAM64 召回率 $+8.9$ pp 的接近等幅反向变化\textbf{不支持单一"干扰"假设}：若 STFT 视图仅为噪声干扰，两类 QAM 的召回率应同向下降。实际观察到的反向变化表明 STFT 幅度域投影确实携带了可供分类器利用的结构信息，但该信息使 QAM16/QAM64 之间的判别边界发生了系统性偏移，而非提供额外的类别区分度。\textbf{净效应取决于评价指标的类别权重选择——在均衡权重下，一类的召回增益被另一类的等量损失抵消。这是引入信息有损视图的固有代价，而非多视图融合所声称的"互补性"的体现。}
+
+但本文未做 logits 分布检查、STFT 分支消融或梯度显著性归因等验证实验，因此上述物理机制保留为基于通信原理的诠释性解释，不作为因果意义上的已确立结论。附录图~\ref{fig:low-snr-confusion-panels} 给出代表模型在低信噪比范围内的行归一化混淆矩阵，作为类别混淆解释的补充。
+
+% ============================================================
 \section{门控融合负结果}
+% ============================================================
 
-\path{gated_fusion_iq_stft} 的整体准确率为 0.5719，低信噪比准确率为 0.2113，均低于静态融合 \path{fusion_iq_stft}。配对检验也支持这一判断：门控融合相对静态融合的整体准确率差值为 \(-0.0052\)，95\% 置信区间为 \([-0.0068,-0.0035]\)，McNemar 检验 \(p < 0.001\)；低信噪比范围内的差值为 \(-0.0100\)，95\% 置信区间为 \([-0.0127,-0.0073]\)，McNemar 检验 \(p < 0.001\)。
+\path{gated_fusion_iq_stft} 的整体准确率为 0.5719，低信噪比准确率为 0.2113，均低于静态融合 \path{fusion_iq_stft}。配对检验也支持这一判断：门控融合相对静态融合的整体准确率差值为 \(-0.0052\)，95\% 置信区间为 \([-0.0068,-0.0035]\)，McNemar 检验 \(p < 0.001\)（辅助参考）；低信噪比范围内的差值为 \(-0.0100\)，95\% 置信区间为 \([-0.0127,-0.0073]\)，McNemar 检验 \(p < 0.001\)。
 
 由于差值定义为"门控融合减静态融合"，上述负值说明当前标量门控机制没有改善静态融合。本文因此将门控融合作为负结果保留，不写作"门控提升鲁棒性"或"门控融合整体准确率高于静态融合"。
 
-本文未对当前门控失败做完整机制诊断，但可登记三类待检验假设：（i）门控权重 $g$ 可能退化为接近常数，使融合实际上回退为静态加权平均；（ii）门控输入特征（绝对差与逐元素乘积）可能在不同 SNR 下区分度不足，使 $g$ 与 SNR 缺乏关联；（iii）当前 sigmoid 标量门控的容量可能不足以表达「低 SNR 增 STFT、高 SNR 退回 I/Q」的策略。验证这些假设需要 $g$ 值分布的逐 SNR 直方图、$g$ 与 SNR 的相关分析、以及与多头/向量门控的对照实验，留作后续工作。
+\textbf{门控失败的诊断方案。}本文未对门控失败做完整机制诊断，但可按以下具体方案设计后续验证实验：
 
+\begin{enumerate}
+\item \textbf{标量门控权重 $g$ 的逐 SNR 直方图分析。}对测试集按 SNR 分桶绘制 $g$ 的频率直方图。若 $g$ 集中于 $0.5$ 附近（如 95\% 分位区间 $\subset [0.4, 0.6]$），说明门控退化为近似静态平均池化，门控网络未学到有意义的样本级加权策略。若 $g$ 在两端极化（接近 $0$ 或 $1$）但分类依然错误，说明门控网络在低信噪比下学习到了\textbf{虚假的噪声相关性映射}（noise-correlated spurious gating）——即门控信号被噪声功率主导而非被调制信号特征主导，导致门控判断与真实信噪比条件解耦。
+\item \textbf{$g$ 与真实 SNR 的相关分析。}计算 $g$ 与真实 SNR 标签之间的 Spearman 秩相关系数和 Pearson 线性相关系数。若两者均无统计支持的正相关（即 Spearman $\rho \approx 0$），则验证了门控网络未捕获 SNR 条件信息。若呈弱正相关但效应量小（$|\rho| < 0.1$），说明门控输入特征（绝对差与逐元素乘积）在当前架构下的 SNR 区分度不足以驱动有效的视图加权。
+\item \textbf{与多头/向量门控及显式 SNR 条件门控的对照实验。}将当前 sigmoid 标量门控替换为（i）通道级向量门控（$\mathbf{g} \in \mathbb{R}^d$），赋予门控网络对每个特征维度独立加权的能力；（ii）多头注意力门控（$K$ 头独立打分后加权平均），增加融合策略的多样性；（iii）显式 SNR 条件门控，在门控输入中拼接真实或估计的 SNR 分桶嵌入，强制门控网络利用信噪比信息。上述三种变体需预先登记判据（低信噪比是否超过静态融合、中高信噪比是否缓解系统性净损失），在相同协议下独立报告。
+\end{enumerate}
+
+上述方案均未在本报告中执行，保留为后续工作的具体实验设计。
+
+% ============================================================
 \section{复杂度与受控 CUDA 前向延迟}
+% ============================================================
 
 复杂度与延迟结果来自 CUDA 设备上的受控前向传播测量。测量使用 50 次预热和 200 次计时迭代，批量大小为 1 和 256；表~\ref{tab:course-cuda-latency} 摘录与结果解释最相关的模型行。
 
@@ -178,9 +240,13 @@
 
 \textbf{关于 MACs 与部署效率的关系。}需要注意，MACs 与实测前向延迟的关系并非单调：\path{fusion_iq_stft} MACs 仅 2.0 M 但批量 1 延迟 1.84 ms，\path{cldnn} MACs 8.7 M 但批量 1 延迟仅 1.31 ms。差异主要来自 STFT 分支 2D 卷积结构与现代 GPU 上 1D 卷积的不同优化路径，而非纯算量。这说明 MACs 不是部署效率的可靠代理；第~\ref{sec:results-extended-summary}~节以参数量论证 I/Q 分支表征容量，而非以 MACs 论证。
 
+% ============================================================
 \section{MCLDNN 异常与负结果保留}\label{sec:mcldnn-anomaly}
+% ============================================================
 
-\path{mcldnn} 三个训练种子的整体准确率为 0.5684 / 0.0909 / 0.0909，宏平均 F1 为 0.5891 / 0.0152 / 0.0152。其中 seed 42 收敛到 0.5684；seed 2025 和 seed 3407 单类塌陷至 11 类均匀基准 0.0909（宏平均 F1 0.0152），表现为近似随机水平的单类预测。seed 42 在低/中/高 SNR 子集上的准确率分别为 0.2121 / 0.7729 / 0.8391。三种子数据构成双峰分布，mean $\pm$ std 假定的单峰/正态结构不成立，因此\textbf{本章后续所有 MCLDNN 与其他模型的整体准确率比较均基于 seed 42 单种子结果（0.5684），并在比较时明确注明}；三种子均值（0.2501）仅用于训练稳定性讨论，不参与模型间排序（表~\ref{tab:course-main-results-excerpt} 脚注已注明）。
+\path{mcldnn} 三个训练种子的整体准确率为 0.5684 / 0.0909 / 0.0909，宏平均 F1 为 0.5891 / 0.0152 / 0.0152。其中 seed 42 收敛到 0.5684；seed 2025 和 seed 3407 单类塌陷至 11 类均匀基准 0.0909（宏平均 F1 0.0152），表现为近似随机水平的单类预测。seed 42 在低/中/高 SNR 子集上的准确率分别为 0.2121 / 0.7729 / 0.8391。
+
+\textbf{统计失效声明。}因 MCLDNN 三种子呈现极端双峰分布（seed 42 正常收敛至 0.5684，seed 2025 与 seed 3407 单类塌陷至 11 类均匀基准 0.0909），算术均值（0.2501）无法反映模型真实拟合能力，属于统计失效。该数值\textbf{绝对禁止}参与任何宏观性能排序、图表展示或文本论述。表~\ref{tab:course-main-results-excerpt} 中 MCLDNN 的整体准确率、宏平均 F1 与均衡准确率三列已标记 N/A。后续与其他模型的比较一律基于 seed 42 单种子结果（整体准确率 0.5684），并在每处比较中明确标注口径。
 
 \begin{table}[htbp]
   \centering
@@ -196,7 +262,7 @@
   \end{tabular}
 \end{table}
 
-表~\ref{tab:mcldnn-prediction-collapse} 进一步确认，seed 2025 并不是“多数类别偏置”，而是全部测试样本均预测为 8PSK；seed 3407 则全部预测为 AM-DSB。该现象与一个 11 类均衡测试集上的 0.090909 准确率一致，属于单类塌陷而非普通方差波动。
+表~\ref{tab:mcldnn-prediction-collapse} 进一步确认，seed 2025 并不是"多数类别偏置"，而是全部测试样本均预测为 8PSK；seed 3407 则全部预测为 AM-DSB。该现象与一个 11 类均衡测试集上的 0.090909 准确率一致，属于单类塌陷而非普通方差波动。
 
 \begin{figure}[htbp]
   \centering
@@ -205,15 +271,17 @@
   \label{fig:seed-stability-all-models}
 \end{figure}
 
-本文保留这两个异常种子，因为它们属于已登记的固定协议运行。删除异常种子并重算主表会改变实验协议，也会掩盖训练稳定性问题。协议纪律要求主表保留 3 个训练种子的完整结果；研究责任则要求对失败形态给出可检验解释，避免把异常简单归为“随机坏运气”。
+本文保留这两个异常种子，因为它们属于已登记的固定协议运行。删除异常种子并重算主表会改变实验协议，也会掩盖训练稳定性问题。协议纪律要求主表保留 3 个训练种子的完整结果；研究责任则要求对失败形态给出可检验解释，避免把异常简单归为"随机坏运气"。
 
 当前可提出三类诊断假设。第一，学习率与权重衰减组合可能不适合 MCLDNN：全模型统一使用学习率 \(10^{-3}\)、权重衰减 \(10^{-4}\)、batch size 256，有利于协议对齐，但对多分支卷积、融合卷积和 LSTM 串联的结构未必公平。第二，初始化敏感性可能更强：seed 42 正常收敛而 seed 2025/3407 塌陷，提示某些初始门控、卷积核或循环层状态可能把梯度引向退化分类头。第三，输入格式或维度排列可能与该实现的结构假设不完全匹配：MCLDNN 常依赖对 I/Q 分支、时间维和通道维的特定组织方式，若实现中的 reshape、permute 或分支拼接与预期不一致，模型可能在部分初始化下无法形成有效类别边界。
 
 因此，沿用统一超参对 MCLDNN 公平性不足。统一学习率、权重衰减和 batch size 的优点是避免为单个模型做事后调参，保证主表比较纪律；缺点是把结构稳定性、优化敏感性和超参适配能力混在一起。更负责的后续诊断应预先登记 MCLDNN 专用学习率网格、初始化重复、梯度范数监控、输入张量形状单元测试和早期 logits 分布检查，并在新的输出目录中形成独立证据。附录图~\ref{fig:mcldnn-seed-anomaly} 单独展示 MCLDNN 三个训练种子的差异。
 
+% ============================================================
 \section{扩展实验与提案模型}\label{sec:results-extended}
+% ============================================================
 
-本节扩展实验在 RTX 3090 上完成，与 Stage 5A 的 RTX 4070 硬件不同；跨硬件的样本级配对统计检验因此不可直接执行，三种子均值层面的解释仍受支持。所有扩展实验仅在本节用作协议化解释证据，不修改主表数值与统计检验。
+本节扩展实验在 RTX 3090 上完成，与 Stage 5A 的 RTX 4070 Ti 硬件不同；跨硬件的样本级配对统计检验因此不可直接执行，三种子均值层面的解释仍受支持。所有扩展实验仅在本节用作协议化解释证据，不修改主表数值与统计检验。
 
 \subsection{扩展实验摘要}\label{sec:results-extended-summary}
 
@@ -221,12 +289,12 @@
 
 \begin{table}[htbp]
   \centering
-  \caption{四类扩展实验摘要。Δ 列均为相对主实验矩阵同模型的整体准确率均值变化。}
+  \caption{四类扩展实验摘要。$\Delta$ 列均为相对主实验矩阵同模型的整体准确率均值变化。}
   \label{tab:extended-summary}
   \small
   \begin{tabularx}{\textwidth}{lXcX}
     \toprule
-    证据标签 & 模型范围 / 干预 & Δ overall & 主要发现 \\
+    证据标签 & 模型范围 / 干预 & $\Delta$ overall & 主要发现 \\
     \midrule
     \texttt{EXTENDED\_BUDGET\_3090} & 4 模型 \(\times\) 3 seed；epoch \(50\) + 5 轮 warmup + cosine annealing & \(\pm 1\) pp 内 & 排除欠训练假设；最佳轮 15--42，未触上限。 \\    \texttt{LOW\_SNR\_WEIGHTED\_CE\_3090} & 2 模型 \(\times\) 3 seed；分组 SNR 加权 CE (low\(=2.0\), mid\(=1.0\), high\(=0.7\)) & cldnn \(-2.3\)，fusion \(-0.7\) & 低 SNR 微涨 \(+0.4\)--\(0.6\) pp，但中高 SNR 跌 \(2\)--\(4\) pp；不合算干预。 \\
     \texttt{CONTROLLED\_LATENCY\_EXTENDED} & 9 模型；CPU 单线程前向延迟 + thop MACs，warmup 50/measured 200 & — & 见表~\ref{tab:extended-complexity-cpu-latency}；fusion\_iq\_stft MACs (2.0 M) \textbf{少于} resnet1d (4.9 M)。 \\
@@ -258,7 +326,9 @@
   \end{tabularx}
 \end{table}
 
-三条要点支撑后续提案模型解释。其一，延长预算不改写主表排序，也不缓解低信噪比退化，**Stage 5A 主表不是欠训练造成**。其二，分组 SNR 加权 CE 是不合算干预，单凭损失加权无法同时改善低信噪比与整体性能。其三，深低信噪比（\(\le -16\) dB）退化为偏置预测 AM-SSB 是多模型共同出现的经验下限，任何架构改动都无法绕开这一下限。\path{fusion_iq_stft} 整体参数量 98 K，其中 I/Q 分支约占 50 K，显著低于 CLDNN 的 241 K（表~\ref{tab:course-cuda-latency} 与表~\ref{tab:extended-complexity-cpu-latency}）；该参数规模差异提示静态融合的 I/Q 分支可能不足以提取与 CLDNN 同等水平的时序表征，构成提案模型把 I/Q 分支替换为 CLDNN 风格编码器的设计动机。MACs 与该论断的关系是间接的：MACs 反映前向计算量而非表征能力。
+三条要点支撑后续提案模型解释。其一，延长预算不改写主表排序，也不缓解低信噪比退化，Stage 5A 主表不是欠训练造成。其二，分组 SNR 加权 CE 是不合算干预，单凭损失加权无法同时改善低信噪比与整体性能。其三，深低信噪比（$\le -16$ dB）退化为偏置预测 AM-SSB 是 8 个稳定模型共同出现的经验现象。\textbf{在本协议内已评估的 9 个稳定模型中均未观察到对该下限的突破。该下限是协议内的经验观察，并非信息论意义下的最优分类器边界——其作为"AMC 任务深低信噪比理论下限"的解读需要独立的类条件可分性分析或贝叶斯错误率估计来支撑，本文未做此论证。}
+
+\path{fusion_iq_stft} 整体参数量 98 K，其中 I/Q 分支约占 50 K，显著低于 CLDNN 的 241 K（表~\ref{tab:course-cuda-latency} 与表~\ref{tab:extended-complexity-cpu-latency}）；该参数规模差异提示静态融合的 I/Q 分支可能不足以提取与 CLDNN 同等水平的时序表征，构成提案模型把 I/Q 分支替换为 CLDNN 风格编码器的设计动机。MACs 与该论断的关系是间接的：MACs 反映前向计算量而非表征能力。
 
 \subsection{文献校准与可比 SOTA}\label{sec:results-literature}
 
@@ -285,51 +355,60 @@
     \midrule
     本文 \path{cldnn}（主实验矩阵） & 0.6129 & 0.9044 & 0.9138 & 三种子均值，本文 \\
     本文 \path{fusion_iq_stft}（主实验矩阵） & 0.5771 & 0.8402 & 0.8482 & 三种子均值，本文 \\
-    本文 \path{fusion_cldnn_stft}+aug（提案主配置） & \textbf{0.6284} & \textbf{0.9252} & \textbf{0.9327} & 三种子均值，RTX 3090，第~\ref{sec:results-fusion-cldnn-stft}~节 \\
-    本文 \path{fusion_cldnn_stft}+aug+LS（full，消融对照） & 0.6264 & 0.9237 & 0.9327 & 三种子均值，RTX 3090，第~\ref{sec:results-fusion-cldnn-stft}~节 \\
+    本文 \path{fusion\_cldnn\_stft}+aug（提案主配置） & \textbf{0.6284} & \textbf{0.9252} & \textbf{0.9327} & 三种子均值，RTX 3090，第~\ref{sec:results-fusion-cldnn-stft}~节 \\
+    本文 \path{fusion\_cldnn\_stft}+aug+LS（full，消融对照） & 0.6264 & 0.9237 & 0.9327 & 三种子均值，RTX 3090，第~\ref{sec:results-fusion-cldnn-stft}~节 \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-跨论文比较受不同划分、不同测试集大小、不同种子和不同聚合口径影响，不构成严格 head-to-head 比较。本文以表~\ref{tab:lit-sota-calibration}~作为同量级参照：本文 CLDNN 0.6129 在 avg-across-SNR 维度上与 LENet-M 0.6463 和 SigFormer 0.6371 仍有 \(2\)--\(3\) 个百分点差距，提示固定协议下尚有 SOTA 级别可改进空间。
+跨论文比较受不同划分、不同测试集大小、不同种子和不同聚合口径影响，不构成严格 head-to-head 比较。本文以表~\ref{tab:lit-sota-calibration}~作为同量级参照：本文 CLDNN 0.6129 在 avg-across-SNR 维度上与 LENet-M 0.6463 和 SigFormer 0.6371 仍有 \(2\)--\(3\) 个百分点差距，提示固定协议下尚有可改进空间。
 
 \subsection{提案模型 \texttt{fusion\_cldnn\_stft}+增强（跨硬件三种子均值比较）}\label{sec:results-fusion-cldnn-stft}
 
-\textbf{硬件差异限定。}本节比较涉及两类硬件：提案模型在 RTX 3090（Ampere, sm\_86）上训练，主实验矩阵 CLDNN 基线在 RTX 4070 Ti（Ada, sm\_89）上训练。由于 cuDNN 算法选择和浮点累加顺序的差异，\textbf{样本级配对自助法和 McNemar 检验在该比较中不可执行}；本节所有差值仅在三种子均值层面解释，不声明样本级统计显著性。
+\textbf{硬件差异限定与效度缺口声明。}本节比较涉及两类硬件：提案模型在 RTX 3090（Ampere, sm\_86）上训练，主实验矩阵 CLDNN 基线在 RTX 4070 Ti（Ada, sm\_89）上训练。\textbf{跨硬件环境下，cuDNN 算法选择差异（不同 GPU 微架构触发不同的卷积实现路径）、浮点累加顺序差异（非确定性归约操作在不同硬件上产生不同舍入偏置）、以及可能的驱动版本与 CUDA 内核编译差异，共同构成该对比在严格意义上的效度缺口。}因此，\textbf{样本级配对自助法和 McNemar 检验在该比较中不可执行}；本节所有差值仅在三种子均值层面解释，不声明样本级统计显著性。
 
-需要先行说明的是，本文最初登记于证据标签 \texttt{FUSION\_CLDNN\_STFT\_AUG\_LS\_3090} 的配置同时包含 \(\epsilon=0.1\) 标签平滑；第~\ref{sec:proposed-ablation}~节的单干预消融揭示，标签平滑在已有信号域增强时按本文自身的配对统计标准统计显著地损害整体准确率（\texttt{arch+aug} 0.6284 vs.\ \texttt{arch+aug+LS} 0.6264，差值 $-0.0019$，95\% CI $[-0.0033,-0.0006]$，McNemar $p = 0.0155$）。因此本节把提案模型重新定义为不含标签平滑的 \texttt{arch+aug} 配置（即 \path{fusion_cldnn_stft} + 相位旋转加循环时移信号域增强），并以该配置作为最终推荐的训练计划；\texttt{arch+aug+LS} 作为消融对照保留在第~\ref{sec:proposed-ablation}~节，不作为提案主结果汇报。提案主配置整体准确率 $0.6284 \pm 0.0011$；消融对照 \texttt{arch+aug+LS} 整体准确率 $0.6264 \pm 0.0004$。本节比较涉及两类硬件，样本级配对自助法和 McNemar 检验在跨硬件比较中不可执行，所有差值仅在三种子均值层面解释。
+\textbf{同硬件环境下的重训控制组（在 RTX 3090 上重训主实验矩阵 CLDNN 三种子，或在 RTX 4070 Ti 上重训提案模型）是未来转化为学术论文的强制性前置工作。未完成此对照之前，下文报告的 +1.55 pp 不应被解读为可声明的方法学增益。}
+
+需要先行说明的是，本文最初登记于证据标签 \texttt{FUSION\_CLDNN\_STFT\_AUG\_LS\_3090} 的配置同时包含 \(\epsilon=0.1\) 标签平滑；第~\ref{sec:proposed-ablation}~节的单干预消融揭示，标签平滑在已有信号域增强时未能取得正向效应（详见第~\ref{sec:proposed-ablation}~节多重检验校正讨论）。因此本节把提案模型重新定义为不含标签平滑的 \texttt{arch+aug} 配置（即 \path{fusion_cldnn_stft} + 相位旋转加循环时移信号域增强），并以该配置作为最终推荐的训练计划；\texttt{arch+aug+LS} 作为消融对照保留在第~\ref{sec:proposed-ablation}~节，不作为提案主结果汇报。提案主配置整体准确率 $0.6284 \pm 0.0011$；消融对照 \texttt{arch+aug+LS} 整体准确率 $0.6264 \pm 0.0004$。
 
 \begin{table}[htbp]
   \centering
-  \caption{提案模型与三类参照的同协议、跨硬件三种子均值比较，以及 \texttt{arch+aug+LS} 消融对照（单位：准确率）。提案模型在 RTX 3090 训练，主实验矩阵参照在 RTX 4070 Ti 训练；$\Delta$ 列不声明样本级统计显著性。}
+  \caption{提案模型与三类参照的同协议比较（单位：准确率）。提案模型在 RTX 3090 训练，主实验矩阵参照在 RTX 4070 Ti 训练；$\Delta$ 列为跨硬件三种子均值之差，不可用于样本级统计检验。}
   \label{tab:proposed-fusion-cldnn-stft-results}
   \small
   \begin{tabularx}{\textwidth}{Xcccc}
     \toprule
     模型行（参照／提案） & 整体 & 低 SNR & 中 SNR & 高 SNR \\
     \midrule
-    \path{fusion_iq_stft}（主实验矩阵） & \(0.5771\) & \(0.2213\) & \(0.7858\) & \(0.8428\) \\
+    \path{fusion_iq_stft}（主实验矩阵, RTX 4070 Ti） & \(0.5771\) & \(0.2213\) & \(0.7858\) & \(0.8428\) \\
     \path{fusion_iq_stft}（延长预算，RTX 3090） & \(0.5851\) & \(0.2124\) & \(0.8025\) & \(0.8646\) \\
-    \path{cldnn}（主实验矩阵，最强稳定基线） & \(0.6129\) & \(0.2224\) & \(0.8396\) & \(0.9070\) \\
+    \path{cldnn}（主实验矩阵，RTX 4070 Ti） & \(0.6129\) & \(0.2224\) & \(0.8396\) & \(0.9070\) \\
     \midrule
-    \path{fusion\_cldnn\_stft}+aug（\textbf{提案主配置}） & \(\mathbf{0.6284\pm0.0011}\) & \(\mathbf{0.2254\pm0.0013}\) & \(\mathbf{0.8669\pm0.0021}\) & \(\mathbf{0.9272\pm0.0013}\) \\
-    \path{fusion\_cldnn\_stft}+aug+LS（full，消融对照） & \(0.6264\pm0.0004\) & \(0.2259\pm0.0006\) & \(0.8606\pm0.0007\) & \(0.9264\pm0.0003\) \\
+    \path{fusion\_cldnn\_stft}+aug（\textbf{提案主配置}, RTX 3090） & \(\mathbf{0.6284\pm0.0011}\) & \(\mathbf{0.2254\pm0.0013}\) & \(\mathbf{0.8669\pm0.0021}\) & \(\mathbf{0.9272\pm0.0013}\) \\
+    \path{fusion\_cldnn\_stft}+aug+LS（full，消融对照, RTX 3090） & \(0.6264\pm0.0004\) & \(0.2259\pm0.0006\) & \(0.8606\pm0.0007\) & \(0.9264\pm0.0003\) \\
     \midrule
-    \(\Delta\) 提案主配置 vs.\ 主实验矩阵 CLDNN & \(\mathbf{+0.0155}\) & \(+0.0030\) & \(+0.0273\) & \(+0.0202\) \\
-    \(\Delta\) 提案主配置 vs.\ 主实验矩阵 \path{fusion_iq_stft} & \(+0.0513\) & \(+0.0041\) & \(+0.0811\) & \(+0.0844\) \\
+    \(\Delta\) 提案主配置 vs.\ 主实验矩阵 CLDNN\textsuperscript{$\ddagger$} & \(+0.0155\) & \(+0.0030\) & \(+0.0273\) & \(+0.0202\) \\
+    \(\Delta\) 提案主配置 vs.\ 主实验矩阵 \path{fusion_iq_stft}\textsuperscript{$\ddagger$} & \(+0.0513\) & \(+0.0041\) & \(+0.0811\) & \(+0.0844\) \\
     \bottomrule
-    \multicolumn{5}{l}{\scriptsize 注：$\Delta$ 行为跨硬件三种子均值之差，不可用于样本级统计检验。同硬件重训以获得配对证据是后续必要工作。} \\
+    \multicolumn{5}{l}{\scriptsize\textsuperscript{$\ddagger$} 跨硬件三种子均值之差。存在 cuDNN 算法选择、浮点累加顺序与驱动版本差异导致的效度缺口。} \\
+    \multicolumn{5}{l}{\scriptsize 同硬件重训以获得配对证据是验证该差值的强制性后续工作。} \\
   \end{tabularx}
 \end{table}
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig22_proposed_vs_stage5a_delta_heatmap.pdf}
-  \caption{提案模型相对 Stage 5A 九个基线在四个指标（Overall / Low / Mid / High SNR）上的准确率增量热力图（单位：百分点；绿色正增量，红色负增量；★ 行为 CLDNN 基线加粗边框；数据源：三种子均值 \texttt{metrics\_test.json} vs \texttt{main\_table\_metrics.csv}）。}
+  \caption{提案模型相对 Stage 5A 九个基线在四个指标（Overall / Low / Mid / High SNR）上的准确率增量热力图（单位：百分点；绿色正增量，红色负增量；$\bigstar$ 行为 CLDNN 基线加粗边框；数据源：三种子均值 \texttt{metrics\_test.json} vs \texttt{main\_table\_metrics.csv}）。\textbf{注意：MCLDNN 行原图中基于无效均值 0.2501 计算的 $\Delta$ = +37.83 pp 应予忽略。该行正确的 $\Delta$ 应基于 seed 42 单种子值 0.5684 计算（$\Delta \approx$ +6.00 pp）；后续排版时须以此口径重新生成该行。}}
   \label{fig:proposed-vs-stage5a-delta}
 \end{figure}
 
-提案主配置（\texttt{arch+aug}）在四个指标上同时正向高于主实验矩阵 CLDNN 基线：整体 0.6284 vs 0.6129（$\Delta = +1.55$ pp），低/中/高 SNR 均正向（图~\ref{fig:proposed-vs-stage5a-delta}）。该差值（1.55 pp）显著大于三种子内最大标准差（提案模型 0.0011），不能由种子噪声解释；最佳轮次 31/42/31 均位于 50 轮上限之内，证明模型已收敛。上述差值为跨硬件三种子均值之差，不附加样本级置信区间；同硬件下重训主实验矩阵 CLDNN 三种子以获得样本级配对证据，是验证该差异的下一步必要工作。
+提案主配置（\texttt{arch+aug}）在四个指标上同时正向高于主实验矩阵 CLDNN 基线：整体 0.6284 vs 0.6129（$\Delta = +1.55$ pp），低/中/高 SNR 均正向（图~\ref{fig:proposed-vs-stage5a-delta}）。然而，\textbf{必须在以下约束下解读该差值}。
+
+第一，该 1.55 pp 的差值为跨硬件三种子均值之差。1.55 pp 约为协议内典型 seed-to-seed 标准差（0.0011--0.0045）的 3--10 倍，不能由种子噪声单独解释；但在跨硬件偏置可能达到的量级面前，该倍数并非压倒性的。cuDNN 非确定性在同硬件下通常引入 $\sim$0.1 pp 量级的 run-to-run 波动，但\textbf{跨微架构}（sm\_86 vs. sm\_89）的系统性偏置尚无文献给出精确界限。因此，+1.55 pp 在同硬件重训对照完成之前，只能作为方向性参考，不应被声明为已确立的方法学增益。
+
+第二，与文献参照的对比（表~\ref{tab:lit-sota-calibration}）说明，提案主配置在 avg-all-SNR 维度的 \(0.6284\) 落入 2024 年代多流／复值文献基线的同一量级（CC-MSNet \(0.6286\)、CCTL-Net \(0.6297\)），与 LENet-M（\(0.6463\)）、SigFormer（\(0.6371\)）仍有约 \(1\)--\(2\) 个百分点差距，记入未来工作；avg(\(\mathrm{SNR}>0\)) 维度（提案 \(0.9252\)）在数值上高于 MCLDNN 原论文报告的 \(0.9112\)，但跨论文比较受不同划分、测试集大小和聚合口径影响，仅作量级参照。
+
+第三，深低信噪比（\(\le -16\) dB）准确率仍约为 \(1/11\) 的随机水平，提案模型不改变第~\ref{sec:results-extended-summary}~节登记的经验下限。
 
 \begin{figure}[htbp]
   \centering
@@ -338,11 +417,9 @@
   \label{fig:proposed-per-snr}
 \end{figure}
 
-与文献参照的对比（表~\ref{tab:lit-sota-calibration}）说明，提案主配置在 avg-all-SNR 维度的 \(0.6284\) 落入 2024 年代多流／复值文献基线的同一量级（CC-MSNet \(0.6286\)、CCTL-Net \(0.6297\)），与 \path{LENet-M}（\(0.6463\)）、SigFormer（\(0.6371\)）仍有约 \(1\)--\(2\) 个百分点差距，记入未来工作；avg(\(\mathrm{SNR}>0\)) 维度（提案 \(0.9252\)）在数值上高于 MCLDNN 原论文报告的 \(0.9112\)，但跨论文比较受不同划分、测试集大小和聚合口径影响，仅作量级参照。需要强调的是，跨论文比较受不同划分、不同测试集大小和不同种子聚合口径影响，不构成严格 head-to-head 比较。
-
-本结果同时受以下解释边界约束：第一，与主实验矩阵的硬件不同，样本级配对自助法和 McNemar 检验无法跨硬件执行，本表仅在三种子均值层面解释，同硬件重训是获得样本级证据的必要后续工作；第二，提案主配置（\texttt{arch+aug}）的 +1.55 pp 差值来源分解见第~\ref{sec:proposed-ablation}~节的单干预消融；第三，深低信噪比（\(\le -16\) dB）准确率仍约为 \(1/11\) 的随机水平，提案模型不改变该经验下限。
-
+% ============================================================
 \subsection{提案模型单干预消融与配对统计检验}\label{sec:proposed-ablation}
+% ============================================================
 
 第~\ref{sec:results-fusion-cldnn-stft}~节把提案模型定义为 \texttt{arch+aug} 配置。本节汇报支撑该选择的完整消融证据：在证据标签 \texttt{FUSION\_CLDNN\_STFT\_ABLATION\_3090} 下登记四个变体（\texttt{arch\_only} / \texttt{arch\_aug} / \texttt{arch\_ls} / \texttt{arch+aug+LS}），共享相同硬件（RTX 3090）、固定划分与三训练种子，仅在增强与标签平滑开关上区分；配对自助法（10000 重采样）与 McNemar 检验在整体集与低 SNR 子集分别执行（数据源：三种子 \texttt{metrics\_test.json} 与 \texttt{paired\_bootstrap.csv}）。
 
@@ -351,7 +428,7 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig19_ablation_grouped_bars.pdf}
-  \caption{四个消融变体（\texttt{arch\_only} / \texttt{arch\_aug} / \texttt{arch\_ls} / \texttt{full}）在 Overall / Low / Mid / High SNR 分组上的准确率均值 ± 标准差（三种子，数据源：\texttt{metrics\_test.json}）。每柱顶标注该分组最优值（加粗），水平虚线=Stage 5A CLDNN 整体基线（0.6129）。}
+  \caption{四个消融变体（\texttt{arch\_only} / \texttt{arch\_aug} / \texttt{arch\_ls} / \texttt{full}）在 Overall / Low / Mid / High SNR 分组上的准确率均值 $\pm$ 标准差（三种子，数据源：\texttt{metrics\_test.json}）。每柱顶标注该分组最优值（加粗），水平虚线=Stage 5A CLDNN 整体基线（0.6129）。}
   \label{fig:ablation-grouped-bars}
 \end{figure}
 
@@ -362,8 +439,28 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.92\textwidth]{fig20_proposed_paired_forest.pdf}
-  \caption{提案模型与各参照的配对自助法差值（Δ）及 95\% CI 森林图（$\bullet$ CI 不跨 0，$\circ$ CI 跨 0；数据源：\texttt{results/paper\_stage6/proposed\_paired\_tests/paired\_bootstrap.csv}）。}
+  \caption{提案模型与各参照的配对自助法差值（$\Delta$）及 95\% CI 森林图（$\bullet$ CI 不跨 0，$\circ$ CI 跨 0；数据源：\texttt{results/paper\_stage6/proposed\_paired\_tests/paired\_bootstrap.csv}）。}
   \label{fig:proposed-paired-forest}
 \end{figure}
 
-综合图~\ref{fig:ablation-grouped-bars}、图~\ref{fig:proposed-paired-forest}与两张消融表，三项干预的贡献可拆解为：\textbf{架构升级}（\texttt{arch\_only}，均值 0.6116）单独把 fusion 拉到 CLDNN 量级（$\Delta \approx -0.13$ pp 相对 Stage 5A CLDNN，落在种子噪声范围内），本身无显著正向贡献；\textbf{信号域增强是主要涨点来源}（\texttt{arch\_aug} 相对 \texttt{arch\_only} 提升 +1.68 pp，配对检验 $p < 0.001$，低、中、高 SNR 均一致正向）；\textbf{标签平滑在已有增强条件下按本文自身的配对统计标准统计显著有害}（\texttt{arch+aug+LS} 相对 \texttt{arch+aug} 整体 $\Delta = -0.19$ pp，95\% CI $[-0.0033, -0.0006]$，McNemar $p = 0.0155$，CI 不跨 0）。基于此消融证据，第~\ref{sec:results-fusion-cldnn-stft}~节登记的提案模型为 \texttt{arch+aug} 配置（0.6284）；\texttt{arch+aug+LS}（原 ``full''，0.6264）不作为提案主结果，仅保留为消融对照。
+\textbf{归因逻辑（同硬件基线对照）。}消融中的归因应以同硬件可比基线为起点。原主实验矩阵 \path{fusion_iq_stft} 的 0.5771 来自 RTX 4070 Ti，不能直接与 RTX 3090 上的消融变体配对。表~\ref{tab:proposed-fusion-cldnn-stft-results} 已记录同硬件（RTX 3090）的延长预算对照 \path{fusion_iq_stft} 整体准确率 0.5851，该值构成架构升级的同硬件演进起点。
+
+\begin{itemize}
+\item \textbf{架构升级}（\texttt{arch\_only}，均值 0.6116）：相对同硬件基线 \path{fusion_iq_stft}@RTX3090（0.5851），架构升级的真实贡献为 $+2.65$ pp（$0.6116 - 0.5851$）。该增量的根本作用在于\textbf{缓解了原静态融合模型 I/Q 分支的表征瓶颈}——原 I/Q 分支仅 $\sim$50K 参数的一维卷积编码器，不足以在 128 步 I/Q 序列上提取与 CLDNN（241K 参数、含 LSTM 时序建模）同等水平的时序表征。将 I/Q 编码器替换为 CLDNN 风格的卷积-循环混合结构后，多视图融合重新具备与纯时域基线竞技的资格。\texttt{arch\_only} 的 0.6116 相对 Stage 5A CLDNN 的 0.6129 仅差 $-0.13$ pp，落在种子噪声范围内，说明架构升级本身\textbf{不是超越基线的来源，而是回到基线水平的必要条件}。
+
+\textbf{辅助参照}：若以跨硬件的主实验矩阵 \path{fusion_iq_stft} 0.5771 为起点，名义增量为 $+3.45$ pp，但该对比受 RTX 4070 Ti vs. RTX 3090 的系统性偏置影响，不作为主要归因依据。
+
+\item \textbf{信号域增强是主要涨点来源}：\texttt{arch\_aug}（0.6284）相对 \texttt{arch\_only}（0.6116）提升 $+1.68$ pp，同硬件配对检验 $p < 0.001$（辅助参考），95\% CI $[+0.0152, +0.0183]$ 不跨 0，低、中、高 SNR 均一致正向。信号域增强在架构瓶颈被缓解后进一步实现对 CLDNN 基线的超越差值。
+
+\item \textbf{标签平滑在已有增强条件下未取得正向效应}：\texttt{arch+aug+LS}（0.6264）相对 \texttt{arch+aug}（0.6284），整体差值 $\Delta = -0.0019$（即 $-0.19$ pp），95\% CI $[-0.0033, -0.0006]$，CI 不跨 0 且完全位于负域；未校正 McNemar $p = 0.0155$。
+\end{itemize}
+
+\textbf{多重检验校正。}\label{par:multiple-testing}表~\ref{tab:proposed-paired-tests} 涉及 4 对比较 $\times$ 2 个范围（整体 / 低 SNR）$= 8$ 个 $p$ 值，构成一个比较族。在 Bonferroni 校正下，族水平 $\alpha = 0.05$ 对应的逐比较阈值为 $\alpha_{\mathrm{adj}} = 0.05/8 = 0.00625$。\texttt{proposed} vs.\ \texttt{arch+aug+LS} 整体的未校正 $p = 0.0155 > 0.00625$，\textbf{校正后不再达到统计显著阈值}\footnote{在 Holm 逐步下降法中，$p = 0.0155$ 位于 8 个排序 $p$ 值中的第 7 位，对应阈值 $\alpha/(8-7+1) = 0.025$，$0.0155 < 0.025$ 仍边际通过。本文采用更保守的 Bonferroni 报告，与全文"效应量为主"的立场一致。}。
+
+因此，关于标签平滑的结论应表述为：\textbf{在已有信号域增强的条件下，叠加标签平滑 $\epsilon = 0.1$ 在未校正的配对 McNemar 下达到 $p = 0.0155$，但 95\% CI 不跨 0 且效应量微小（$-0.19$ pp）。多重检验校正（Bonferroni，$\alpha_{\mathrm{adj}} = 0.00625$）后该差值不再达到统计显著阈值。基于效应量为负且 CI 完全位于负域的考量，最终提案模型选择不包含标签平滑，但这是基于点估计与 CI 方向的工程选择，而非强统计支持的结论。}
+
+\textbf{关键消融缺失的主动登记。}\label{par:missing-ablation}本节消融把提案模型的增益拆解为架构升级（缓解瓶颈、回到基线水平）与信号域增强（主要涨点）两个阶段。但一个\textbf{关键对照实验缺失}：\textbf{未训练"CLDNN + 相同信号域增强"（即纯 I/Q CLDNN 在同硬件、同三种子下加入相位旋转与循环时移增强）这一对照组}。
+
+该缺失的后果是：无法严格区分"多视图融合 + 增强"与"纯 I/Q（CLDNN）+ 增强"的相对贡献。若该对照模型在同硬件、同三种子下也能达到 0.62+ 量级，则提案模型相对纯 I/Q 强基线的方法学新颖度将仅限于"融合架构对增强的兼容性"，而非"融合 + 增强的协同效应"。换言之，第~\ref{sec:results-fusion-cldnn-stft}~节报告的 +1.55 pp（相对主实验矩阵 CLDNN）可能完全由信号域增强驱动，融合机制本身可能未贡献任何独立份额。
+
+\textbf{补足"CLDNN + signal-domain augmentation"对照实验是验证提案模型新颖度的强制性后续工作。未完成前，不应声明融合机制本身贡献了 +1.55 pp 中的任何独立份额。}这一缺口比让读者（或审稿人）自行发现远更可取——诚实暴露实验设计的不完整性是实证研究的基本伦理。
