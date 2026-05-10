@@ -1,23 +1,37 @@
 \begingroup
-\footnotesize
-\setlength{\tabcolsep}{3pt}
-\renewcommand{\arraystretch}{1.15}
-\begin{longtable}{p{0.22\textwidth}>{\centering\arraybackslash}p{0.10\textwidth}>{\centering\arraybackslash}p{0.10\textwidth}>{\centering\arraybackslash}p{0.10\textwidth}>{\centering\arraybackslash}p{0.10\textwidth}p{0.28\textwidth}}
-\caption{代表性 AMC 文献中的图表表达与本文图表设计}\label{tab:literature-figure-patterns}\\
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{longtable}{p{0.18\textwidth}>{\centering\arraybackslash}p{0.07\textwidth}>{\centering\arraybackslash}p{0.07\textwidth}>{\centering\arraybackslash}p{0.08\textwidth}>{\centering\arraybackslash}p{0.06\textwidth}>{\centering\arraybackslash}p{0.07\textwidth}p{0.27\textwidth}}
+\caption{开放 AMC 论文中的常见图表模式与本文图表设计对应关系}\label{tab:literature-figure-patterns}\\
 \toprule
-代表性文献 & 结构图 & 信噪比曲线 & 混淆矩阵 & 复杂度表 & 对本文的启发 \\
+文献线索 & 结构图 & SNR 曲线 & 混淆矩阵 & 消融 & 复杂度 & 对本文图表设计的作用 \\
 \midrule
 \endfirsthead
 \toprule
-代表性文献 & 结构图 & 信噪比曲线 & 混淆矩阵 & 复杂度表 & 对本文的启发 \\
+文献线索 & 结构图 & SNR 曲线 & 混淆矩阵 & 消融 & 复杂度 & 对本文图表设计的作用 \\
 \midrule
 \endhead
-RadioML 数据集与 GNU Radio 生成流程\cite{oshea2016radioml} & 是 & 是 & 否 & 否 & 明确数据集来源、信噪比轴和样本生成背景。 \\
-卷积神经网络调制识别\cite{oshea2016cnn} & 是 & 是 & 是 & 否 & 将 I/Q 序列基线和信噪比曲线作为核心结果呈现。 \\
-深层 AMC 架构比较\cite{west2017deep} & 是 & 是 & 是 & 是 & 用统一协议比较 CNN、循环和混合结构。 \\
-MCLDNN 多通道时空学习框架\cite{xu2020mcldnn} & 是 & 是 & 是 & 是 & 为多分支时序模型和异常结果解释提供背景。 \\
-轻量级 AMC 网络\cite{wang2021lwamcnet} & 是 & 是 & 否 & 是 & 将参数量和受控前向耗时作为性能之外的补充维度。 \\
-AMC 深度学习综述\cite{huynhthe2021survey} & 是 & 是 & 是 & 是 & 支持本文采用“协议、主表、分信噪比、混淆和复杂度”组合呈现。 \\
+\href{https://arxiv.org/abs/1602.04105}{O'Shea 2016} & Y & Y & - & - & - & RadioML/CNN baseline and SNR curves \\
+\href{https://arxiv.org/abs/1712.00443}{Deep architectures 2017} & Y & Y & Y & Y & Y & Baseline families and experiment tables \\
+\href{https://arxiv.org/abs/1810.02027}{Polar features 2018} & Y & Y & - & - & Y & Alternative I/Q-derived views \\
+\href{https://arxiv.org/abs/1901.05850}{Fast DL AMC 2019} & Y & Y & - & - & Y & Efficiency-aware reporting \\
+\href{https://arxiv.org/abs/1909.03050}{SCRNN 2019} & Y & Y & - & - & Y & CNN/RNN model comparison \\
+\href{https://arxiv.org/abs/1912.03026}{Data augmentation 2019} & - & Y & - & Y & Y & Ablation and robustness framing \\
+\href{https://arxiv.org/abs/2009.02026}{Constellation CNN 2020} & Y & Y & Y & - & - & Non-I/Q visual representation \\
+\href{https://arxiv.org/abs/2010.10717}{Complex CNN 2020} & Y & Y & - & - & Y & Complex-valued model framing \\
+\href{https://arxiv.org/abs/2105.15037}{Multi-scale networks 2021} & Y & Y & - & Y & Y & Multi-scale architecture figure \\
+\href{https://arxiv.org/abs/2108.10001}{Involution ResNet 2021} & Y & Y & - & - & Y & Residual baseline variant \\
+\href{https://arxiv.org/abs/2111.03258}{Time-frequency attention 2021} & Y & Y & - & Y & Y & Time-frequency attention evidence \\
+\href{https://arxiv.org/abs/2203.03140}{Adaptive fusion 2022} & Y & Y & - & Y & Y & Fusion architecture and ablation \\
+\href{https://arxiv.org/abs/2208.04659}{Ultra Lite CNN 2022} & Y & Y & - & Y & Y & Lightweight complexity table \\
+\href{https://arxiv.org/abs/2209.03764}{SE-MSFN 2022} & Y & Y & - & Y & Y & Attention/multi-scale result curves \\
+\href{https://arxiv.org/abs/2301.11773}{Harper 2023} & Y & Y & Y & Y & Y & Systematic benchmark style \\
+\href{https://arxiv.org/abs/2304.00445}{AMC-Net 2023} & Y & Y & - & Y & Y & Dedicated AMC network comparison \\
+\href{https://arxiv.org/abs/2405.11263}{MAMCA 2024} & Y & Y & - & Y & Y & Accuracy/efficiency trade-off \\
+\href{https://arxiv.org/abs/2503.04142}{UQ-AMC 2025} & Y & Y & - & - & Y & Reliability and uncertainty framing \\
+\href{https://arxiv.org/abs/2604.06402}{G-AMC 2026} & Y & Y & - & Y & Y & Green/lightweight framing \\
+\href{https://www.mdpi.com/2079-9292/12/17/3661}{HFECNET-CA/IDAF} & Y & Y & Y & Y & Y & Open-access module and figure exemplars \\
 \bottomrule
 \end{longtable}
 \endgroup

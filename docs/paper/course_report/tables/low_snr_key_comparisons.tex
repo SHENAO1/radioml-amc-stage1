@@ -2,15 +2,16 @@
   \centering
   \caption{低信噪比关键比较与配对检验摘要}
   \label{tab:low-snr-key-comparisons}
-  \small
-  \begin{tabularx}{\textwidth}{p{0.18\textwidth}p{0.16\textwidth}p{0.24\textwidth}p{0.16\textwidth}X}
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{lcccl}
     \toprule
-    比较 & 低信噪比准确率 & 准确率差值与 95\% 置信区间 & McNemar 检验 & 解释边界 \\
+    比较 & Low-SNR Acc. & $\Delta$ 与 95\% CI & McNemar $p$ & 解释边界 \\
     \midrule
-    CLDNN vs. 参数匹配 I/Q & 22.24\% vs. 21.63\% & \(+0.006042\) [0.003125, 0.008883] & \(p=3.88\times10^{-5}\) & 当前配对检验支持 CLDNN 方向。 \\
-    静态融合 vs. CLDNN & 22.13\% vs. 22.24\% & \(-0.001061\) [-0.003939, 0.001838] & \(p=0.476\) & 置信区间跨 0，不能声称静态融合优于 CLDNN。 \\
-    静态融合 vs. 参数匹配 I/Q & 22.13\% vs. 21.63\% & \(+0.004981\) [0.001970, 0.007973] & \(p=0.00106\) & 当前配对检验支持静态融合方向。 \\
-    门控融合 vs. 静态融合 & 21.13\% vs. 22.13\% & \(-0.010019\) [-0.012746, -0.007292] & \(p=1.23\times10^{-12}\) & 当前配对检验支持静态融合方向。 \\
+    CLDNN vs IQ matched & 22.24\% vs. 21.63\% & $+0.006042$ $[+0.003125,+0.008883]$ & $3.88e-05$ & 方向由当前 paired test 支持。 \\
+    Fusion vs CLDNN & 22.13\% vs. 22.24\% & $-0.001061$ $[-0.003939,+0.001838]$ & $0.476$ & CI 跨 0，不能声称优势。 \\
+    Fusion vs IQ matched & 22.13\% vs. 21.63\% & $+0.004981$ $[+0.001970,+0.007973]$ & $0.00106$ & 方向由当前 paired test 支持。 \\
+    Gated vs Fusion & 21.13\% vs. 22.13\% & $-0.010019$ $[-0.012746,-0.007292]$ & $1.23e-12$ & 方向由当前 paired test 支持。 \\
     \bottomrule
-  \end{tabularx}
+  \end{tabular}%
+  }
 \end{table}
