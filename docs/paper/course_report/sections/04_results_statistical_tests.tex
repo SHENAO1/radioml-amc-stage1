@@ -38,7 +38,7 @@
 本章在第~2~章定义的固定划分、模型矩阵和评价指标基础上展示主实验结果。除特别说明外，所有数值均来自已同步的主实验聚合表、低信噪比分组表、受控 CUDA 前向延迟表以及配对统计检验表。本章不新增训练、不重建主表，也不把诊断性输出纳入性能结论。
 
 % ============================================================
-\section{主实验整体结果}
+\section{主实验整体结果}\label{sec:results-main}
 % ============================================================
 
 表~\ref{tab:course-main-results-excerpt} 汇总 9 个模型行在 3 个训练种子上的结果。该表同时列出整体准确率、宏平均 F1、均衡准确率、低/中/高信噪比分组准确率和参数量，用于从总体性能、信噪比分组和模型规模三个角度观察结果。
@@ -228,7 +228,7 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig24_gate_diagnostic.pdf}
-  \caption{门控融合诊断：标量门控权重 $g$ 的逐 SNR 分布（左，三种子各一条线，误差棒为样本标准差）与全局统计（右，均值$\pm$标准差）。$g \to 1$ 偏好 STFT，$g \to 0$ 偏好 I/Q。gate 值随 SNR 单调递减（方向正确），但跨种子差异大（seed 3407 均值仅 0.184 vs seed 42 的 0.344），且正确的门控方向未转化为分类增益。}
+  \caption{门控权重 $g$ 的逐 SNR 分布（左，三种子）与全局统计（右）。$g \to 1$ 偏好 STFT，$g \to 0$ 偏好 I/Q。}
   \label{fig:gate-diagnostic}
 \end{figure}
 
@@ -424,7 +424,7 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig22_proposed_vs_stage5a_delta_heatmap.pdf}
-  \caption{提案模型相对 Stage 5A 九个基线在四个指标（Overall / Low / Mid / High SNR）上的准确率增量热力图（单位：百分点；绿色正增量，红色负增量；$\bigstar$ 行为 CLDNN 基线加粗边框；数据源：三种子均值 \texttt{metrics\_test.json} vs \texttt{main\_table\_metrics.csv}）。\textbf{注意：MCLDNN 行原图中基于无效均值 0.2501 计算的 $\Delta$ = +37.83 pp 应予忽略。该行正确的 $\Delta$ 应基于 seed 42 单种子值 0.5684 计算（$\Delta \approx$ +6.00 pp）；后续排版时须以此口径重新生成该行。}}
+  \caption{提案模型相对 Stage 5A 九个基线在四个 SNR 分组的准确率增量热力图（百分点，三种子均值）。MCLDNN 行因种子异常（见第~\ref{sec:mcldnn-anomaly}~节）应予忽略。}
   \label{fig:proposed-vs-stage5a-delta}
 \end{figure}
 
@@ -439,7 +439,7 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.92\textwidth]{fig17_proposed_per_snr_comparison.pdf}
-  \caption{提案模型与四类对照的逐 SNR 准确率曲线（三训练种子均值）。灰/绿阴影区分别为低 SNR (\(\le -6\) dB) 与高 SNR (\(\ge 8\) dB) 范围。CLDNN+aug+LS（绿色）与 Proposed（红色）几乎完全重合，直观印证融合架构贡献为零。}
+  \caption{提案模型与四类对照的逐 SNR 准确率曲线（三训练种子均值）。灰/绿阴影区分别为低 SNR (\(\le -6\) dB) 与高 SNR (\(\ge 8\) dB) 范围。}
   \label{fig:proposed-per-snr}
 \end{figure}
 
@@ -454,7 +454,7 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig19_ablation_grouped_bars.pdf}
-  \caption{四个消融变体（\texttt{arch\_only} / \texttt{arch\_aug} / \texttt{arch\_ls} / \texttt{full}）与 CLDNN+aug+LS 对照组在 Overall / Low / Mid / High SNR 分组上的准确率均值 $\pm$ 标准差（三种子，数据源：\texttt{metrics\_test.json}）。每柱顶标注该分组最优值（加粗），水平虚线=Stage 5A CLDNN 整体基线（0.6129）。CLDNN+aug+LS（紫色）与 \texttt{arch\_aug}（橙色）高度接近，直观印证融合架构贡献为零。}
+  \caption{消融变体与 CLDNN+aug+LS 对照在四个 SNR 分组的准确率（三种子均值$\pm$std）。水平虚线为 Stage 5A CLDNN 基线（0.6129）。}
   \label{fig:ablation-grouped-bars}
 \end{figure}
 
@@ -465,7 +465,7 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.92\textwidth]{fig20_proposed_paired_forest.pdf}
-  \caption{同硬件五组配对统计检验森林图（$\bullet$ CI 不跨 0，$\circ$ CI 跨 0；数据源：\texttt{results/paper\_stage6/paired\_statistical\_tests/all\_paired\_tests.json}，三种子均值）。第三行（Proposed vs CLDNN+aug）CI 跨零且标注 ns，直观印证融合贡献归零。}
+  \caption{同硬件五组配对统计检验森林图（$\bullet$ CI 不跨 0，$\circ$ CI 跨 0；三种子均值，all\_paired\_tests.json）。}
   \label{fig:proposed-paired-forest}
 \end{figure}
 
