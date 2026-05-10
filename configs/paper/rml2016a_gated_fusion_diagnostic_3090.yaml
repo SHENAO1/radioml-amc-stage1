@@ -1,0 +1,82 @@
+# Diagnostic: gated_fusion_iq_stft (scalar-gated I/Q + STFT fusion).
+#
+# Purpose: train the gated fusion variant and extract per-sample gate values
+# (g) to diagnose WHY the naive fusion (fusion_iq_stft) underperforms CLDNN.
+# The gate learns to weight I/Q vs STFT branches; if g collapses to ~0 or ~1,
+# the STFT branch is either ignored or dominating — explaining the fusion failure.
+#
+# Same fixed split, 3 seeds, extended-budget schedule as all Stage 6 experiments.
+
+execution:
+  stage: paper_stage6_gated_fusion_diagnostic
+  evidence_status: in_progress
+  evidence_label: GATED_FUSION_DIAGNOSTIC_3090
+  guardrails:
+    - Do not modify any other Stage 6 experiment results.
+    - Use the same fixed split artifact as all Stage 6 experiments.
+
+experiment:
+  dataset_id: rml2016a
+  dataset_name: RML2016.10A
+  split_id: stratified_by_mod_snr_seed42
+  split_artifact_npz: data/splits/rml2016a/stratified_by_mod_snr_seed42.npz
+  split_summary_json: data/splits/rml2016a/stratified_by_mod_snr_seed42_summary.json
+  split_seed: 42
+  train_seeds:
+    - 42
+    - 2025
+    - 3407
+  models:
+    - gated_fusion_iq_stft
+
+data:
+  mode: real
+  dataset: RML2016.10A
+  raw_path: auto
+  subset_mode: false
+  subset_mods: null
+  subset_snrs: null
+  max_samples_per_group: null
+  split_strategy: stratified_by_mod_snr
+  split_artifact_npz: data/splits/rml2016a/stratified_by_mod_snr_seed42.npz
+  split_summary_json: data/splits/rml2016a/stratified_by_mod_snr_seed42_summary.json
+  test_size: 0.2
+  val_size: 0.1
+
+features:
+  stft:
+    nperseg: 32
+    noverlap: 16
+    log_scale: true
+    normalize: true
+
+train:
+  epochs: 50
+  batch_size: 256
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  num_workers: 4
+  device: auto
+  early_stopping_patience: 15
+  scheduler:
+    name: cosine
+    warmup_epochs: 5
+
+outputs:
+  result_root: results/paper_stage6/gated_fusion_diagnostic_3090/rml2016a
+  per_run_shape: results/paper_stage6/gated_fusion_diagnostic_3090/rml2016a/<model_id>/seed_<train_seed>
+  aggregate_dir: results/paper_stage6/gated_fusion_diagnostic_3090/rml2016a/aggregate
+  save_checkpoint: true
+  save_plots: true
+  save_report: true
+  required_files:
+    - config_resolved.yaml
+    - metrics_test.json
+    - metrics_per_snr.csv
+    - metrics_per_class.csv
+    - predictions_test.csv
+    - confusion_overall.csv
+    - confusion_low_snr.csv
+    - complexity.json
+    - latency.json
+    - training_summary.json

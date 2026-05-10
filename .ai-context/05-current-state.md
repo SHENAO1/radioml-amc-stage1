@@ -2,10 +2,10 @@
 
 <!-- 动态文档。每次会话结束前都要更新。保持短小。 -->
 
-**最近更新**: 2026-05-09
+**最近更新**: 2026-05-10
 
 ## Current Goal
-**A 方案 completed and POSITIVE.** `fusion_cldnn_stft + augmentation + label smoothing 0.1` achieves overall mean accuracy 0.6264 (3 seeds, std 0.0005), beating Stage 5A CLDNN 0.6129 by +1.35 pp; all four SNR-aggregate metrics improve. Manuscript updated with Section 5.6 (positive contribution). Stage 5A main table remains frozen. Next decision: ablation experiments (separate the three interventions) or freeze the evidence package and finalise manuscript.
+**补充实验全部完成。融合贡献归零已确认。** CLDNN+aug 对照实验证实增强收益完全独立于融合架构（Proposed vs CLDNN+aug: -0.08pp, not significant）。门控诊断揭示 g 呈 SNR 单调递减（方向正确）但未转化为分类增益。报告已全面修订。Stage 5A main table remains frozen. Next: 编译 LaTeX 确认无错误，考虑是否需要进一步图表。
 
 ## Latest Evidence / Baton
 - Latest training evidence: `docs/paper/PAPER_STAGE6_LOW_SNR_WEIGHTED_CE_3090_REPORT.md` and analysis `docs/paper/PAPER_STAGE6_LOW_SNR_WEIGHTED_CE_ANALYSIS.md`.
@@ -61,7 +61,12 @@
 - Combination is NOT ablated — three interventions are stacked and we do not yet know per-intervention contribution. Recorded as future-work item.
 
 ## In Progress
-- A 方案 (`fusion_cldnn_stft + augmentation + label smoothing`) — code + smoke + 3-seed training on RTX 3090, then analysis docs.
+- 无活跃任务。
+
+## Supplementary Experiments Completed (2026-05-10)
+- **CLDNN_AUG_ABLATION_3090**: CLDNN + aug + LS, 3 seeds. Mean overall 0.6272. Fusion contributes 0pp.
+- **GATED_FUSION_DIAGNOSTIC_3090**: gated_fusion_iq_stft retrained, 3 seeds. Mean overall 0.5733. Gate g: SNR-monotonic (0.79→0.12), cross-seed unstable (0.18–0.34).
+- **paired_statistical_tests**: 5 comparisons × 3 seeds, McNemar + bootstrap CI. All results in `all_paired_tests.json`.
 
 ## Stage 2 Literature Calibration (key takeaways)
 - Real avg-across-SNR SOTA on RML2016.10A: ~0.63-0.65 (LENet-M 0.6463, SigFormer 0.6371, ICRNNA 0.6324, CC-MSNet 0.6286). Our CLDNN 0.6129 is 2-3 pp behind, gap is closeable.

@@ -18,6 +18,39 @@
 
 ---
 
+## 2026-05-10 · Claude Code (补充实验完成 + 报告修订：融合贡献归零)
+**完成 / Done**:
+- CLDNN + aug 消融实验（`CLDNN_AUG_ABLATION_3090`）：3 seeds × 1 model，RTX 3090。
+  - Mean overall 0.6272 (±0.0007)，vs CLDNN baseline 0.6145 → +1.27pp (all p<0.001)。
+  - vs Proposed (arch+aug+LS) 0.6264：Δ = -0.08pp，McNemar p=0.89/0.17/0.49，CI 均跨零。
+  - **决定性结论：融合架构在同增强条件下未贡献任何可检测的独立增益。**
+- 门控融合诊断实验（`GATED_FUSION_DIAGNOSTIC_3090`）：3 seeds × gated_fusion_iq_stft，RTX 3090。
+  - Mean overall 0.5733，确认负结果可复现。
+  - Gate值 g 呈 SNR 单调递减（-20dB: 0.79 → +18dB: 0.12），方向正确但未转化为分类增益。
+  - 跨种子不稳定：gate mean = 0.344 / 0.331 / 0.184。
+- 同硬件5组配对统计检验（`paired_statistical_tests/all_paired_tests.json`）：McNemar + bootstrap CI。
+- 实验结果从服务器同步到本地（metrics_test.json, gate_diagnostic.json, all_paired_tests.json）。
+- LaTeX 报告全面修订：
+  - Section 4.4：替换"诊断方案未执行"为实际门控权重分析（新增表 gate-snr-profile）。
+  - Section 4.7：新增 subsection "CLDNN + 信号域增强对照实验与融合贡献归零"（新增表 cldnn-aug-control）。
+  - 更新跨硬件效度缺口声明为"已完成"。
+  - Section 5：更新讨论（融合贡献归零证据 + 门控诊断发现），修订协议局限表。
+  - Section 6：更新结论（新增第七条门控诊断 + 修订第六条融合贡献）和后续工作。
+  - Abstract：更新为"信号域增强是唯一可检测驱动因素"叙事。
+
+**进行中 / In progress**: 无
+
+**下一步建议 / Next**:
+- 编译 LaTeX 确认无错误。
+- 如有需要，生成门控诊断图（gate vs SNR 曲线图）作为报告配图。
+- 考虑是否需要 predictions_test.csv 大文件本地同步（当前仅同步 metrics_test.json）。
+
+**注意 / Watch out**:
+- scp 传输创建了嵌套目录（`cldnn_aug_ablation_3090/cldnn_aug_ablation_3090/`），手动 scp 的 metrics_test.json 在非嵌套路径。
+- 服务器 `i-1.gpushare.com:62244` 为按量计费实例，用完需关机释放。
+
+---
+
 ## 2026-05-09 · Claude Code (A 方案完成：fusion_cldnn_stft + aug + LS — **POSITIVE**)
 **完成 / Done**:
 - 实现 `CLDNNIQBranch`（CLDNN encoder 去掉分类头，输出 128-D embedding）和 `FusionCldnnStftNet`（CLDNN-style I/Q + 2D-CNN STFT + fused MLP，286k 参数）。
