@@ -2,156 +2,343 @@
 
 \section{输入表示}
 
-本文的输入表示分为原始 I/Q 序列和 STFT 时频图两类。原始 I/Q 输入记为 \(x_{\mathrm{IQ}}\in\mathbb{R}^{2\times128}\)，两个通道分别为同相分量和正交分量。该表示保留基带信号的时间采样结构，是 CNN、ResNet、CLDNN、MCLDNN、LWAMCNet 和参数匹配控制模型的共同输入。
+本文使用两类输入表示：原始 I/Q 序列与 STFT 时频图。
 
-STFT 视图通过对 I/Q 序列进行窗口化傅里叶变换得到。设窗函数为 \(w[n]\)，窗口起点为 \(\tau\)，频率索引为 \(k\)，则单通道短时傅里叶变换可写为
+\textbf{I/Q 序列。}基带采样信号记为 \(x_{\mathrm{IQ}}\in\mathbb{R}^{2\times128}\)，两行分别为同相分量 \(I[n]\) 和正交分量 \(Q[n]\)，\(n=0,\ldots,127\)。该表示直接保留时间采样结构，是大多数 AMC 文献的标准输入\cite{oshea2016cnn,sainath2015cldnn,xu2020mcldnn}。
+
+\textbf{STFT 时频图。}以复数形式拼合 \(x_c[n]=I[n]+jQ[n]\)，对 \(x_c\) 施加窗函数 \(w[n]\) 后做短时傅里叶变换：
 \begin{equation}
-  X(\tau,k)=\sum_{n} x[n]\,w[n-\tau]\exp\left(-j2\pi kn/N\right).
+  X(\tau,k)=\sum_{n=0}^{N-1} x_c[n]\,w[n-\tau]\exp\!\left(-j2\pi kn/N\right),
   \label{eq:stft-definition}
 \end{equation}
-实验中窗口长度为 32，重叠长度为 16。STFT 分支使用幅度型二维时频表示作为卷积输入。本文只把 STFT 作为可检验输入视图，不预设其相对 I/Q 序列必然更优。
+其中 \(\tau\) 为帧起点，\(k\) 为频率箱索引，\(N\) 为 FFT 点数。实验中选取 Hann 窗，窗长 32 点、跳步 16 点，FFT 大小 32，输出幅度谱形状为 \(\mathbb{R}^{1\times32\times7}\)（频率箱 \(\times\) 时间帧）。时频图以线性幅度馈入 2D-CNN，不取对数，以避免引入与信号幅度标定相关的额外超参。
 
-\section{模型家族与比较目的}
+\section{实验模型矩阵}
 
-图~\ref{fig:model-taxonomy} 概括了主实验模型行的输入视图和方法角色。模型矩阵的设计目标是覆盖课程报告所需的主要比较维度：原始 I/Q 基线、时频单视图、多视图融合、卷积-循环混合结构、轻量模型和参数匹配控制。
-
-\begin{figure}[htbp]
-  \centering
-  \input{figures/fig02_model_taxonomy}
-  \caption{主实验模型行的输入视图与方法角色。所有模型均在同一数据集、固定划分和训练种子集合下评估，方法类别本身不表示性能优劣。}
-  \label{fig:model-taxonomy}
-\end{figure}
+表~\ref{tab:method-family-matrix} 汇总本文实现的全部模型、输入视图、方法角色和参数量，对应第~\ref{sec:results-main}~节主实验的 9 个模型行及提案模型。
 
 \begin{table}[htbp]
   \centering
-  \caption{模型家族、输入视图与方法角色}
+  \caption{实验模型矩阵：输入视图、方法角色与参数量}
   \label{tab:method-family-matrix}
-  \begin{tabularx}{\textwidth}{lllX}
+  \small
+  \begin{tabularx}{\textwidth}{llXr}
     \toprule
-    模型家族 & 模型行 & 输入视图 & 方法角色 \\
+    模型 & 输入视图 & 方法角色 & 参数量 \\
     \midrule
-    基础一维卷积 & \path{cnn1d} & I/Q & 原始 I/Q 卷积基线，承接早期 CNN 调制识别思路\cite{oshea2016cnn}。 \\
-    残差卷积 & \path{resnet1d} & I/Q & 提供更深的一维卷积对照。 \\
-    时频卷积 & \path{tfcnn_stft} & STFT & 单独检验 STFT 视图的判别性。 \\
-    卷积-循环混合 & \path{cldnn}, \path{mcldnn} & I/Q & 比较卷积局部特征与序列建模结合的结构\cite{sainath2015cldnn,west2017deep,xu2020mcldnn}。 \\
-    轻量结构 & \path{lwamcnet} & I/Q & 提供较低参数量网络参考\cite{wang2021lwamcnet}。 \\
-    参数匹配控制 & \path{iq_param_matched} & I/Q & 控制参数规模，辅助解释融合结果。 \\
-    静态融合 & \path{fusion_iq_stft} & I/Q+STFT & 拼接两个视图表征，检验多视图互补性。 \\
-    门控融合 & \path{gated_fusion_iq_stft} & I/Q+STFT & 用标量门控调节两个视图贡献，作为候选机制接受实验检验。 \\
+    \texttt{cnn1d}\cite{oshea2016cnn}         & I/Q      & 三层 Conv1d I/Q 基线，复现早期 CNN-AMC 思路 & 37,131 \\
+    \texttt{resnet1d}\cite{he2016resnet}       & I/Q      & 残差连接深度卷积，提供更强 I/Q 对照 & 111,755 \\
+    \texttt{tfcnn\_stft}                       & STFT     & 单独检验 STFT 视图的判别容量 & 24,123 \\
+    \texttt{cldnn}\cite{sainath2015cldnn,west2017deep} & I/Q & 三层 Conv1d + 单层 LSTM 卷积-循环混合 & 241,675 \\
+    \texttt{mcldnn}\cite{xu2020mcldnn}         & I/Q      & 多分支 2D/1D 卷积 + 2 层 LSTM 多通道时空结构 & 406,199 \\
+    \texttt{lwamcnet}\cite{wang2021lwamcnet}   & I/Q      & 深度可分离残差卷积，参数量最低参考点 & 20,395 \\
+    \texttt{iq\_param\_matched}                & I/Q      & 参数量对齐融合模型的纯 I/Q 控制 & 136,395 \\
+    \texttt{fusion\_iq\_stft}                  & I/Q+STFT & 静态拼接双视图，检验时域-时频互补性 & 98,299 \\
+    \texttt{gated\_fusion\_iq\_stft}           & I/Q+STFT & 标量门控自适应加权双视图 & 134,780 \\
+    \midrule
+    \texttt{fusion\_cldnn\_stft}（提案）       & I/Q+STFT & I/Q 分支升级为 CLDNN 风格，叠加信号域增强与标签平滑 & 286,000 \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-\section{I/Q 序列模型}
+\section{I/Q 一维卷积基线}
 
-\path{cnn1d} 直接以 \(x_{\mathrm{IQ}}\) 为输入，通过一维卷积、归一化、非线性激活、池化和分类头输出调制类别。其抽象形式为
+\texttt{cnn1d} 以三层一维卷积堆叠从原始 I/Q 序列提取局部时间特征\cite{oshea2016cnn}。卷积核尺寸依次为 7、5、3，逐层扩大通道数（32-64-128）；第三层后接全局平均池化，消除对序列长度的依赖，最后以单层线性分类头输出 11 类 logits。表~\ref{tab:arch-cnn1d} 给出逐层结构。
+
+\begin{table}[htbp]
+  \centering
+  \caption{\texttt{cnn1d} 逐层结构（输入 \([2,128]\)，batch 维省略）}
+  \label{tab:arch-cnn1d}
+  \small
+  \begin{tabular}{llll}
+    \toprule
+    层 & 操作 & 输出形状 & 参数量 \\
+    \midrule
+    Conv1d-1  & kernel 7, padding 3, 32ch, BN, ReLU  & \([32,128]\) & 480 \\
+    MaxPool1d & kernel 2                              & \([32, 64]\) & --- \\
+    Conv1d-2  & kernel 5, padding 2, 64ch, BN, ReLU  & \([64, 64]\) & 10,304 \\
+    MaxPool1d & kernel 2                              & \([64, 32]\) & --- \\
+    Conv1d-3  & kernel 3, padding 1, 128ch, BN, ReLU & \([128,32]\) & 24,832 \\
+    AvgPool   & AdaptiveAvgPool1d(1)                  & \([128]\)    & --- \\
+    Linear    & \(128 \to 11\)                        & \([11]\)     & 1,419 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{I/Q 残差卷积：\texttt{resnet1d}}
+
+\texttt{resnet1d} 在一维卷积堆叠中引入残差连接\cite{he2016resnet}，允许堆叠更深特征层。主干由一个 stem 卷积层和三个残差块组成，Block2、Block3 以 stride=2 完成下采样；各残差块在通道数或步长不匹配时用 \(1\times1\) 卷积对齐快捷路径，否则退化为恒等映射。全局平均池化后接线性分类头，共 111,755 个参数（表~\ref{tab:arch-resnet1d}）。
+
+\begin{table}[htbp]
+  \centering
+  \caption{\texttt{resnet1d} 逐层结构（输入 \([2,128]\)，batch 维省略）}
+  \label{tab:arch-resnet1d}
+  \small
+  \begin{tabular}{llll}
+    \toprule
+    层 & 操作 & 输出形状 & 说明 \\
+    \midrule
+    Stem      & Conv1d(2\(\to\)32, k=7, p=3), BN, ReLU  & \([32,128]\) & --- \\
+    Block1    & ResBlock(32\(\to\)32, stride=1)           & \([32,128]\) & 恒等快捷 \\
+    Block2    & ResBlock(32\(\to\)64, stride=2)           & \([64, 64]\) & 1{\texttimes}1 快捷 \\
+    Block3    & ResBlock(64\(\to\)128, stride=2)          & \([128,32]\) & 1{\texttimes}1 快捷 \\
+    AvgPool   & AdaptiveAvgPool1d(1), flatten             & \([128]\)    & --- \\
+    Linear    & \(128 \to 11\)                            & \([11]\)     & --- \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+\noindent 各 ResBlock 由两层 Conv1d(k=3, p=1)+BN 构成，中间接 ReLU，快捷路径在块输出处求和后再经 ReLU。
+
+\section{卷积-循环混合模型：\texttt{cldnn} 与 \texttt{mcldnn}}
+
+卷积-循环堆叠（CLDNN）最早在语音识别中系统描述\cite{sainath2015cldnn}：先以卷积层压缩局部变化并提取空间特征，再以 LSTM\cite{hochreiter1997lstm} 建模帧间时序依赖，最后以全连接层分类。该思路被引入 AMC 比较研究\cite{west2017deep}，与纯卷积基线形成结构对照。
+
+\subsection{\texttt{cldnn}}
+
+本文 \texttt{cldnn} 为单流单层 LSTM 结构（表~\ref{tab:arch-cldnn}）。I/Q 序列经三层 Conv1d 提取局部特征，前两层后接 MaxPool1d 各做 2 倍下采样；第三层无池化，将特征序列转置为 LSTM 输入 \([B,32,128]\)；单层 LSTM 取末时刻隐状态 \(h_T\in\mathbb{R}^{128}\)，送入两层 MLP 分类器（Dropout 0.5）。
+
+\begin{table}[htbp]
+  \centering
+  \caption{\texttt{cldnn} 逐层结构（输入 \([2,128]\)，batch 维省略）}
+  \label{tab:arch-cldnn}
+  \small
+  \begin{tabular}{llll}
+    \toprule
+    层 & 操作 & 输出形状 & 说明 \\
+    \midrule
+    Conv1d-1  & kernel 7, padding 3, 64ch, BN, ReLU  & \([64,128]\) & --- \\
+    MaxPool1d & kernel 2                               & \([64, 64]\) & --- \\
+    Conv1d-2  & kernel 5, padding 2, 128ch, BN, ReLU & \([128,64]\) & --- \\
+    MaxPool1d & kernel 2                               & \([128,32]\) & --- \\
+    Conv1d-3  & kernel 3, padding 1, 128ch, BN, ReLU & \([128,32]\) & --- \\
+    转置      & transpose(1,2)                         & \([32,128]\) & LSTM 输入 \\
+    LSTM      & hidden=128, 1 层, batch\_first，取 \(h_T\) & \([128]\) & --- \\
+    Linear-1  & \(128\to128\), ReLU, Dropout(0.5)    & \([128]\)    & --- \\
+    Linear-2  & \(128\to11\)                          & \([11]\)     & --- \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{\texttt{mcldnn}}
+
+MCLDNN 引入多分支 I/Q 空间特征提取\cite{xu2020mcldnn}：以 \((2,8)\) 核对联合 I/Q 矩阵做 2D 卷积提取联合特征，同时对 I、Q 各做因果 1D 卷积后经 \((1,8)\) 核做空间融合；两路拼接后经 \((2,5)\) 融合卷积压缩至时间序列，馈入 2 层 LSTM（hidden=128）；分类器为三层线性-SELU-Dropout 结构（Dropout 0.5）。表~\ref{tab:arch-mcldnn} 给出逐层结构。
+
+\begin{table}[htbp]
+  \centering
+  \caption{\texttt{mcldnn} 逐层结构（输入 \([2,128]\)，展开为 \([1,2,128]\) 馈入 2D 分支，batch 维省略）}
+  \label{tab:arch-mcldnn}
+  \small
+  \begin{tabular}{llll}
+    \toprule
+    分支 / 层 & 操作 & 输出形状 & 说明 \\
+    \midrule
+    \multicolumn{4}{l}{\textit{联合空间分支}} \\
+    \quad Conv2d-joint & SamePad(1\(\to\)50, k=(2,8)), ReLU  & \([50,1,128]\) & 联合 I/Q 2D \\
+    \multicolumn{4}{l}{\textit{独立分支（I、Q 各一路）}} \\
+    \quad CausalConv-I & CausalConv(1\(\to\)50, k=8), ReLU   & \([50,128]\)   & I 单通道 \\
+    \quad CausalConv-Q & CausalConv(1\(\to\)50, k=8), ReLU   & \([50,128]\)   & Q 单通道 \\
+    \quad Stack I/Q    & stack(I,Q, dim=2)                    & \([50,2,128]\) & --- \\
+    \quad Conv2d-indep & SamePad(50\(\to\)50, k=(1,8)), ReLU & \([50,2,128]\) & --- \\
+    \multicolumn{4}{l}{\textit{融合阶段}} \\
+    \quad Concat        & 联合+独立，dim=1                    & \([100,2,128]\) & --- \\
+    \quad Conv2d-fuse   & (100\(\to\)100, k=(2,5)), ReLU      & \([100,1,124]\) & --- \\
+    \quad Squeeze+转置  & squeeze(2), transpose(1,2)          & \([124,100]\)  & LSTM 输入 \\
+    \quad LSTM          & hidden=128, 2 层, 取 \(h_T\)       & \([128]\)      & --- \\
+    \quad Linear-1      & \(128\to128\), SELU, Dropout(0.5)  & \([128]\)      & --- \\
+    \quad Linear-2      & \(128\to128\), SELU, Dropout(0.5)  & \([128]\)      & --- \\
+    \quad Linear-3      & \(128\to11\)                        & \([11]\)       & --- \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+\noindent\textbf{MCLDNN 训练异常说明。}本实验中 \texttt{mcldnn} 三个训练种子表现出双峰分布：种子 42 接近正常，种子 2025 与 3407 退化至接近随机水平，导致整体准确率均值与标准差均不稳定（见第~\ref{sec:results-mcldnn-anomaly}~节）。该异常作为负面证据完整保留，不从结果表中剔除。
+
+\section{轻量深度可分离卷积：\texttt{lwamcnet}}
+
+\texttt{lwamcnet} 对应文献\cite{wang2021lwamcnet} 的 2016.10A 缩放方案：以 \((2,5)\) 核提取初始 I/Q 空间特征，经三级深度可分离残差（DSC-Residual）栈精炼，每级含两个 DSC 残差单元和 \((1,2)\) MaxPool；最后以分组深度卷积（GDWConv，k=(1,16)）重建特征，接单层线性分类器。深度可分离卷积将标准 2D 卷积分解为逐通道卷积（depthwise）和逐点卷积（pointwise），在保持感受野的同时大幅降低参数量，本文 20,395 个参数是所有模型中最少的（表~\ref{tab:arch-lwamcnet}）。
+
+\begin{table}[htbp]
+  \centering
+  \caption{\texttt{lwamcnet} 逐层结构（输入 \([2,128]\)，以 \([1,2,128]\) 馈入首层，batch 维省略）}
+  \label{tab:arch-lwamcnet}
+  \small
+  \begin{tabular}{llll}
+    \toprule
+    层 & 操作 & 输出形状 & 说明 \\
+    \midrule
+    Conv2d-0    & (1\(\to\)64, k=(2,5), p=(0,2)), ReLU & \([64,1,128]\) & 初始特征 \\
+    DSC-Stack-1 & 64\(\to\)32: ChannelFusion+2{\texttimes}DSCUnit+MaxPool(1,2) & \([32,1,64]\) & --- \\
+    DSC-Stack-2 & 32\(\to\)32: ChannelFusion+2{\texttimes}DSCUnit+MaxPool(1,2) & \([32,1,32]\) & --- \\
+    DSC-Stack-3 & 32\(\to\)32: ChannelFusion+2{\texttimes}DSCUnit+MaxPool(1,2) & \([32,1,16]\) & --- \\
+    GDWConv     & groups=32, k=(1,16), ReLU, flatten   & \([32]\) & --- \\
+    Linear      & \(32\to11\)                           & \([11]\) & --- \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+\noindent 各 DSCUnit 含两个深度可分离 Conv2d（k=(1,5), p=(0,2)）串联作残差路径，等效于对时间维做深度序列卷积。
+
+\section{STFT 单视图模型：\texttt{tfcnn\_stft}}
+
+\texttt{tfcnn\_stft} 仅以 STFT 幅度谱 \(x_{\mathrm{STFT}}\in\mathbb{R}^{1\times32\times7}\) 为输入，通过三层 2D-CNN 提取时频局部模式，经全局平均池化后以线性分类头输出预测。该模型单独度量 STFT 视图的判别容量，为解释双视图融合效果提供孤立视图参照（表~\ref{tab:arch-tfcnn}）。
+
+\begin{table}[htbp]
+  \centering
+  \caption{\texttt{tfcnn\_stft} 逐层结构（输入 \([1,32,7]\)，batch 维省略）}
+  \label{tab:arch-tfcnn}
+  \small
+  \begin{tabular}{llll}
+    \toprule
+    层 & 操作 & 输出形状 & 说明 \\
+    \midrule
+    Conv2d-1  & kernel 3, padding 1, 16ch, BN, ReLU & \([16,32,7]\) & --- \\
+    MaxPool2d & kernel 2                              & \([16,16,3]\) & --- \\
+    Conv2d-2  & kernel 3, padding 1, 32ch, BN, ReLU & \([32,16,3]\) & --- \\
+    MaxPool2d & kernel 2                              & \([32, 8,1]\) & --- \\
+    Conv2d-3  & kernel 3, padding 1, 64ch, BN, ReLU & \([64, 8,1]\) & --- \\
+    AvgPool   & AdaptiveAvgPool2d(1), flatten         & \([64]\)      & --- \\
+    Linear    & \(64 \to 11\)                         & \([11]\)      & --- \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{参数匹配 I/Q 控制：\texttt{iq\_param\_matched}}
+
+双视图融合相比纯 I/Q 模型不仅引入额外视图，还增加 STFT 分支参数。为区分"额外参数"与"新增视图信息"的贡献，本文引入 \texttt{iq\_param\_matched}：仅以 I/Q 为输入，通过四层 Conv1d（通道数 64-96-128-128）使参数量（136,395）与 \texttt{gated\_fusion\_iq\_stft}（134,780）基本对齐。当 \texttt{fusion\_iq\_stft} 在低信噪比区间相对该控制有小幅正差、整体区间为负差时，可将差异解释为视图信息而非参数规模的效果（表~\ref{tab:arch-iqpm}）。
+
+\begin{table}[htbp]
+  \centering
+  \caption{\texttt{iq\_param\_matched} 逐层结构（输入 \([2,128]\)，batch 维省略）}
+  \label{tab:arch-iqpm}
+  \small
+  \begin{tabular}{llll}
+    \toprule
+    层 & 操作 & 输出形状 & 说明 \\
+    \midrule
+    Conv1d-1  & kernel 7, padding 3, 64ch, BN, ReLU  & \([64,128]\) & --- \\
+    MaxPool1d & kernel 2                               & \([64, 64]\) & --- \\
+    Conv1d-2  & kernel 5, padding 2, 96ch, BN, ReLU  & \([96, 64]\) & --- \\
+    MaxPool1d & kernel 2                               & \([96, 32]\) & --- \\
+    Conv1d-3  & kernel 3, padding 1, 128ch, BN, ReLU & \([128,32]\) & --- \\
+    Conv1d-4  & kernel 3, padding 1, 128ch, BN, ReLU & \([128,32]\) & --- \\
+    AvgPool   & AdaptiveAvgPool1d(1), flatten          & \([128]\)    & --- \\
+    Linear-1  & \(128\to128\), ReLU, Dropout(0.1)    & \([128]\)    & --- \\
+    Linear-2  & \(128\to11\)                          & \([11]\)     & --- \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{静态 I/Q--STFT 融合：\texttt{fusion\_iq\_stft}}\label{sec:method-static-fusion}
+
+\texttt{fusion\_iq\_stft} 包含一个 I/Q 分支（\texttt{IQBranch1D}，三层 Conv1d，结构与 \texttt{cnn1d} 相同，输出 128 维嵌入）和一个 STFT 分支（\texttt{TimeFrequencyBranch2D}，三层 Conv2d，结构与 \texttt{tfcnn\_stft} 相同，输出 64 维嵌入），两分支独立提取特征后拼接经 MLP 分类：
 \begin{equation}
-  h_{\mathrm{IQ}}=f_{\mathrm{1D}}(x_{\mathrm{IQ}}),\qquad
-  \hat{y}=c(h_{\mathrm{IQ}}),
-  \label{eq:cnn1d-abstraction}
-\end{equation}
-其中 \(f_{\mathrm{1D}}\) 表示一维卷积特征提取器，\(c(\cdot)\) 表示分类头。\path{resnet1d} 在一维卷积堆叠中加入残差连接，用于提供更深的 I/Q 卷积对照。
-
-\path{cldnn} 和 \path{mcldnn} 属于卷积-循环混合结构。CLDNN 先提取局部卷积特征，再通过 LSTM 建模序列依赖\cite{hochreiter1997lstm}，最后完成分类；这类结构最早在语音识别中形成典型组合\cite{sainath2015cldnn}，也被用于 AMC 架构比较\cite{west2017deep}。本文中的 MCLDNN 对应多通道时空学习思路\cite{xu2020mcldnn}，包含多个 I/Q 分支、后续融合卷积、LSTM 和分类器。由于 MCLDNN 在本实验中存在异常训练种子，本章只说明结构角色，结果解释放在第~4~章和第~5~章。
-
-\path{lwamcnet} 是轻量化 I/Q 模型，对应轻量 CNN 在 AMC 中的设计思路\cite{wang2021lwamcnet}。本文把“轻量”限定为参数量和受控前向耗时背景，不直接等同于完整部署效率。完整部署效率还需要 CPU、预处理、数据搬运和端到端推理协议支持。
-
-\section{STFT 单视图模型}
-
-\path{tfcnn_stft} 只使用 STFT 时频图。模型通过二维卷积从时频平面中提取局部模式，再经池化和分类头输出调制类别。其抽象形式为
-\begin{equation}
-  h_{\mathrm{STFT}}=f_{\mathrm{2D}}(x_{\mathrm{STFT}}),\qquad
-  \hat{y}=c(h_{\mathrm{STFT}}).
-  \label{eq:stft-branch-abstraction}
-\end{equation}
-该模型用于回答“时频视图本身是否具有判别性”，而不是作为融合模型的直接性能上界。
-
-\section{参数匹配 I/Q 控制模型}
-
-\path{iq_param_matched} 仍只使用 I/Q 输入，但通过通道数和分类头规模调整，使参数量接近融合模型。引入该控制模型的原因是，多视图融合通常会增加分支和投影参数；如果只与较小 I/Q 基线比较，难以判断性能差异来自额外输入视图还是参数量变化。参数匹配控制将输入视图固定为 I/Q，因此为第~4~章解释低信噪比局部收益提供更清晰的参照。
-
-\section{静态 I/Q--STFT 融合}
-
-\path{fusion_iq_stft} 包含 I/Q 分支和 STFT 分支。两个分支分别提取表示
-\begin{equation}
-  h_{\mathrm{IQ}}=f_{\mathrm{IQ}}(x_{\mathrm{IQ}}),\qquad
-  h_{\mathrm{STFT}}=f_{\mathrm{STFT}}(x_{\mathrm{STFT}}),
-  \label{eq:static-fusion-branches}
-\end{equation}
-随后进行特征拼接并输入分类器：
-\begin{equation}
-  z=[h_{\mathrm{IQ}},h_{\mathrm{STFT}}],\qquad
-  \hat{y}=c(z).
+  z = \bigl[h_{\mathrm{IQ}}\;\|\;h_{\mathrm{STFT}}\bigr]\in\mathbb{R}^{192},\qquad
+  \hat{y} = \mathrm{MLP}_2(z),
   \label{eq:static-fusion}
 \end{equation}
-该结构用于检验时域和时频视图在固定协议下是否形成互补。本文不在方法章节预设其优势，所有效果判断均以第~4~章结果为准。
+MLP 分类头结构为 \(192\to192\)（ReLU, Dropout 0.1）\(\to11\)。该设计检验 STFT 时频特征与 I/Q 时域特征能否形成互补；第~\ref{sec:results-extended}~节的乘加量分析（I/Q 分支 2.0 M MACs vs.\ \texttt{resnet1d} 4.9 M）表明，I/Q 分支表征容量是限制融合性能的主要瓶颈。
 
-\section{标量门控融合}
+\section{标量门控融合：\texttt{gated\_fusion\_iq\_stft}}
 
-\path{gated_fusion_iq_stft} 在两个视图投影到相同维度后，用样本级标量门控调节贡献比例。门控输入由两个投影表示、绝对差和逐元素乘积组成：
+\texttt{gated\_fusion\_iq\_stft} 在双分支基础上增加可学习标量门控。两分支嵌入经投影层映射至公共维度 \(d=128\)（\(W_{\mathrm{IQ}}\in\mathbb{R}^{128\times128}\)，\(W_{\mathrm{STFT}}\in\mathbb{R}^{128\times64}\)），拼接绝对差与逐元素乘积构成门控输入，经小型 MLP 输出标量权重 \(g\in(0,1)\)：
 \begin{equation}
-  r=[z_{\mathrm{IQ}},z_{\mathrm{STFT}},|z_{\mathrm{IQ}}-z_{\mathrm{STFT}}|,z_{\mathrm{IQ}}\odot z_{\mathrm{STFT}}],
+  r=\bigl[z_{\mathrm{IQ}}\;\|\;z_{\mathrm{STFT}}\;\|\;|z_{\mathrm{IQ}}-z_{\mathrm{STFT}}|\;\|\;z_{\mathrm{IQ}}\odot z_{\mathrm{STFT}}\bigr]\in\mathbb{R}^{512},
   \label{eq:gated-input}
 \end{equation}
 \begin{equation}
-  g=\sigma(W_2\phi(W_1r)),\qquad
-  h=(1-g)z_{\mathrm{IQ}}+gz_{\mathrm{STFT}},
+  g=\sigma\!\bigl(W_2\,\mathrm{ReLU}(W_1 r)\bigr),\qquad
+  h=(1-g)\,z_{\mathrm{IQ}}+g\,z_{\mathrm{STFT}}\in\mathbb{R}^{128},
   \label{eq:gated-fusion}
 \end{equation}
-其中 \(g\) 为标量门控权重，\(\sigma(\cdot)\) 为 sigmoid 函数，\(\phi(\cdot)\) 为非线性激活。该门控不显式输入信噪比，因此它只能被视为一个可检验的视图加权候选，而不是先验的低信噪比鲁棒机制。
+其中 \(W_1\in\mathbb{R}^{64\times512}\)，\(W_2\in\mathbb{R}^{1\times64}\)，\(\mathrm{ReLU}\) 后施加 Dropout(0.1)，\(\sigma\) 为 sigmoid。融合向量 \(h\) 经 \(128\to128\to11\) 分类头输出 logits。门控输入加入绝对差与逐元素乘积，使 MLP 能感知两视图间的差异幅度与方向，从而做出样本级视图加权；该门控不接受显式信噪比输入，是自适应加权的可检验候选。
 
 \begin{figure}[htbp]
   \centering
   \input{figures/fig03_fusion_architecture}
-  \caption{静态 I/Q--STFT 融合与标量门控融合结构。静态融合直接拼接两个分支表征；门控融合用样本级标量权重组合两个投影表征。}
+  \caption{静态 I/Q--STFT 融合与标量门控融合结构对比。静态融合直接拼接两分支嵌入（\(\mathbb{R}^{128+64}\)）；门控融合先投影至公共维度（\(\mathbb{R}^{128}\)），再以样本级标量权重组合。}
   \label{fig:fusion-architecture}
 \end{figure}
 
-\section{提案模型与训练侧干预}
+\section{提案模型与训练侧干预}\label{sec:method-proposed}
 
-提案模型 \path{fusion_cldnn_stft} 的动机来自第~4~章扩展复杂度证据：静态 \path{fusion_iq_stft} 的 I/Q 分支乘加量 \(2.0\) M 显著低于 \path{resnet1d} 的 \(4.9\) M，因此 ``融合输给 CLDNN'' 的瓶颈更可能是 I/Q 表征容量。基于此，提案模型把 I/Q 分支替换为 CLDNN 风格 (\path{CLDNNIQBranch})——与 \path{cldnn} 同体的卷积特征栈加单层 LSTM\cite{sainath2015cldnn,hochreiter1997lstm}，取 LSTM 末态作为分支嵌入；STFT 分支沿用原 \path{fusion_iq_stft} 中的 2D-CNN\cite{ioffe2015batchnorm}，分类头为小型 MLP\cite{srivastava2014dropout}。形式化地，
+\subsection{架构动机}
+
+第~\ref{sec:results-extended}~节乘加量分析显示，\texttt{fusion\_iq\_stft} 的 I/Q 分支 MACs 仅 2.0 M，而 \texttt{resnet1d} 为 4.9 M；换言之，``融合输给 CLDNN'' 更可能源于 I/Q 表征容量不足，而非多视图结构本身的局限。基于此，提案模型 \texttt{fusion\_cldnn\_stft} 将 I/Q 分支替换为 \texttt{CLDNNIQBranch}——与 \texttt{cldnn} 共享卷积特征栈（Conv1d 64-128-128ch）加单层 LSTM\cite{sainath2015cldnn,hochreiter1997lstm}，取末时刻隐状态 \(h_T\) 为分支嵌入；STFT 分支沿用 \texttt{TimeFrequencyBranch2D}（与 \texttt{tfcnn\_stft} 结构相同\cite{ioffe2015batchnorm}），分类头为小型 MLP\cite{srivastava2014dropout}：
 \begin{equation}
-  h_{\mathrm{IQ}}=\mathrm{LSTM}(f_{\mathrm{1D}}(x_{\mathrm{IQ}}))_{\mathrm{last}},\quad
+  h_{\mathrm{IQ}}=\mathrm{LSTM}\bigl(f_{\mathrm{1D}}(x_{\mathrm{IQ}})\bigr)_T,\quad
   h_{\mathrm{STFT}}=f_{\mathrm{2D}}(x_{\mathrm{STFT}}),\quad
-  \hat{y}=c([h_{\mathrm{IQ}},h_{\mathrm{STFT}}]).
+  \hat{y}=\mathrm{MLP}_2\!\bigl([h_{\mathrm{IQ}}\,\|\,h_{\mathrm{STFT}}]\bigr).
   \label{eq:fusion-cldnn-stft}
 \end{equation}
-模型总参数量 \(286\)k，介于 \path{cldnn} 的 \(241.7\)k 与 \path{mcldnn} 的 \(406.2\)k 之间；表~\ref{tab:fusion-cldnn-stft-arch} 给出逐层结构。提案模型登记于独立证据标签 \texttt{FUSION\_CLDNN\_STFT\_AUG\_LS\_3090}，不进入主表。
+模型总参数量 286 k（介于 \texttt{cldnn} 的 241.7 k 与 \texttt{mcldnn} 的 406.2 k 之间），逐层结构见表~\ref{tab:fusion-cldnn-stft-arch}。
 
 \begin{table}[htbp]
   \centering
-  \caption{提案模型 \texttt{fusion\_cldnn\_stft} 逐层结构（输入形状均按 batch=1 标记）}
+  \caption{提案模型 \texttt{fusion\_cldnn\_stft} 逐层结构（batch=1，形状按各分支独立标记）}
   \label{tab:fusion-cldnn-stft-arch}
   \small
-  \begin{tabularx}{\textwidth}{lXll}
+  \begin{tabular}{llll}
     \toprule
-    分支 / 层 & 操作 & 输入形状 & 输出形状 \\
+    分支 / 层 & 操作 & 输出形状 & 说明 \\
     \midrule
-    I/Q 分支 (\path{CLDNNIQBranch}) & & & \\
-    \quad Conv1d-1 & kernel 7, padding 3, 64 通道, BN, ReLU & \([2,128]\) & \([64,128]\) \\
-    \quad MaxPool1d-1 & kernel 2 & \([64,128]\) & \([64,64]\) \\
-    \quad Conv1d-2 & kernel 5, padding 2, 128 通道, BN, ReLU & \([64,64]\) & \([128,64]\) \\
-    \quad MaxPool1d-2 & kernel 2 & \([128,64]\) & \([128,32]\) \\
-    \quad Conv1d-3 & kernel 3, padding 1, 128 通道, BN, ReLU & \([128,32]\) & \([128,32]\) \\
-    \quad LSTM (单层) & hidden=128, batch\_first, 取最后时刻 \(h_T\) & \([32,128]\) & \([128]\) \\
+    \multicolumn{4}{l}{\textit{I/Q 分支 (\texttt{CLDNNIQBranch})}} \\
+    \quad Conv1d-1  & kernel 7, padding 3, 64ch, BN, ReLU  & \([64,128]\) & --- \\
+    \quad MaxPool1d & kernel 2                               & \([64, 64]\) & --- \\
+    \quad Conv1d-2  & kernel 5, padding 2, 128ch, BN, ReLU & \([128,64]\) & --- \\
+    \quad MaxPool1d & kernel 2                               & \([128,32]\) & --- \\
+    \quad Conv1d-3  & kernel 3, padding 1, 128ch, BN, ReLU & \([128,32]\) & --- \\
+    \quad LSTM      & hidden=128, 1 层, 取 \(h_T\)         & \([128]\)    & batch\_first \\
     \midrule
-    STFT 分支 (\path{TimeFrequencyBranch2D}) & & & \\
-    \quad Conv2d-1 & kernel 3, padding 1, 16 通道, BN, ReLU & \([1,32,7]\) & \([16,32,7]\) \\
-    \quad MaxPool2d-1 & kernel 2 & \([16,32,7]\) & \([16,16,3]\) \\
-    \quad Conv2d-2 & kernel 3, padding 1, 32 通道, BN, ReLU & \([16,16,3]\) & \([32,16,3]\) \\
-    \quad MaxPool2d-2 & kernel 2 & \([32,16,3]\) & \([32,8,1]\) \\
-    \quad Conv2d-3 & kernel 3, padding 1, 64 通道, BN, ReLU & \([32,8,1]\) & \([64,8,1]\) \\
-    \quad AdaptiveAvgPool2d-1 & output 1 \(\times\) 1, flatten & \([64,8,1]\) & \([64]\) \\
+    \multicolumn{4}{l}{\textit{STFT 分支 (\texttt{TimeFrequencyBranch2D})}} \\
+    \quad Conv2d-1  & kernel 3, padding 1, 16ch, BN, ReLU  & \([16,32,7]\) & --- \\
+    \quad MaxPool2d & kernel 2                               & \([16,16,3]\) & --- \\
+    \quad Conv2d-2  & kernel 3, padding 1, 32ch, BN, ReLU  & \([32,16,3]\) & --- \\
+    \quad MaxPool2d & kernel 2                               & \([32, 8,1]\) & --- \\
+    \quad Conv2d-3  & kernel 3, padding 1, 64ch, BN, ReLU  & \([64, 8,1]\) & --- \\
+    \quad AvgPool   & AdaptiveAvgPool2d(1), flatten          & \([64]\)      & --- \\
     \midrule
-    融合分类头 & & & \\
-    \quad Concat & 拼接两个分支嵌入 & \([128]+[64]\) & \([192]\) \\
-    \quad Linear-1 & \(192 \to 192\), ReLU, Dropout 0.1 & \([192]\) & \([192]\) \\
-    \quad Linear-2 & \(192 \to 11\) (类别数) & \([192]\) & \([11]\) \\
+    \multicolumn{4}{l}{\textit{融合分类头}} \\
+    \quad Concat    & \([128]\,\|\,[64]\)                   & \([192]\)    & --- \\
+    \quad Linear-1  & \(192\to192\), ReLU, Dropout(0.1)    & \([192]\)    & --- \\
+    \quad Linear-2  & \(192\to11\)                          & \([11]\)     & --- \\
     \bottomrule
-  \end{tabularx}
+  \end{tabular}
 \end{table}
 
-提案模型在训练侧叠加两类干预。\textbf{信号域增强}仅在训练集启用：以概率 \(0.5\) 做随机相位旋转，以概率 \(0.5\) 做随机循环时移。两者对调制类型分类保标签且保有效 SNR（图~\ref{fig:augmentation-demo}）；幅度缩放与加性高斯噪声因会改变有效 SNR 而不予采用，图像式 mixup 因 I/Q 直接线性插值不可解释\cite{huang2022mixingsignals,shorten2019dataaug}也不采用。\textbf{标签平滑} \(\epsilon=0.1\)\cite{szegedy2016inception} 把 one-hot 目标替换为 \((1-\epsilon)\delta_{y}+\epsilon/K\)（\(K=11\)），由 \texttt{train.loss} 字段配置。
+\subsection{信号域增强}
+
+信号域增强仅在训练集启用，以保留 I/Q 物理可解释性。本文采用两种变换：
+
+\textbf{随机相位旋转。}以概率 0.5 对每个训练样本施加角度 \(\theta\sim\mathcal{U}[0,2\pi)\) 的相位旋转：
+\begin{equation}
+  \begin{bmatrix}I'[n]\\Q'[n]\end{bmatrix}
+  =\begin{bmatrix}\cos\theta & -\sin\theta\\\sin\theta & \cos\theta\end{bmatrix}
+  \begin{bmatrix}I[n]\\Q[n]\end{bmatrix},\quad n=0,\ldots,127.
+  \label{eq:phase-rotation}
+\end{equation}
+相位旋转保持各调制信号的星座图结构，不改变有效 SNR，分类标签不变。
+
+\textbf{随机循环时移。}以概率 0.5 对样本施加随机整数时移 \(k\sim\mathcal{U}\{-32,\ldots,+32\}\)：
+\begin{equation}
+  I'[n]=I[(n-k)\bmod 128],\quad Q'[n]=Q[(n-k)\bmod 128].
+  \label{eq:cyclic-shift}
+\end{equation}
+循环时移扩充序列对齐多样性，不影响频域特征分布，有效 SNR 与分类标签不变。
+
+幅度缩放与加性高斯噪声因改变有效 SNR 而不予采用；图像式 mixup 因对 I/Q 线性插值缺乏物理可解释性\cite{huang2022mixingsignals,shorten2019dataaug}也不采用。图~\ref{fig:augmentation-demo} 给出四种情形的波形可视化对比。
+
+\subsection{标签平滑}
+
+标签平滑 \(\epsilon=0.1\)\cite{szegedy2016inception} 将 one-hot 目标 \(\mathbf{1}_{y}\) 替换为软目标分布：
+\begin{equation}
+  q_k=\begin{cases}1-\varepsilon+\varepsilon/K & k=y,\\
+  \varepsilon/K & k\neq y,\end{cases}
+  \quad K=11.
+  \label{eq:label-smoothing}
+\end{equation}
+该操作抑制过度自信，是分类任务的常见正则化手段，在本实验中由 \texttt{train.loss} 字段配置。
+
+\subsection{三项干预的不平等贡献}\label{sec:method-ablation-preview}
+
+三项干预对整体准确率的贡献并不对等：消融实验（第~\ref{sec:proposed-ablation}~节）显示，架构升级本身对整体准确率的增益约 0 pp（相对 \texttt{cldnn} 仅 \(-0.13\) pp，在种子噪声范围内）；信号域增强是主要贡献项，净增益约 \(+1.55\) pp（arch+aug vs. arch\_only，McNemar \(p\approx6\times10^{-78}\)）；标签平滑则略有负效（\(-0.19\) pp，95\% CI $[-0.0033,-0.0006]$，\(p=0.0155\)）。因此，提案模型的实质贡献应理解为"验证信号域增强在卷积-循环融合架构上的有效性"，架构升级与标签平滑均非主要来源。
 
 \begin{figure}[htbp]
   \centering
@@ -160,8 +347,10 @@ STFT 视图通过对 I/Q 序列进行窗口化傅里叶变换得到。设窗函�
   \label{fig:augmentation-demo}
 \end{figure}
 
-\section{实现细节与方法边界}
+\section{实现细节与比较纪律}\label{sec:method-impl}
 
-所有模型使用 PyTorch~2.9.1+cu128\cite{paszke2019pytorch}、NVIDIA driver 570.\(\ast\) 与同一份固定划分。Stage 5A 主表在 RTX 4070 (Ada sm\_89) 上训练，所有 Stage 6 扩展实验与提案模型在 RTX 3090 (Ampere sm\_86) 上训练；该硬件差异作为协议混淆因素登记。共用训练设置：优化器 AdamW\cite{loshchilov2019adamw,kingma2015adam} 学习率 \(\eta=10^{-3}\)（AMR 卷积网络的常用值\cite{xu2020mcldnn,zhang2021petcgdnn}）、权重衰减 \(10^{-4}\)\cite{krogh1992weightdecay}、批量 256；最大训练轮数 Stage 5A 30 / Stage 6 扩展 50；早停耐心值 Stage 5A 8 / Stage 6 扩展 15，依据均为验证集准确率。Stage 6 扩展实验与提案模型额外采用 5 轮线性 warmup + cosine annealing 学习率\cite{loshchilov2017sgdr}。损失函数默认标准交叉熵；提案模型加 \(\epsilon=0.1\) 标签平滑；\texttt{LOW\_SNR\_WEIGHTED\_CE\_3090} 使用分组 SNR 加权 CE（权重见第~\ref{sec:results-extended-summary}~节）。统一超参作用于 9 个主表模型以保持比较纪律，不做模型级事后调参。
+所有模型使用 PyTorch~2.9.1+cu128\cite{paszke2019pytorch} 与 NVIDIA driver 570.\(\ast\) 实现，数据集固定划分（训练/验证/测试集一次性确定，全程不变）。主实验 9 个模型行在 RTX 4070 Ti (Ada, sm\_89) 上训练；提案模型及消融变体在 RTX 3090 (Ampere, sm\_86) 上训练。两批实验的硬件差异作为协议混淆因素显式登记，不参与跨批直接数值比较。
 
-提案模型由架构升级、信号域增强与标签平滑三项干预联合构成；第~\ref{sec:proposed-ablation}~节给出三个单干预消融变体的协议化评估。本章方法描述限定于已登记模型与训练设置，不引入未在第~4~章评估的诊断性候选。
+共用训练设置：优化器 AdamW\cite{loshchilov2019adamw,kingma2015adam}，学习率 \(\eta=10^{-3}\)（AMC 卷积网络的常用设定\cite{xu2020mcldnn,zhang2021petcgdnn}），权重衰减 \(10^{-4}\)\cite{krogh1992weightdecay}，批量大小 256。主实验矩阵最大训练轮数 30，早停耐心值 8（依据验证集准确率）；提案模型及消融变体最大轮数 50，早停耐心值 15，额外采用 5 轮线性 warmup 加 cosine annealing 学习率调度\cite{loshchilov2017sgdr}。损失函数默认为标准交叉熵；提案模型加 \(\varepsilon=0.1\) 标签平滑（式~\ref{eq:label-smoothing}）。所有模型以种子集合 \{42, 2025, 3407\} 各训练一次，报告均值 \(\pm\) 标准差。
+
+统一超参作用于主实验矩阵全部 9 个模型，不做模型级事后调参，以保持比较纪律。提案模型及消融变体独立评估，结论限于第~\ref{sec:proposed-ablation}~节范围内，不与主实验矩阵做直接数值比较。本章方法描述限定于已登记模型与训练设置，不引入未在第~4~章评估的诊断性候选。
