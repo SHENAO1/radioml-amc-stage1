@@ -30,7 +30,14 @@
 
 \section{提案模型反超的解释边界}
 
-提案模型在同协议下整体准确率反超 Stage 5A CLDNN \(1.35\) 个百分点，第~\ref{sec:proposed-ablation}~节的消融把这一收益拆分为：信号域增强约 \(+1.55\) pp（主要来源）\cite{huang2022mixingsignals,shorten2019dataaug}，架构升级把 fusion 拉到 CLDNN 量级，标签平滑在已有增强时反向贡献 \(-0.19\) pp（McNemar \(p=0.0155\)）。这意味着更简单的 \texttt{arch\_aug} 配置（无标签平滑）实际略优于本文登记的 ``full''；本报告因协议纪律仍以 ``full'' 作为提案模型主结果，但应在未来实验中考虑取消标签平滑。三条解释边界限制其表述强度：跨硬件混淆（提案模型 RTX 3090，Stage 5A RTX 4070，样本级配对检验只能在同硬件证据标签内做）；本文未在文献最一致涨点的两个方向（复值网络 \cite{wang2024ccmsnet}、Transformer 混合 \cite{cao2024sigformer,liu2024lenetm,li2024icrnna}）上同步检验，与 LENet-M（0.6463）、SigFormer（0.6371）仍有 \(1\)--\(2\) pp 差距；深低信噪比退化是信息论下限，提案模型未解决。
+第~\ref{sec:proposed-ablation}~节的消融把 +1.35 pp 拆分为：信号域增强约 $+1.55$ pp（主要来源）\cite{huang2022mixingsignals,shorten2019dataaug}，架构升级把 fusion 拉到 CLDNN 量级（$\approx 0$ pp），标签平滑在已有增强时略有害（$-0.19$ pp，McNemar $p=0.0155$）。图~\ref{fig:proposed-training-curves} 显示 \texttt{arch\_aug} 与 \texttt{full} 在训练后期 val 曲线分离，\texttt{arch\_aug} 最终收敛略高于 \texttt{full}，与消融数值吻合。三条解释边界制约上述结论的适用范围：其一，提案模型运行在 RTX 3090，Stage 5A 主实验在 RTX 4070，样本级配对检验无法跨硬件直接执行；其二，本报告未同步检验复值网络\cite{wang2024ccmsnet}与 Transformer 混合架构\cite{cao2024sigformer,liu2024lenetm}方向，与 LENet-M（0.6463）、SigFormer（0.6371）仍有 $1$--$2$ pp 差距记入未来工作；其三，深低信噪比退化属于信息论下限，任何在 RML2016.10A 上的模型均面临同一上界，提案模型未解决此问题。未来优先考虑取消标签平滑、细化增强强度网格，并在同硬件环境下补充样本级配对证据。
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{fig21_proposed_ablation_training_curves.pdf}
+  \caption{四个消融变体（seed 42）训练过程曲线（数据源：各变体 \texttt{seed\_42/metrics.csv}）。(a) \texttt{full}；(b) \texttt{arch\_only}；(c) \texttt{arch\_aug}；(d) 四变体验证集准确率叠加对比。\texttt{arch\_aug} 在后期与 \texttt{full} 分离，与消融表数值一致。}
+  \label{fig:proposed-training-curves}
+\end{figure}
 
 \section{协议局限与后续处理}
 
