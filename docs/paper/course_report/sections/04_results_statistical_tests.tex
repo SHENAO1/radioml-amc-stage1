@@ -34,7 +34,7 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig04_accuracy_by_snr_group.pdf}
-  \caption{图中术语对照：Overall=整体，Low/Mid/High SNR=低/中/高信噪比，Accuracy=准确率。固定划分下 9 个模型行的整体、低信噪比、中信噪比和高信噪比准确率对比。证据源：\texttt{main\_table\_metrics.csv}。}
+  \caption{9 个模型在 4 个 SNR 分组下的准确率对比（三种子均值±std，main\_table\_metrics.csv）。}
   \label{fig:accuracy-by-snr-group}
 \end{figure}
 
@@ -45,7 +45,7 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig11_full_snr_accuracy_macro_f1.pdf}
-  \caption{图中术语对照：SNR=信噪比，Accuracy=准确率，Macro F1=宏平均 F1。代表模型在完整信噪比轴上的准确率与宏平均 F1 曲线。证据源：三训练种子聚合的 \texttt{metrics\_per\_snr.csv}。}
+  \caption{代表模型在 $-20$ 至 $+18$ dB 的逐 SNR 准确率与宏平均 F1（三种子聚合，metrics\_per\_snr.csv）。}
   \label{fig:full-snr-accuracy-macro-f1}
 \end{figure}
 
@@ -54,7 +54,7 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.96\textwidth]{fig12_model_class_accuracy_heatmap.pdf}
-  \caption{图中术语对照：Overall class accuracy by model=各模型整体类别准确率，Accuracy=准确率。9 个模型行在 11 类调制方式上的类别准确率热力图。证据源：三训练种子聚合的 \texttt{metrics\_per\_class.csv}。}
+  \caption{9 个模型 $\times$ 11 类调制的整体类别准确率热力图（metrics\_per\_class.csv）。}
   \label{fig:model-class-accuracy-heatmap}
 \end{figure}
 
@@ -84,7 +84,7 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig06_bootstrap_delta_forest.pdf}
-  \caption{图中术语对照：Accuracy delta=准确率差值，95\% CI=95\% 置信区间。已登记模型对的配对自助法准确率差值及 95\% 置信区间。差值定义为前一模型准确率减去后一模型准确率。}
+  \caption{已登记模型对配对自助法的准确率差值与 95\% CI（10000 重采样，paired\_bootstrap\_accuracy\_deltas.csv）。差值方向为 model\_a $-$ model\_b。}
   \label{fig:bootstrap-delta-forest}
 \end{figure}
 
@@ -99,7 +99,7 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.92\textwidth]{fig05_low_snr_per_snr_curve.pdf}
-  \caption{图中术语对照：SNR=信噪比，Accuracy=准确率。低信噪比区间内代表模型的逐信噪比准确率曲线。低信噪比范围为 \lowSNR{}。}
+  \caption{代表模型在低信噪比区间（\lowSNR{}）的逐 SNR 准确率曲线（low\_snr\_table.csv）。}
   \label{fig:low-snr-per-snr}
 \end{figure}
 
@@ -108,7 +108,7 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.95\textwidth]{fig14_paired_disagreement_by_snr.pdf}
-  \caption{图中术语对照：Share=样本占比，correct only=仅该模型正确，SNR=信噪比。关键模型对在各信噪比点上的配对正确性分歧。正向柱表示前一模型正确而后一模型错误的样本更多，负向柱表示相反方向更多。}
+  \caption{关键模型对在各 SNR 点的配对正确性净分歧（``仅 A 正确'' 占比 $-$ ``仅 B 正确'' 占比，predictions\_test.csv 三种子聚合）。}
   \label{fig:paired-disagreement-by-snr}
 \end{figure}
 
@@ -121,7 +121,7 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig13_low_snr_class_recall_delta.pdf}
-  \caption{图中术语对照：Recall delta=召回率差值，Fusion - IQ matched=融合减参数匹配 I/Q，Fusion - CLDNN=融合减 CLDNN。静态 I/Q--STFT 融合在低信噪比范围内相对参数匹配 I/Q 控制模型和 CLDNN 的类别召回率差值。}
+  \caption{静态 fusion\_iq\_stft 相对 iq\_param\_matched 与 CLDNN 在低 SNR 各调制类别的召回率差值 $\Delta$recall（confusion\_low\_snr.csv 三种子聚合）。}
   \label{fig:low-snr-class-recall-delta}
 \end{figure}
 
@@ -163,7 +163,7 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.86\textwidth]{fig07_accuracy_latency_params_bubble.pdf}
-  \caption{图中术语对照：Overall accuracy=整体准确率，Batch-1 latency=批量 1 延迟，Params=参数量。固定协议下整体准确率、受控 CUDA 批量 1 前向延迟与参数量的关系。STFT 预处理耗时未计入该图。}
+  \caption{9 个模型的整体准确率 vs.\ CUDA 批量 1 前向延迟，气泡大小 \(\propto\) 参数量（warmup 50 / measured 200，complexity\_latency\_table.csv）。STFT 预处理耗时未计入。}
   \label{fig:accuracy-latency-params}
 \end{figure}
 
@@ -192,7 +192,7 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{fig15_seed_stability_all_models.pdf}
-  \caption{图中术语对照：Overall accuracy=整体准确率，Low-SNR accuracy=低信噪比准确率。9 个模型行在三个训练种子上的整体准确率与低信噪比准确率稳定性。}
+  \caption{9 个模型在 3 个训练种子上的整体与低信噪比准确率稳定性散点（metrics\_test.json）。}
   \label{fig:seed-stability-all-models}
 \end{figure}
 
@@ -321,7 +321,7 @@
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.92\textwidth]{fig17_proposed_per_snr_comparison.pdf}
-  \caption{图中术语对照：SNR=信噪比，Test accuracy=测试集准确率。提案模型 (粗实线，红) 与 Stage 5A CLDNN (实线，蓝)、Stage 5A fusion\_iq\_stft (虚线，灰)、P1.1 fusion\_iq\_stft 同 schedule (点线，橙) 的逐 SNR 准确率曲线。所有曲线均为三训练种子均值。灰色阴影区为低信噪比范围 (\(\le -6\) dB)，绿色阴影区为高信噪比范围 (\(\ge 8\) dB)。}
+  \caption{提案模型与三类对照的逐 SNR 准确率曲线（三训练种子均值）。灰/绿阴影区分别为低 SNR (\(\le -6\) dB) 与高 SNR (\(\ge 8\) dB) 范围。}
   \label{fig:proposed-per-snr}
 \end{figure}
 

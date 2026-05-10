@@ -156,7 +156,7 @@ STFT 视图通过对 I/Q 序列进行窗口化傅里叶变换得到。设窗函�
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.96\textwidth]{fig23_augmentation_visualization.pdf}
-  \caption{信号域增强示意（QPSK @ +6 dB，样本索引 0，数据源：\texttt{data/raw/radioml2016/RML2016.10a\_dict.pkl}）。蓝色实线=I 通道，橙色虚线=Q 通道。(a) 原始 I/Q 时序；(b) 相位旋转 $\theta=\pi/3$；(c) 循环时移 $k=+8$；(d) 两者叠加。四种条件下信号能量不变，调制类别不变，说明两种变换均为保标签且保有效 SNR 的信号域增强。}
+  \caption{信号域增强示例（QPSK @ +6 dB 单样本）。(a) 原始；(b) 相位旋转 $\theta=\pi/3$；(c) 循环时移 $k=+8$；(d) 两者叠加。I/Q 通道线型见图例。}
   \label{fig:augmentation-demo}
 \end{figure}
 
