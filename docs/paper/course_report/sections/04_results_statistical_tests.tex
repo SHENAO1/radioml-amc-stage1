@@ -254,7 +254,7 @@
 
 \subsection{文献校准与可比 SOTA}\label{sec:results-literature}
 
-为给提案模型评估提供合理参照，本文对近期文献中报告 \datasetname{} 平均跨 SNR 准确率（avg-across-SNR）的工作做了一次校准。表~\ref{tab:lit-sota-calibration} 列出可比文献的报告值。其中“avg-across-SNR”指 \(-20\) dB 至 \(+18\) dB 共 20 个 SNR 点的平均准确率，与本文 Stage 5A 主表的 \texttt{overall\_accuracy} 同口径；许多论文标题处出现的“\(95\%\)+”或“\(92\%\)”等数字实际上对应高 SNR 单点或 \(\mathrm{SNR}>0\) dB 区间均值，不与本文 \texttt{overall\_accuracy} 直接可比，故单列“高 SNR 区间”一栏。
+表~\ref{tab:lit-sota-calibration} 列出可比文献的报告值，区分 avg-all-SNR（\(-20\) 至 \(+18\) dB 共 20 点平均，与本文 \texttt{overall\_accuracy} 同口径）、avg \(\mathrm{SNR}>0\)（\(+2\) 至 \(+18\) dB 共 9 点平均）与 peak（单 SNR 最佳点）三种口径，避免标题党的 ``\(95\%\)+'' 或 ``\(92\%\)'' 单点结果与本文 \texttt{overall\_accuracy} 错配。
 
 \begin{table}[htbp]
   \centering

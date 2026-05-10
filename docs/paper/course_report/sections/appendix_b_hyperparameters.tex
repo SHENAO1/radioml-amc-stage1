@@ -1,120 +1,29 @@
 \chapter{完整训练超参表}
 \label{appendix:hyperparameters}
 
-为便于复现，本附录列出本报告所有训练运行的完整超参，按证据标签分组。所有超参在配置文件中均显式给出（路径见每段末），训练代码与种子参考第~3~章实现细节。
+为便于复现，表~\ref{tab:hyperparameters-by-evidence} 把本报告所有训练运行的超参按证据标签汇总成一张主表。所有运行共享同一固定划分 \splitname{}（按 modulation \(\times\) snr 联合分层；切分种子 42；训练/验证/测试 70/10/20\%）与同一三训练种子集合 \mainseeds{}。脚本与配置路径见正文章节引用。
 
-\section{Stage 5A 主表（PROJECT\_SUPPORTED, RTX 4070）}
+\begin{table}[htbp]
+  \centering
+  \caption{按证据标签汇总的训练超参（所有标签共用固定划分与三训练种子集合）}
+  \label{tab:hyperparameters-by-evidence}
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabularx}{\textwidth}{lcccccccX}
+    \toprule
+    证据标签 & GPU & epoch & batch & lr & 调度器 & 损失 & 增强 & 模型范围 \\
+    \midrule
+    \texttt{PROJECT\_SUPPORTED} (Stage 5A) & 4070 & 30 & 256 & \(10^{-3}\) & 恒定 & CE & 无 & 9 个主表模型 \\
+    \texttt{EXTENDED\_BUDGET\_3090} & 3090 & 50 & 256 & \(10^{-3}\) & cosine + 5w & CE & 无 & cnn1d / resnet1d / iq\_param\_matched / fusion\_iq\_stft \\
+    \texttt{LOW\_SNR\_WEIGHTED\_CE\_3090} & 3090 & 50 & 256 & \(10^{-3}\) & cosine + 5w & SnrW (2/1/0.7) & 无 & cldnn / fusion\_iq\_stft \\
+    \texttt{FUSION\_CLDNN\_STFT\_AUG\_LS\_3090} & 3090 & 50 & 256 & \(10^{-3}\) & cosine + 5w & CE \(\epsilon=0.1\) & rot+shift & fusion\_cldnn\_stft \\
+    \texttt{FUSION\_CLDNN\_STFT\_ABLATION\_3090} & 3090 & 50 & 256 & \(10^{-3}\) & cosine + 5w & 见变体 & 见变体 & fusion\_cldnn\_stft \(\times\) 3 变体 \\
+    \quad arch\_only 变体 & & & & & & CE & 无 & — \\
+    \quad arch\_aug 变体 & & & & & & CE & rot+shift & — \\
+    \quad arch\_ls 变体 & & & & & & CE \(\epsilon=0.1\) & 无 & — \\
+    \texttt{CONTROLLED\_LATENCY\_EXTENDED} & EPYC CPU & — & 1/256 & — & — & — & — & 9 个模型，仅前向（warmup 50/measured 200, 单线程）\\
+    \bottomrule
+  \end{tabularx}
+\end{table}
 
-\begin{tabularx}{\textwidth}{lX}
-\toprule
-项 & 值 \\
-\midrule
-最大轮数 & 30 \\
-批量大小 & 256 \\
-优化器 & AdamW (\(\beta_1=0.9, \beta_2=0.999, \varepsilon=10^{-8}\)) \\
-学习率 & \(10^{-3}\)（不退火，恒定） \\
-权重衰减 & \(10^{-4}\) \\
-早停耐心值 & 8（依据验证准确率） \\
-学习率调度 & 无（恒定） \\
-损失 & 标准交叉熵（\(\epsilon=0\)） \\
-增强 & 无 \\
-设备 & RTX 4070 (Ada sm\_89), CUDA 12.8, PyTorch 2.9.1+cu128 \\
-配置文件 & \path{configs/paper/rml2016a_main_table_full_template.yaml} \\
-\bottomrule
-\end{tabularx}
-
-\section{扩展训练预算（EXTENDED\_BUDGET\_3090, RTX 3090）}
-
-\begin{tabularx}{\textwidth}{lX}
-\toprule
-项 & 值 \\
-\midrule
-最大轮数 & 50 \\
-批量大小 & 256 \\
-优化器 & AdamW \\
-学习率 & 初始 \(10^{-3}\) \\
-学习率调度 & 5 轮线性 warmup + cosine annealing 至 0 \\
-权重衰减 & \(10^{-4}\) \\
-早停耐心值 & 15 \\
-损失 & 标准交叉熵 \\
-增强 & 无 \\
-设备 & RTX 3090 (Ampere sm\_86), CUDA 12.8, PyTorch 2.9.1+cu128 \\
-模型范围 & \path{cnn1d}, \path{resnet1d}, \path{iq_param_matched}, \path{fusion_iq_stft} \\
-配置文件 & \path{configs/paper/rml2016a_extended_budget_3090.yaml} \\
-\bottomrule
-\end{tabularx}
-
-\section{低信噪比加权交叉熵（LOW\_SNR\_WEIGHTED\_CE\_3090, RTX 3090）}
-
-\begin{tabularx}{\textwidth}{lX}
-\toprule
-项 & 值 \\
-\midrule
-基础设置 & 同上 EXTENDED\_BUDGET\_3090 \\
-损失 & 分组 SNR 加权交叉熵；权重 \(w_{\text{low}}=2.0,\ w_{\text{mid}}=1.0,\ w_{\text{high}}=0.7\) \\
-SNR 边界 & low\(\le -6\) dB；mid \(\in[-4,6]\) dB；high \(\ge 8\) dB \\
-模型范围 & \path{cldnn}, \path{fusion_iq_stft} \\
-配置文件 & \path{configs/paper/rml2016a_low_snr_weighted_ce_3090.yaml} \\
-\bottomrule
-\end{tabularx}
-
-\section{扩展复杂度与 CPU 延迟（CONTROLLED\_LATENCY\_EXTENDED, EPYC CPU）}
-
-\begin{tabularx}{\textwidth}{lX}
-\toprule
-项 & 值 \\
-\midrule
-设备 & AMD EPYC 7B12, 强制 \texttt{torch.set\_num\_threads(1)} \\
-预热迭代 & 50 \\
-计时迭代 & 200 \\
-批量大小 & 1 与 256（两次单独测量） \\
-PyTorch & 2.9.1+cu128（仅作前向传播，CPU 后端） \\
-脚本 & \path{scripts/paper/measure_extended_complexity_latency.py} \\
-\bottomrule
-\end{tabularx}
-
-\section{提案模型 + 增强 + 标签平滑（FUSION\_CLDNN\_STFT\_AUG\_LS\_3090, RTX 3090）}
-
-\begin{tabularx}{\textwidth}{lX}
-\toprule
-项 & 值 \\
-\midrule
-基础设置 & 同上 EXTENDED\_BUDGET\_3090 \\
-损失 & 标签平滑交叉熵, \(\epsilon=0.1\) \\
-增强（仅训练集） & 相位旋转 \(\theta\sim\mathcal{U}(-\pi,\pi)\), prob 0.5；循环时移 \(k\sim\mathcal{U}(-8,+8)\), prob 0.5 \\
-模型 & \path{fusion_cldnn_stft}（CLDNN 风格 I/Q 编码器 + STFT 二维分支 + 融合 MLP 头） \\
-模型参数量 & 286,331 \\
-配置文件 & \path{configs/paper/rml2016a_fusion_cldnn_stft_aug_ls_3090.yaml} \\
-\bottomrule
-\end{tabularx}
-
-\section{提案模型单干预消融（FUSION\_CLDNN\_STFT\_ABLATION\_3090, RTX 3090）}
-
-\begin{tabularx}{\textwidth}{lX}
-\toprule
-项 & 值 \\
-\midrule
-基础设置 & 同上 FUSION\_CLDNN\_STFT\_AUG\_LS\_3090（3 变体共享） \\
-变体 \texttt{arch\_only} & 增强 OFF, \(\epsilon=0\)（纯架构升级） \\
-变体 \texttt{arch\_aug}  & 增强 ON,  \(\epsilon=0\) \\
-变体 \texttt{arch\_ls}   & 增强 OFF, \(\epsilon=0.1\) \\
-模型 & \path{fusion_cldnn_stft}（与上一节相同实现） \\
-配置文件 & \path{configs/paper/rml2016a_fusion_cldnn_stft_ablation_3090.yaml} \\
-\bottomrule
-\end{tabularx}
-
-\section{固定划分与训练种子（所有标签共用）}
-
-\begin{tabularx}{\textwidth}{lX}
-\toprule
-项 & 值 \\
-\midrule
-固定划分 & \splitname{} 加密保存为 NPZ 数组 \\
-划分文件 & \path{data/splits/rml2016a/stratified_by_mod_snr_seed42.npz} \\
-划分摘要 & \path{data/splits/rml2016a/stratified_by_mod_snr_seed42_summary.json} \\
-分层维度 & 调制方式 \(\times\) 信噪比联合分层（11 \(\times\) 20 = 220 个组） \\
-切分比例 & 70\% / 10\% / 20\% (训练 / 验证 / 测试) \\
-切分种子 & 42 \\
-训练种子 & 42, 2025, 3407（3 个） \\
-\bottomrule
-\end{tabularx}
+共用项：优化器 AdamW（\(\beta_1{=}0.9\), \(\beta_2{=}0.999\), \(\varepsilon{=}10^{-8}\)，权重衰减 \(10^{-4}\)）；早停耐心值 Stage 5A=8、Stage 6 扩展=15，依据均为验证集准确率；划分 NPZ 路径 \path{data/splits/rml2016a/stratified_by_mod_snr_seed42.npz}。增强 ``rot+shift'' 表示相位旋转 \(\theta\sim\mathcal{U}(-\pi,\pi)\) prob 0.5 + 循环时移 \(k\sim\mathcal{U}(-8,+8)\) prob 0.5，仅 train loader 启用。损失 ``SnrW (2/1/0.7)'' 表示分组 SNR 加权 CE，权重 low\(=2.0\)、mid\(=1.0\)、high\(=0.7\)，SNR 边界 low\(\le-6\) dB / mid \(\in[-4,6]\) dB / high\(\ge8\) dB。配置文件分别为 \path{configs/paper/rml2016a_main_table_full_template.yaml}、\path{rml2016a_extended_budget_3090.yaml}、\path{rml2016a_low_snr_weighted_ce_3090.yaml}、\path{rml2016a_fusion_cldnn_stft_aug_ls_3090.yaml}、\path{rml2016a_fusion_cldnn_stft_ablation_3090.yaml}。

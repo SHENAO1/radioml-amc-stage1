@@ -107,16 +107,16 @@ STFT 视图通过对 I/Q 序列进行窗口化傅里叶变换得到。设窗函�
   \label{fig:fusion-architecture}
 \end{figure}
 
-\section{提案模型 \texttt{fusion\_cldnn\_stft}}
+\section{提案模型与训练侧干预}
 
-提案模型 \path{fusion_cldnn_stft} 的设计动机来自第~4~章的两项观察。第一，静态 \path{fusion_iq_stft} 的 I/Q 分支在结构上是浅层一维卷积特征堆叠，其乘加运算量在扩展复杂度测量中明显低于 \path{resnet1d}（\(2.0\) M 对 \(4.9\) M），因此“融合输给 CLDNN”更可能是 I/Q 分支表征容量不足，而不是融合范式不可行。第二，CLDNN 在主表中是最强稳定基线\cite{sainath2015cldnn}，其 CNN 加 LSTM 序列建模可作为现成的 I/Q 编码器。基于这两点，提案模型把静态融合中的轻量 I/Q 分支替换为 CLDNN 风格的 I/Q 编码器（\path{CLDNNIQBranch}），即与 \path{cldnn} 主体相同的卷积特征堆叠加单层 LSTM\cite{hochreiter1997lstm}，再以 LSTM 末态作为分支嵌入；STFT 分支沿用 \path{fusion_iq_stft} 中的二维卷积分支\cite{ioffe2015batchnorm}，融合分类头仍为小型 MLP\cite{srivastava2014dropout}。其抽象形式为
+提案模型 \path{fusion_cldnn_stft} 的动机来自第~4~章扩展复杂度证据：静态 \path{fusion_iq_stft} 的 I/Q 分支乘加量 \(2.0\) M 显著低于 \path{resnet1d} 的 \(4.9\) M，因此 ``融合输给 CLDNN'' 的瓶颈更可能是 I/Q 表征容量。基于此，提案模型把 I/Q 分支替换为 CLDNN 风格 (\path{CLDNNIQBranch})——与 \path{cldnn} 同体的卷积特征栈加单层 LSTM\cite{sainath2015cldnn,hochreiter1997lstm}，取 LSTM 末态作为分支嵌入；STFT 分支沿用原 \path{fusion_iq_stft} 中的 2D-CNN\cite{ioffe2015batchnorm}，分类头为小型 MLP\cite{srivastava2014dropout}。形式化地，
 \begin{equation}
-  h_{\mathrm{IQ}}=\mathrm{LSTM}(f_{\mathrm{1D}}(x_{\mathrm{IQ}}))_{\mathrm{last}},\qquad
-  h_{\mathrm{STFT}}=f_{\mathrm{2D}}(x_{\mathrm{STFT}}),\qquad
-  \hat{y}=c([h_{\mathrm{IQ}},h_{\mathrm{STFT}}]),
+  h_{\mathrm{IQ}}=\mathrm{LSTM}(f_{\mathrm{1D}}(x_{\mathrm{IQ}}))_{\mathrm{last}},\quad
+  h_{\mathrm{STFT}}=f_{\mathrm{2D}}(x_{\mathrm{STFT}}),\quad
+  \hat{y}=c([h_{\mathrm{IQ}},h_{\mathrm{STFT}}]).
   \label{eq:fusion-cldnn-stft}
 \end{equation}
-其中 \(f_{\mathrm{1D}}\) 表示与 \path{cldnn} 主体共享的一维卷积栈，\(\mathrm{LSTM}(\cdot)_{\mathrm{last}}\) 表示取最后时刻隐藏状态作为表征。模型总参数量约为 \(286\)k，介于 \path{cldnn} 的 \(241.7\)k 与 \path{mcldnn} 的 \(406.2\)k 之间。表~\ref{tab:fusion-cldnn-stft-arch} 给出逐层结构。提案模型与主表中的 \path{fusion_iq_stft}、\path{gated_fusion_iq_stft} 等模型行使用同一固定划分与同三训练种子，但通过独立证据标签 \texttt{FUSION\_CLDNN\_STFT\_AUG\_LS\_3090} 与独立输出根登记，不进入主表。
+模型总参数量 \(286\)k，介于 \path{cldnn} 的 \(241.7\)k 与 \path{mcldnn} 的 \(406.2\)k 之间；表~\ref{tab:fusion-cldnn-stft-arch} 给出逐层结构。提案模型登记于独立证据标签 \texttt{FUSION\_CLDNN\_STFT\_AUG\_LS\_3090}，不进入主表。
 
 \begin{table}[htbp]
   \centering
@@ -145,35 +145,16 @@ STFT 视图通过对 I/Q 序列进行窗口化傅里叶变换得到。设窗函�
     \midrule
     融合分类头 & & & \\
     \quad Concat & 拼接两个分支嵌入 & \([128]+[64]\) & \([192]\) \\
-    \quad Linear-1 & \(192 \to 192\) (max(96,min(256,192))), ReLU, Dropout 0.1 & \([192]\) & \([192]\) \\
+    \quad Linear-1 & \(192 \to 192\), ReLU, Dropout 0.1 & \([192]\) & \([192]\) \\
     \quad Linear-2 & \(192 \to 11\) (类别数) & \([192]\) & \([11]\) \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-\section{信号域增强}
+提案模型在训练侧叠加两类干预。**信号域增强**仅在训练集启用：以概率 \(0.5\) 做相位旋转 \(\theta\sim\mathcal{U}(-\pi,\pi)\)（对 (I, Q) 应用旋转矩阵 \([\cos\theta,-\sin\theta;\sin\theta,\cos\theta]\)），与以概率 \(0.5\) 做循环时移 \(k\sim\mathcal{U}(-8,+8)\)（沿时间维 \(\mathrm{roll}(\cdot,k)\)）。两者对调制类型分类保标签且保有效 SNR；幅度缩放与加性高斯噪声因会改变有效 SNR 而不予采用，图像式 mixup 因 I/Q 直接线性插值不可解释\cite{huang2022mixingsignals,shorten2019dataaug}也不采用。**标签平滑** \(\epsilon=0.1\)\cite{szegedy2016inception} 把 one-hot 目标替换为 \((1-\epsilon)\delta_{y}+\epsilon/K\)（\(K=11\)），与 \texttt{SnrWeightedCrossEntropy} 互斥，由 \texttt{train.loss} 字段配置。
 
-为了在不与现有 SNR 标签和评测口径冲突的前提下提升提案模型的训练数据多样性，本文为训练集（仅训练集）启用两种保标签的信号域增强。第一种是相位旋转：以概率 \(0.5\) 采样 \(\theta\sim\mathcal{U}(-\pi,\pi)\)，对 (I, Q) 通道做平面旋转
-\begin{equation}
-  \begin{bmatrix} I' \\ Q' \end{bmatrix}=\begin{bmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{bmatrix}\begin{bmatrix} I \\ Q \end{bmatrix}.
-  \label{eq:phase-rotation}
-\end{equation}
-该变换对调制类型分类任务保标签，因为本文目标是判别调制方式而非解调具体码元；旋转改变星座绝对相位但不改变调制类别身份。第二种是循环时移：以概率 \(0.5\) 采样整数 \(k\sim\mathcal{U}(-8,+8)\)，对 (I, Q) 沿时间维做循环移位 \(\mathrm{roll}(\cdot,k)\)。在准平稳 \(2\times128\) 信号上，该变换对短期调制结构保不变，故同样保标签。两种变换在 \texttt{SignalDataset} 中以可配置的 \texttt{augmenter} 钩子实现，并仅作用于训练 loader 的子集；验证集与测试集不增强。
+\section{实现细节与方法边界}
 
-本文**不**采用幅度缩放与加性高斯噪声两类增强。理由是它们均会改变样本的有效 SNR，与本文按 SNR 标签做分组评估和配对统计检验的协议直接冲突。本文也不采用图像式 mixup：相关文献\cite{huang2022mixingsignals}已经实证 I/Q 直接线性插值产生的不是物理可解释的复合信号，且在通信信号域上反而损害精度。
+所有模型使用 PyTorch~2.9.1+cu128\cite{paszke2019pytorch}、NVIDIA driver 570.\(\ast\) 与同一份固定划分。Stage 5A 主表在 RTX 4070 (Ada sm\_89) 上训练，所有 Stage 6 扩展实验与提案模型在 RTX 3090 (Ampere sm\_86) 上训练；该硬件差异作为协议混淆因素登记。共用训练设置：优化器 AdamW\cite{loshchilov2019adamw,kingma2015adam} 学习率 \(\eta=10^{-3}\)（AMR 卷积网络的常用值\cite{xu2020mcldnn,zhang2021petcgdnn}）、权重衰减 \(10^{-4}\)\cite{krogh1992weightdecay}、批量 256；最大训练轮数 Stage 5A 30 / Stage 6 扩展 50；早停耐心值 Stage 5A 8 / Stage 6 扩展 15，依据均为验证集准确率。Stage 6 扩展实验与提案模型额外采用 5 轮线性 warmup + cosine annealing 学习率\cite{loshchilov2017sgdr}。损失函数默认标准交叉熵；提案模型加 \(\epsilon=0.1\) 标签平滑；\texttt{LOW\_SNR\_WEIGHTED\_CE\_3090} 使用分组 SNR 加权 CE（权重见第~\ref{sec:results-extended-summary}~节）。统一超参作用于 9 个主表模型以保持比较纪律，不做模型级事后调参。
 
-\section{标签平滑}
-
-提案模型使用 \(\epsilon=0.1\) 的标签平滑代替原始 one-hot 交叉熵，即把目标分布由 one-hot \(\delta_{y}\) 替换为 \((1-\epsilon)\delta_{y}+\epsilon/K\) 的均匀化分布，其中 \(K=11\) 为类别数。该正则化在多类分类中是被广泛使用的轻量手段，常与显式数据增强叠加；其与本文 \texttt{SnrWeightedCrossEntropy} 互斥（一次训练只能选择一种），由配置项 \texttt{train.loss} 显式指定。
-
-\section{实现细节与训练超参}
-
-所有模型在 PyTorch~2.9.1+cu128\cite{paszke2019pytorch} 与 NVIDIA driver 570.\(\ast\) 上训练。Stage 5A 主表使用 RTX 4070 (Ada sm\_89)，所有 Stage 6 扩展实验与提案模型使用 RTX 3090 (Ampere sm\_86)；该硬件差异作为协议混淆因素登记。
-
-主实验与提案模型共用以下训练设置：优化器 AdamW\cite{loshchilov2019adamw,kingma2015adam} 学习率 \(\eta=10^{-3}\)、权重衰减 \(10^{-4}\)\cite{krogh1992weightdecay}，批量大小 256，最大训练轮数 50（Stage 5A 主表为 30），早停耐心值 15（Stage 5A 主表为 8），早停依据为验证集准确率。提案模型与所有 Stage 6 扩展实验额外采用 5 轮线性 warmup 加 cosine annealing 学习率\cite{loshchilov2017sgdr}。损失函数默认为标准交叉熵；提案模型使用 \(\epsilon=0.1\) 的标签平滑\cite{szegedy2016inception}。Stage 6 的 \texttt{LOW\_SNR\_WEIGHTED\_CE\_3090} 实验使用分组 SNR 加权交叉熵替代普通交叉熵；其权重组与边界见第~\ref{sec:results-extended-summary}~节摘要。
-
-学习率 \(10^{-3}\) 是 AMR 文献中卷积网络的常用值\cite{xu2020mcldnn,zhang2021petcgdnn}；本文沿用该取值并以同一数值作用于 9 个主表模型，目的是保持比较纪律，不为单个模型做事后调参（其代价已在第~5~节 MCLDNN 异常分析中讨论）。
-
-\section{方法边界}
-
-本章的目的在于说明主实验中已经登记的模型身份、输入视图和比较目的，并描述提案模型 \path{fusion_cldnn_stft} 与其训练侧增强、标签平滑设置；不把诊断性候选、mock 路径或后续计划项写入主模型矩阵。任何关于性能、显著性或稳定性的判断都必须回到第~2~章实验协议和第~4~章结果证据。提案模型由架构、增强与标签平滑三项干预联合构成；本报告在第~\ref{sec:proposed-ablation}~节给出三个单干预消融变体的协议化评估，但解释边界与未来工作方向仍在第~5~章末尾说明。
+提案模型由架构升级、信号域增强与标签平滑三项干预联合构成；第~\ref{sec:proposed-ablation}~节给出三个单干预消融变体的协议化评估。本章方法描述限定于已登记模型与训练设置，不引入未在第~4~章评估的诊断性候选。
