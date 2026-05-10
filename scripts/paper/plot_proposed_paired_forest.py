@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Generate fig20: forest plot of proposed model paired bootstrap deltas.
 
 Rows (8 total): 5 comparisons × mixed scopes
@@ -5,14 +6,14 @@ Rows (8 total): 5 comparisons × mixed scopes
   proposed vs p11_fusion_iq_stft  |  low_snr
   proposed vs ablation_arch_only  |  overall
   proposed vs ablation_arch_only  |  low_snr
-  proposed vs ablation_arch_aug   |  overall
-  proposed vs ablation_arch_aug   |  low_snr
   proposed vs ablation_arch_ls    |  overall
   proposed vs ablation_arch_ls    |  low_snr
+  proposed vs ablation_full       |  overall
+  proposed vs ablation_full       |  low_snr
 
 Horizontal axis: paired bootstrap delta (accuracy difference) with 95% CI.
 Vertical zero line marks no difference.
-Filled circle (●) if CI does not cross 0; open circle (○) if CI crosses 0.
+Filled circle (�? if CI does not cross 0; open circle (�? if CI crosses 0.
 
 Data source:
   results/paper_stage6/proposed_paired_tests/paired_bootstrap.csv
@@ -42,10 +43,10 @@ ROW_ORDER = [
     ("p11_fusion_iq_stft", "low_snr"),
     ("ablation_arch_only", "overall"),
     ("ablation_arch_only", "low_snr"),
-    ("ablation_arch_aug", "overall"),
-    ("ablation_arch_aug", "low_snr"),
     ("ablation_arch_ls", "overall"),
     ("ablation_arch_ls", "low_snr"),
+    ("ablation_full", "overall"),
+    ("ablation_full", "low_snr"),
 ]
 
 ROW_LABELS = [
@@ -53,17 +54,17 @@ ROW_LABELS = [
     "vs P1.1 fusion\\_iq\\_stft (low SNR)",
     "vs arch\\_only (overall)",
     "vs arch\\_only (low SNR)",
-    "vs arch\\_aug (overall)",
-    "vs arch\\_aug (low SNR)",
     "vs arch\\_ls (overall)",
     "vs arch\\_ls (low SNR)",
+    "vs arch+aug+LS (overall)",
+    "vs arch+aug+LS (low SNR)",
 ]
 
 GROUP_COLORS = {
     "p11_fusion_iq_stft": "#5B8DB8",
     "ablation_arch_only": "#6BAD6B",
-    "ablation_arch_aug": "#F28B30",
     "ablation_arch_ls": "#D95F5F",
+    "ablation_full": "#F28B30",
 }
 
 
@@ -125,10 +126,10 @@ def main() -> int:
     ax.set_yticks(y_pos)
     ax.set_yticklabels(ROW_LABELS, fontsize=9)
     ax.invert_yaxis()
-    ax.set_xlabel("Paired Bootstrap Δ Accuracy (proposed − baseline)", fontsize=10)
+    ax.set_xlabel("Paired Bootstrap Δ Accuracy (proposed �?baseline)", fontsize=10)
     ax.set_title(
         "Proposed Model: Paired Bootstrap Deltas with 95% CI\n"
-        "(● CI excludes 0; ○ CI crosses 0)",
+        "(�?CI excludes 0; �?CI crosses 0)",
         fontsize=10,
     )
     ax.xaxis.grid(True, linestyle=":", linewidth=0.6, alpha=0.7)
@@ -140,8 +141,8 @@ def main() -> int:
     legend_elements = [
         Line2D([0], [0], color="#5B8DB8", linewidth=2, label="vs P1.1 fusion\\_iq\\_stft"),
         Line2D([0], [0], color="#6BAD6B", linewidth=2, label="vs arch\\_only"),
-        Line2D([0], [0], color="#F28B30", linewidth=2, label="vs arch\\_aug"),
-        Line2D([0], [0], color="#D95F5F", linewidth=2, label="vs arch\\_ls"),
+        Line2D([0], [0], color="#D95F5F", linewidth=2, label="vs arch\_ls"),
+        Line2D([0], [0], color="#F28B30", linewidth=2, label="vs arch+aug+LS"),
     ]
     ax.legend(handles=legend_elements, fontsize=8, loc="lower right")
 

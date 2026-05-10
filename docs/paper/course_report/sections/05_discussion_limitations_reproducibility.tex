@@ -28,9 +28,9 @@
 
 因此，“更适合部署”“更高计算效率”或“硬件可迁移性能更好”需要系统级效率分析支撑。若未来开展该分析，应同时测量 CPU/GPU、不同批量大小、预处理耗时、内存峰值、吞吐率和端到端延迟，并将该协议与本报告的受控前向延迟区分开。
 
-\section{提案模型反超的解释边界}
+\section{提案模型整体准确率高于基线的解释边界}
 
-第~\ref{sec:proposed-ablation}~节的消融把 +1.35 pp 拆分为：信号域增强约 $+1.55$ pp（主要来源）\cite{huang2022mixingsignals,shorten2019dataaug}，架构升级把 fusion 拉到 CLDNN 量级（$\approx 0$ pp），标签平滑在已有增强时略有害（$-0.19$ pp，McNemar $p=0.0155$）。图~\ref{fig:proposed-training-curves} 显示 \texttt{arch\_aug} 在训练后期 val 准确率略高于 \texttt{full}，与消融表的 0.6284 vs.\ 0.6264 数值方向一致。三条解释边界制约上述结论的适用范围：其一，提案模型运行在 RTX 3090，Stage 5A 主实验在 RTX 4070，样本级配对检验无法跨硬件直接执行；其二，本报告未同步检验复值网络\cite{wang2024ccmsnet}与 Transformer 混合架构\cite{cao2024sigformer,liu2024lenetm}方向，与 LENet-M（0.6463）、SigFormer（0.6371）仍有 $1$--$2$ pp 差距记入未来工作；其三，深低信噪比退化属于信息论下限，任何在 RML2016.10A 上的模型均面临同一上界，提案模型未解决此问题。未来优先考虑取消标签平滑、细化增强强度网格，并在同硬件环境下补充样本级配对证据。
+第~\ref{sec:proposed-ablation}~节的消融把提案模型相对 Stage 5A CLDNN 的 +1.55 pp 整体增量拆分为：信号域增强约 $+1.68$ pp（主要来源，相对 \texttt{arch\_only}）\cite{huang2022mixingsignals,shorten2019dataaug}，架构升级把 fusion 拉到 CLDNN 量级（$\approx 0$ pp），标签平滑在已有增强时按本文配对统计标准统计显著有害（$-0.19$ pp，McNemar $p=0.0155$），故最终提案模型不包含标签平滑。图~\ref{fig:proposed-training-curves} 显示 \texttt{arch\_aug} 在训练后期 val 准确率略高于含标签平滑变体，与消融表的 0.6284 vs.\ 0.6264 数值方向一致。三条解释边界制约上述结论的适用范围：其一，提案模型运行在 RTX 3090，Stage 5A 主实验在 RTX 4070，样本级配对检验无法跨硬件直接执行；其二，本报告未同步检验复值网络\cite{wang2024ccmsnet}与 Transformer 混合架构\cite{cao2024sigformer,liu2024lenetm}方向，与 LENet-M（0.6463）、SigFormer（0.6371）仍有 $1$--$2$ pp 差距记入未来工作；其三，深低信噪比退化在 8 个稳定模型上共同表现为对 \path{AM-SSB} 的偏置预测（构成各模型共同的经验下限），提案模型未改变该下限，但本文未对该下限的最优分类器近似或类条件可分性给出独立论证，因而仅作为经验观察。未来优先考虑细化增强强度网格，并在同硬件环境下补充样本级配对证据。
 
 \begin{figure}[htbp]
   \centering

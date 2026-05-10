@@ -40,7 +40,7 @@ STAGE5A_CSV = (
 
 PROPOSED_ROOT = (
     REPO_ROOT
-    / "results/paper_stage6/fusion_cldnn_stft_aug_ls_3090/rml2016a/fusion_cldnn_stft"
+    / "results/paper_stage6/fusion_cldnn_stft_ablation_3090/rml2016a/arch_aug/fusion_cldnn_stft"
 )
 
 SEEDS = (42, 2025, 3407)

@@ -63,8 +63,8 @@ def main() -> int:
         "P1.1 fusion_iq_stft (matched schedule)": stage6_per_snr(
             "results/paper_stage6/extended_budget_3090/rml2016a/fusion_iq_stft/seed_*/metrics_per_snr.csv"
         ),
-        "Proposed fusion_cldnn_stft + aug + LS": stage6_per_snr(
-            "results/paper_stage6/fusion_cldnn_stft_aug_ls_3090/rml2016a/fusion_cldnn_stft/seed_*/metrics_per_snr.csv"
+        "Proposed fusion_cldnn_stft + aug": stage6_per_snr(
+            "results/paper_stage6/fusion_cldnn_stft_ablation_3090/rml2016a/arch_aug/fusion_cldnn_stft/seed_*/metrics_per_snr.csv"
         ),
     }
     snrs = sorted(set(snr for d in series.values() for snr in d))
@@ -73,7 +73,7 @@ def main() -> int:
         "Stage 5A CLDNN": {"linestyle": "-", "marker": "o", "color": "tab:blue"},
         "Stage 5A fusion_iq_stft": {"linestyle": "--", "marker": "s", "color": "tab:gray"},
         "P1.1 fusion_iq_stft (matched schedule)": {"linestyle": ":", "marker": "^", "color": "tab:orange"},
-        "Proposed fusion_cldnn_stft + aug + LS": {"linestyle": "-", "marker": "D", "color": "tab:red", "linewidth": 2.4},
+        "Proposed fusion_cldnn_stft + aug": {"linestyle": "-", "marker": "D", "color": "tab:red", "linewidth": 2.4},
     }
 
     fig, ax = plt.subplots(figsize=(8.0, 5.0))

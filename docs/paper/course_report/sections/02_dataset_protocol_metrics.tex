@@ -2,7 +2,14 @@
 
 \section{数据集与任务定义}
 
-本文主实验使用 \datasetname{} 数据集\cite{oshea2016radioml}。该数据集在本实验配置下包含 220,000 个样本、11 类调制方式和 20 个信噪比取值，信噪比范围为 \(-20\) dB 至 \(18\) dB，步长为 2 dB。每个“调制方式--信噪比”组合包含 1,000 个样本。单个样本的输入形状为 \(2\times128\)，两个通道分别为同相分量和正交分量，数据类型为 \texttt{float32}。主实验仅以调制类别为分类目标，不进行信噪比估计、信道识别或部署系统优化。
+本文主实验使用 \datasetname{}（RadioML 2016.10a）数据集\cite{oshea2016radioml}。与同系列的 RadioML 2016.10b 相比，10a 版本的信道效应完全由模拟器生成，而 10b 包含部分真实信道捕获片段；两版本在调制类别数和总样本量上也存在差异，本文全程使用 10a 版本，以下不再赘述版本区分。该数据集共包含 220,000 个样本，覆盖 11 类调制方式（8PSK、AM-DSB、AM-SSB、BPSK、CPFSK、GFSK、PAM4、QAM16、QAM64、QPSK、WBFM）和 20 个离散信噪比取值，信噪比范围为 \(-20\) dB 至 \(18\) dB，步长为 2 dB；每个"调制方式--信噪比"组合包含 1,000 个样本。单个样本的输入形状为 \(2\times128\)，其中第 0 维（行索引 0）为同相分量（I），第 1 维（行索引 1）为正交分量（Q），数据类型为 \texttt{float32}，该维度顺序与原始 \texttt{RML2016.10a.tar.bz2} 解包后 \texttt{pickle} 文件中的存储顺序一致。
+
+调制识别任务的形式化定义如下：给定输入 \(x\in\mathbb{R}^{2\times128}\)，目标是学习映射
+\begin{equation}
+  f:\mathbb{R}^{2\times128}\to\{c_1,c_2,\ldots,c_{11}\},
+  \label{eq:task-definition}
+\end{equation}
+其中 \(c_i\) 为 11 类调制方式之一。主实验仅以调制类别为分类目标，不涉及信噪比估计、信道识别或部署系统优化。
 
 \begin{table}[htbp]
   \centering
@@ -23,91 +30,62 @@
   \end{tabularx}
 \end{table}
 
-本文同时使用原始 I/Q 视图和 STFT 时频视图。I/Q 视图保留基带信号的时间采样结构；STFT 视图通过窗口化傅里叶变换描述局部频率成分\cite{oppenheim2010dtsp}。主表中的模型身份由模型标识与输入视图共同决定，后续结果均按这一身份汇总。
+本文同时使用原始 I/Q 视图和 STFT 时频视图；两种视图的特征提取参数（包括 STFT 的窗函数选择、输出维度与归一化方式）在本章「特征与训练设置」节中定义。主表中的模型身份由模型标识与输入视图共同决定，后续结果均按这一身份汇总。
 
 \section{固定划分与训练种子}
 
-为降低采样随机性对模型比较的影响，本文采用固定划分 \splitname{}。该划分按调制方式和信噪比联合分层，使训练、验证和测试集合在类别与信噪比分布上保持一致。所有主实验模型行均使用同一划分，不为不同模型或不同训练种子重新生成测试集。
+为降低采样随机性对模型比较的影响，本文采用固定划分 \splitname{}（文件路径：\path{data/splits/rml2016a/stratified_by_mod_snr_seed42.npz}）。该划分以调制方式与信噪比的笛卡尔积（共 $11\times20=220$ 个组合）为分层键，使用随机种子 42 执行分层随机划分（等价于 \texttt{sklearn.model\_selection.Strat\-ified\-Shuffle\-Split}），确保训练、验证和测试集在调制类别与信噪比的联合分布上保持一致。所有主实验模型行均使用同一划分，不为不同模型或不同训练种子重新生成测试集。
 
 每个模型行使用 3 个训练种子 \mainseeds{}。因此，表格中的均值和标准差表示在这 3 个训练种子上的协议内汇总。固定划分提高了模型行之间的可比性；多数据集、多划分和真实信道条件验证将在第~5~章作为协议局限讨论。
 
-MCLDNN 行同样遵循该三种子协议。两个训练种子出现近似随机水平的单类预测现象，相关运行仍保留在主表中。主结果采用完整三种子聚合，后续诊断候选作为新的实验问题处理。
+MCLDNN 行同样遵循该三种子协议。种子 2025 和 3407 出现训练崩溃：模型退化为对全部测试样本预测同一类别，整体准确率约为 $0.091$，接近 11 类均匀随机猜测基准（$1/11\approx0.0\overline{90}$）。按照完整协议，相关运行仍计入三种子均值，导致主表中 MCLDNN 行的整体准确率均值和标准差均明显偏离其余行；读者在解释 MCLDNN 行性能时应结合附录 B 中的训练曲线（图~\ref{fig:appendix-training-curves}）单独判断，而非将其视作同等有效的收敛结果。该异常已于第~4~章结果讨论中单独说明。
 
 \section{模型矩阵}
 
-主实验包含九个模型行，覆盖 I/Q 基线、时频输入、时序模型、轻量模型、参数匹配控制和双视图融合。表~\ref{tab:protocol-model-matrix} 给出模型矩阵及其解释边界。
+主实验包含九个模型行，覆盖 I/Q 基线、时频单视图、卷积--循环混合、轻量结构、参数匹配控制和双视图融合六类。各模型的网络架构细节、输入视图选择与方法角色在第三章（表~\ref{tab:method-family-matrix}）中详细说明；本节仅列出模型标识符以备协议参照（各模型架构详见第三章表~\ref{tab:method-family-matrix}）：\texttt{cnn1d}、\texttt{resnet1d}（I/Q 基线）；\texttt{tfcnn\_stft}（时频单视图）；\texttt{fusion\_iq\_stft}、\texttt{gated\_fusion\_iq\_stft}（双视图融合）；\texttt{cldnn}、\texttt{mcldnn}（卷积--循环混合）；\texttt{lwamcnet}、\texttt{iq\_param\_matched}（轻量与参数控制）。所有模型行均在同一固定划分、相同训练超参和相同三训练种子下评估，模型身份由"模型标识+输入视图"共同决定。
 
-\begin{table}[htbp]
-  \centering
-  \caption{主实验模型矩阵与输入视图}
-  \label{tab:protocol-model-matrix}
-  \begin{tabularx}{\textwidth}{lllX}
-    \toprule
-    模型标识 & 输入视图 & 角色 & 协议解释边界 \\
-    \midrule
-    \path{cnn1d} & I/Q & 一维卷积基线 & 用于原始 I/Q 序列基准比较。 \\
-    \path{resnet1d} & I/Q & 残差卷积基线 & 用于深层 I/Q 卷积对照。 \\
-    \path{tfcnn_stft} & STFT & 时频单视图模型 & 单独评估 STFT 视图的判别能力。 \\
-    \path{fusion_iq_stft} & I/Q+STFT & 静态融合模型 & 检验双视图拼接融合，不预设优越性。 \\
-    \path{cldnn} & I/Q & 卷积-循环混合模型 & 作为时域卷积与序列建模参考。 \\
-    \path{mcldnn} & I/Q & 多分支卷积-循环模型 & 保留三种子协议，包括异常种子。 \\
-    \path{lwamcnet} & I/Q & 轻量模型 & 用作较低参数量结构参考。 \\
-    \path{iq_param_matched} & I/Q & 参数匹配控制 & 控制融合模型额外参数带来的解释偏差。 \\
-    \path{gated_fusion_iq_stft} & I/Q+STFT & 门控融合模型 & 检验样本级标量门控，不预设鲁棒性提升。 \\
-    \bottomrule
-  \end{tabularx}
-\end{table}
+\section{特征与训练设置}\label{sec:feature-training}
 
-\section{特征与训练设置}
+STFT 视图使用汉宁（Hann）窗、窗口长度 \(32\)、跳跃步长（hop length）\(16\)（即重叠长度 16）的短时傅里叶变换配置。对长度为 128 的单通道 I/Q 序列，该参数设置生成的复数谱每通道输出形状为 \(N_f\times N_t\)，其中
+\begin{equation*}
+  N_f = \lfloor 32/2 \rfloor + 1 = 17 \quad\text{（频率 bin 数）},\qquad
+  N_t = \left\lfloor\frac{128-32}{16}\right\rfloor + 1 = 7 \quad\text{（时间帧数）}.
+\end{equation*}
+STFT 分支取复数幅度（\(\lvert X(\tau,k)\rvert\)；\(X(\tau,k)\) 的数学定义见第三章式~\eqref{eq:stft-definition}）而不保留相位信息，并对幅度谱按训练集统计量（均值和标准差）做逐特征归一化后输入卷积网络。STFT 在报告中作为可对比输入视图之一，用于比较"仅 I/Q""仅 STFT"和"I/Q+STFT"三类模型；受控延迟表中的前向耗时未计入完整的 STFT 预处理成本。
 
-STFT 视图使用窗口长度 \(32\)、重叠长度 \(16\) 的短时傅里叶变换配置。STFT 在报告中作为输入视图之一，用于比较“仅 I/Q”“仅 STFT”和“I/Q+STFT”三类模型；受控延迟表中的前向耗时未计入完整的 STFT 预处理成本。
-
-训练配置在主实验中保持一致：最大训练轮数为 30，批量大小为 256，优化器学习率为 0.001，权重衰减为 0.0001，早停耐心值为 8。报告中的训练随机性只通过 3 个训练种子的均值和标准差体现，不额外引入未登记的训练轮次或子集实验。
+训练配置在主实验中保持一致：优化器为 AdamW\cite{loshchilov2019adamw}（\(\beta_1{=}0.9\)，\(\beta_2{=}0.999\)，\(\varepsilon{=}10^{-8}\)\cite{kingma2015adam}），学习率 \(10^{-3}\)，权重衰减 \(10^{-4}\)，批量大小为 256，学习率调度为恒定（无退火），最大训练轮数为 30，早停耐心值为 8（依据验证集准确率）。上述设置沿用该领域已有文献\cite{oshea2016cnn,xu2020mcldnn}的常用基准配置，并通过附录 B 中的训练曲线验证收敛。报告中的训练随机性只通过 3 个训练种子的均值和标准差体现，不额外引入未登记的训练轮次或子集实验。
 
 \section{评价指标与信噪比分组}
 
-本文报告整体准确率、低/中/高信噪比分组准确率、宏平均 F1 和均衡准确率。整体准确率反映固定测试集上的总体分类正确率；宏平均 F1 对各调制类别等权平均，能补充说明类别层面的均衡性；均衡准确率对各类别召回率作平均，可降低类别难度差异对单一准确率解释的影响。
+本文报告整体准确率、低/中/高信噪比分组准确率、宏平均 F1 和均衡准确率。整体准确率反映固定测试集上的总体分类正确率；宏平均 F1 对各调制类别等权平均，能补充说明类别层面的均衡性；均衡准确率（Balanced Accuracy，即各类别召回率的算术均值）在类别样本量均衡的数据集（如本数据集）中等价于宏平均召回率，引入该指标的目的是量化各类别召回率之间的差异程度，而非修正样本量不均衡对准确率的影响。
 
-信噪比分组用于观察模型在不同信道难度下的行为。低信噪比定义为 \lowSNR{}；中等信噪比覆盖 \(-4\) dB 至 \(6\) dB；高信噪比覆盖 \(8\) dB 至 \(18\) dB。低信噪比结果在后文单独讨论，因为这是本文判断 STFT 视图是否具有局部补充价值的关键范围。
+信噪比分组参照 RadioML 调制识别研究的常用划分惯例\cite{oshea2016radioml}：低信噪比定义为 \lowSNR{}（即 \(-20,-18,\ldots,-6\) dB，共 8 个取值）；中等信噪比覆盖 \(-4\) dB 至 \(6\) dB（共 6 个取值）；高信噪比覆盖 \(8\) dB 至 \(18\) dB（共 6 个取值）。三组合计覆盖全部 20 个离散信噪比取值，无遗漏亦无重叠。低信噪比结果在后文单独讨论，因为这是本文判断 STFT 视图是否具有局部补充价值的关键范围。
 
 \section{配对统计检验协议}
 
-除三种子聚合指标外，本文使用配对自助法和 McNemar 检验支撑主要模型对比较\cite{efron1979bootstrap,mcnemar1947note}，并参考多分类器比较中的多重检验写作规范\cite{demsar2006statistical}。两类检验均基于主实验测试集预测结果，匹配键为固定划分标识、训练种子和测试样本标识，因而比较的是同一测试样本上两个模型的正确性差异。
+除三种子聚合指标外，本文使用配对自助法和 McNemar 检验支撑主要模型对比较\cite{efron1979bootstrap,mcnemar1947note}，并遵循多分类器比较中的多重检验写作规范\cite{demsar2006statistical}。两类检验均基于主实验测试集预测结果，匹配键为固定划分标识、训练种子和测试样本标识，因而比较的是同一测试样本上两个模型的正确性差异。二者的适用场景不同：配对自助法用于估计准确率差值 \(\Delta_{\mathrm{acc}}\) 的 95\% 置信区间，反映差值在重采样分布下的稳健性；McNemar 检验基于两模型在同一样本上的“正确/错误”二元列联表，检验两个预测方向的不一致率是否存在系统性差异（双侧 \(p\) 值）。所有比较均为协议内预先登记的比较对，未对全量模型对实施系统性假设检验，因而不采用 Bonferroni 校正。
 
-配对自助法估计准确率差值
+本文采用 10{,}000 次重采样（随机种子 42）对准确率差值
 \begin{equation}
-  \Delta_{\mathrm{acc}}=\mathrm{Acc}(m_a)-\mathrm{Acc}(m_b),
+  \Delta_{\mathrm{acc}}=\mathrm{Acc}(m_a)-\mathrm{Acc}(m_b)
   \label{eq:paired-bootstrap-delta}
 \end{equation}
-其中 \(m_a\) 和 \(m_b\) 为已登记比较中的两个模型。自助重采样次数为 10,000，随机种子为 42。McNemar 检验基于两个模型在同一样本上的“正确/错误”列联表，关注两个方向的不一致样本数是否存在系统差异。
+构造 95\% 置信区间，其中 \(m_a\)、\(m_b\) 为已登记比较对中的两个模型；置信区间不包含 0 时，认为该差值在重采样分布下具有稳健性。McNemar 检验则以 \(\chi^2\) 统计量（双侧）计算两个模型预测差异的 \(p\) 值，\(p<0.05\) 认为差异显著。
 
-统计检验覆盖已登记的 overall 和低信噪比比较。所有可能模型对的全量假设检验未纳入本轮协议；相关 \(p\) 值服务于固定协议内的登记比较解释。
+统计检验覆盖已登记的整体准确率和低信噪比准确率比较。
 
-\section{证据边界}
+\section{协议边界说明}
 
-正文主结果使用完整固定协议材料；受控 CUDA 前向延迟说明参数量和相同测量条件下的推理背景；mock、子集、筛查或后续诊断性运行归入工程记录和未来工作边界。更细的同步路径、环境差异、权重归档状态和排除规则放在附录 A 中说明。
+本章所述实验协议支撑以下结论：（1）在固定划分 \splitname{} 下，各模型行三种子均值与标准差的相互比较；（2）相同测试集上的样本级配对统计检验；（3）受控单线程前向耗时的大小关系比较。协议不支持的外推包括：跨数据集泛化（本实验仅在 \datasetname{} 上评估）、动态信道条件下的部署性能、以及基于超参搜索的最优性声明。Mock 运行、子集实验、筛查或诊断性运行不进入主表，仅作为工程记录保留。各证据包的路径、同步状态、环境差异和权重归档状态见附录~A；各图表数据来源详见附录~A 表~\ref{tab:figure-evidence-map}。
 
-\input{tables/figure_evidence_sources}
+\section{扩展实验设计概述}
 
-\section{扩展实验的独立证据标签}
+为在不修改主表数值的前提下评估若干候选改进，本文额外设计了四类扩展实验，各自使用独立的输出目录与证据标签：
+\begin{itemize}
+  \item 延长训练预算（\texttt{EXTENDED\_BUDGET\_3090}）；
+  \item 分组 SNR 加权损失（\texttt{LOW\_SNR\_WEIGHTED\_CE\_3090}）；
+  \item 提案融合模型协议化评估（\texttt{FUSION\_CLDNN\_STFT\_AUG\_LS\_3090}）；
+  \item 受控前向延迟补全（\texttt{CONTROLLED\_LATENCY\_EXTENDED}）。
+\end{itemize}
 
-为了在不修改 Stage 5A/5B 主表数值的前提下回答常见 reviewer 关切并评估提案模型，本文额外登记了五个独立证据标签，每个标签使用单独的输出根目录与独立的报告文档。表~\ref{tab:protocol-stage6-evidence-labels} 概括各证据标签的目的、模型范围和写作位置。所有扩展实验的训练硬件均为 NVIDIA RTX 3090（Ampere sm\_86），与 Stage 5A 主实验所用 RTX 4070（Ada sm\_89）不同；该硬件变更被显式登记为不能跨标签做样本级配对统计检验的协议混淆因素，三种子均值层面的解释仍受支持。
-
-\begin{table}[htbp]
-  \centering
-  \caption{扩展实验的独立证据标签与解释边界}
-  \label{tab:protocol-stage6-evidence-labels}
-  \begin{tabularx}{\textwidth}{p{0.30\textwidth}X}
-    \toprule
-    证据标签 & 目的与解释边界 \\
-    \midrule
-    \texttt{EXTENDED\_BUDGET\_3090} & 训练预算延长（epoch \(50\)、5 轮线性 warmup、余弦退火）、4 个模型 \(\times\) 3 个种子；用于检验 Stage 5A 是否被训练预算截断；不进入主表，结果作为 sensitivity 写在第~\ref{sec:results-extended}~节。 \\
-    \texttt{LOW\_SNR\_WEIGHTED\_CE\_3090} & 分组 SNR 加权交叉熵（low\(=2.0\)、mid\(=1.0\)、high\(=0.7\)）；2 个模型 \(\times\) 3 个种子；用于检验最简单的 SNR-aware 损失能否改变低信噪比与整体的权衡；不进入主表，结果作为 intervention 写在第~\ref{sec:results-extended}~节。 \\
-    \texttt{CONTROLLED\_LATENCY\_EXTENDED} & 单线程 CPU 前向延迟与 MACs/FLOPs；与 Stage 5A 同 PyTorch 与同 CUDA 构建，仅设备目标改为 CPU，并强制单线程；用于补全主表中空缺的 MACs/FLOPs 与 CPU 行；解释边界仍限于受控前向，不能等同于完整部署效率。 \\
-    Stage 5A 预测后处理 & 仅对已归档的 27 份 \texttt{predictions\_test.csv} 做行归一化的低信噪比类别混淆矩阵；不重新训练；与父 \texttt{PROJECT\_SUPPORTED} 共用证据标签，但物理上写在独立目录下，便于审阅。 \\
-    \texttt{FUSION\_CLDNN\_STFT\_AUG\_LS\_3090} & 提案模型的协议化评估，1 个模型 \(\times\) 3 个种子；同一固定划分与同 P1.1 训练计划，叠加 CLDNN 风格 I/Q 编码器、相位旋转加循环时移信号域增强（仅训练）和标签平滑 0.1；不进入主表，作为正向贡献写在第~\ref{sec:results-extended}~节，硬件变更与三干预未做单点消融均登记为已知局限。 \\
-    \bottomrule
-  \end{tabularx}
-\end{table}
-
-任一证据标签的结果均不改写主表均值、宏平均 F1、低/中/高信噪比分组、配对自助法置信区间或 McNemar 检验。第~\ref{sec:results-extended}~节中的扩展实验段落使用各自的标签数值并显式说明硬件变更，避免与 Stage 5A 数值混杂。
+所有扩展实验均与主实验共用固定划分 \splitname{} 和三训练种子集合 \mainseeds{}，但训练硬件为 NVIDIA RTX 3090（Ampere 架构），与主实验所用 RTX 4070（Ada 架构）不同。由于不同 GPU 架构下 cuDNN 选择的卷积算法不同，浮点运算顺序存在微小差异，跨标签的样本级配对统计检验无效；三种子均值层面的方向性比较仍受支持，但不做精确数值等价声明。任一扩展标签的结果均不改写主表数值。各扩展实验的超参细节见附录~B，结果分析见第~\ref{sec:results-extended}~节。

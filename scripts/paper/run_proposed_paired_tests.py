@@ -104,12 +104,14 @@ def compare_pair(label_a: str, df_a: pd.DataFrame, label_b: str, df_b: pd.DataFr
 
 def main() -> int:
     seeds = (42, 2025, 3407)
-    proposed_root = REPO_ROOT / "results/paper_stage6/fusion_cldnn_stft_aug_ls_3090/rml2016a/fusion_cldnn_stft"
+    # proposed = arch_aug (arch + augmentation, no label smoothing)
+    proposed_root = REPO_ROOT / "results/paper_stage6/fusion_cldnn_stft_ablation_3090/rml2016a/arch_aug/fusion_cldnn_stft"
+    full_root = REPO_ROOT / "results/paper_stage6/fusion_cldnn_stft_aug_ls_3090/rml2016a/fusion_cldnn_stft"
     p11_fusion_root = REPO_ROOT / "results/paper_stage6/extended_budget_3090/rml2016a/fusion_iq_stft"
     ablation_base = REPO_ROOT / "results/paper_stage6/fusion_cldnn_stft_ablation_3090/rml2016a"
 
     pairs = []
-    print("loading proposed predictions ...", flush=True)
+    print("loading proposed (arch_aug) predictions ...", flush=True)
     proposed = load_predictions(proposed_root, seeds)
     print(f"  {len(proposed):,} rows", flush=True)
 
@@ -118,7 +120,7 @@ def main() -> int:
     print(f"  {len(p11):,} rows", flush=True)
     pairs.append(("proposed", proposed, "p11_fusion_iq_stft", p11))
 
-    for variant in ("arch_only", "arch_aug", "arch_ls"):
+    for variant in ("arch_only", "arch_ls"):
         ab_root = ablation_base / variant / "fusion_cldnn_stft"
         if not (ab_root / "seed_42").exists():
             print(f"  variant {variant} not yet trained; skipping", flush=True)
@@ -127,6 +129,12 @@ def main() -> int:
         ab = load_predictions(ab_root, seeds)
         print(f"  {len(ab):,} rows", flush=True)
         pairs.append(("proposed", proposed, f"ablation_{variant}", ab))
+
+    # Add full (arch+aug+LS) as ablation comparison
+    print("loading full (arch+aug+LS) predictions ...", flush=True)
+    full_df = load_predictions(full_root, seeds)
+    print(f"  {len(full_df):,} rows", flush=True)
+    pairs.append(("proposed", proposed, "ablation_full", full_df))
 
     rows: list[dict] = []
     for label_a, df_a, label_b, df_b in pairs:
