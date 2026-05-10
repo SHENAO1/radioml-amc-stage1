@@ -309,7 +309,14 @@
   \end{tabularx}
 \end{table}
 
-提案模型在四个指标（整体、低、中、高信噪比）上**同时**正向超过 Stage 5A 的 CLDNN 基线，整体准确率的相对增量 \(+1.35\) 个百分点显著大于三种子标准差 \(0.0005\)（约 \(27\sigma\)），不属于种子噪声范围。提案模型的最佳轮在 \(31\)、\(42\)、\(31\)，全部位于 \(50\) 轮上限之内，证明该计划对提案模型已经收敛。图~\ref{fig:proposed-per-snr} 给出提案模型与三个对照（Stage 5A CLDNN、Stage 5A fusion\_iq\_stft、P1.1 fusion\_iq\_stft 同 schedule）的逐 SNR 准确率曲线，可直观看到提案模型在中、高信噪比上一致领先，并在低信噪比仍略高于 Stage 5A CLDNN，但与所有对照在深低信噪比一同退化到 \(\sim 1/11\) 的随机水平，与第~\ref{sec:results-extended-summary}~节的 ``塌陷为 AM-SSB'' 信息论下限一致。
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{fig22_proposed_vs_stage5a_delta_heatmap.pdf}
+  \caption{提案模型相对 Stage 5A 九个基线在四个指标（Overall / Low / Mid / High SNR）上的准确率增量热力图（单位：百分点；绿色正增量，红色负增量；★ 行为 CLDNN 基线加粗边框；数据源：三种子均值 \texttt{metrics\_test.json} vs \texttt{main\_table\_metrics.csv}）。}
+  \label{fig:proposed-vs-stage5a-delta}
+\end{figure}
+
+提案模型在四个指标上同时正向超过 Stage 5A CLDNN 基线：整体 0.6264 vs 0.6129（$\Delta=+1.35$ pp，$\approx 27\sigma$，不属于种子噪声），低 / 中 / 高 SNR 均正向（图~\ref{fig:proposed-vs-stage5a-delta}）；最佳轮次 31 / 42 / 31，均位于 50 轮上限之内，证明模型已收敛。
 
 \begin{figure}[htbp]
   \centering
@@ -324,22 +331,26 @@
 
 \subsection{提案模型单干预消融与配对统计检验}\label{sec:proposed-ablation}
 
-为隔离提案模型 +1.35 个百分点中各项干预（CLDNN 风格 I/Q 编码器 / 信号域增强 / 标签平滑）的贡献，本文额外登记证据标签 \texttt{FUSION\_CLDNN\_STFT\_ABLATION\_3090} 下的三个变体：\texttt{arch\_only}（仅替换 backbone，关闭增强与标签平滑）、\texttt{arch\_aug}（架构 + 增强）与 \texttt{arch\_ls}（架构 + 标签平滑）。三个变体共享与“full”相同的固定划分、三训练种子、相同 RTX 3090 硬件与相同 epoch 50 cosine 加 warmup 的训练计划，仅在 \texttt{train.augmentation.enabled} 与 \texttt{train.loss.label\_smoothing} 上区分。
+为隔离 +1.35 pp 增量中各干预贡献，本文在证据标签 \texttt{FUSION\_CLDNN\_STFT\_ABLATION\_3090} 下登记三变体（\texttt{arch\_only} / \texttt{arch\_aug} / \texttt{arch\_ls}），共享相同硬件、固定划分与三训练种子，仅在增强与标签平滑开关上区分；配对自助法（10000 重采样）与 McNemar 检验在整体集与低 SNR 子集分别执行（数据源：三种子 \texttt{metrics\_test.json} 与 \texttt{paired\_bootstrap.csv}）。
 
 \input{tables/ablation_results}
 
-表~\ref{tab:proposed-ablation-results} 给出三个变体与“full”的同协议比较。``arch\_only'' 行衡量纯架构升级（CLDNN 风格 I/Q 分支）相对原静态融合 \path{fusion_iq_stft} 的贡献；与 ``arch\_only'' 相比，``arch\_aug''、``arch\_ls'' 与 ``full'' 各加入相应一项或两项额外干预，差值即为该项干预相对于纯架构基线的边际收益。
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{fig19_ablation_grouped_bars.pdf}
+  \caption{四个消融变体（\texttt{arch\_only} / \texttt{arch\_aug} / \texttt{arch\_ls} / \texttt{full}）在 Overall / Low / Mid / High SNR 分组上的准确率均值 ± 标准差（三种子，数据源：\texttt{metrics\_test.json}）。每柱顶标注该分组最优值（加粗），水平虚线=Stage 5A CLDNN 整体基线（0.6129）。}
+  \label{fig:ablation-grouped-bars}
+\end{figure}
 
-为获得样本级配对证据，本文以提案模型“full”为 \(m_a\)，以三类参照（P1.1 \path{fusion_iq_stft} 同 schedule；三个消融变体）为 \(m_b\)，分别在整体测试集与低信噪比子集上计算配对自助法准确率差值（10000 重采样、自助种子 42）以及 McNemar 配对正确性检验。所有比较在同 RTX 3090 硬件、同固定划分、同三训练种子上完成，因此样本级配对（按 \texttt{(split\_id, train\_seed, sample\_id)} 配对键）可直接执行，跨硬件混淆问题被规避。
+图~\ref{fig:ablation-grouped-bars} 直观呈现四个变体在各 SNR 分组的差距；详细配对证据见表~\ref{tab:proposed-paired-tests} 及图~\ref{fig:proposed-paired-forest}。
 
 \input{tables/paired_tests_summary}
 
-消融与配对检验给出三条具体证据，且明显细化了第~\ref{sec:results-fusion-cldnn-stft}~节的三干预解释。
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.92\textwidth]{fig20_proposed_paired_forest.pdf}
+  \caption{提案模型与各参照的配对自助法差值（Δ）及 95\% CI 森林图（$\bullet$ CI 不跨 0，$\circ$ CI 跨 0；数据源：\texttt{results/paper\_stage6/proposed\_paired\_tests/paired\_bootstrap.csv}）。}
+  \label{fig:proposed-paired-forest}
+\end{figure}
 
-第一，**架构升级单独已经把 fusion 推到 CLDNN 量级，但单独不够**。\texttt{arch\_only} 整体均值 \(0.6116\) 与 Stage 5A CLDNN 的 \(0.6129\) 相差 \(-0.13\) 个百分点，处于种子噪声内；这说明把 I/Q 分支换成 CLDNN 风格 backbone 解决了"fusion 输给 CLDNN"的容量问题，但本身没有形成显著正向贡献。
-
-第二，**信号域增强是主要涨点来源**。\texttt{arch\_aug} 整体均值 \(0.6284\) 相对 \texttt{arch\_only} \(0.6116\) 提升 \(+1.68\) 个百分点；同期低、中、高 SNR 也一致正向（分别 \(+0.81\)、\(+2.70\)、\(+1.83\) 个百分点）。配对检验中 \texttt{proposed vs.\ ablation\_arch\_only} 整体差值 \(+0.0149\)（95\% CI \([+0.0133,+0.0164]\)，McNemar \(p\approx 6\times10^{-78}\)）；与之对照，\texttt{arch\_aug} 已经覆盖了这一收益的绝大部分。这一证据明确把"提案模型反超 CLDNN"的主要原因归到训练侧的相位旋转加循环时移信号域增强\cite{huang2022mixingsignals,shorten2019dataaug}，而不是架构升级本身。
-
-第三，**标签平滑在已有增强时可能冗余甚至略有害**。\texttt{arch\_ls} 整体均值 \(0.6108\) 几乎等于 \texttt{arch\_only} \(0.6116\)（\(-0.08\) 个百分点，处于种子噪声内）；更重要的是，\texttt{proposed} 相对 \texttt{ablation\_arch\_aug} 的整体准确率差值为 \(\mathbf{-0.0019}\)（95\% CI \([-0.0033,-0.0006]\)，McNemar \(p=0.0155\)），即在 \texttt{arch\_aug} 之上再叠加 \(\epsilon=0.1\) 的标签平滑会让整体准确率显著下降约 \(0.19\) 个百分点；低 SNR 范围内则没有显著差异（CI \([-0.0021,+0.0030]\) 跨 0，McNemar \(p=0.94\)）。
-
-合并上述三条，提案模型 \(+1.35\) 个百分点的收益里，**约 \(+1.55\) pp 来自信号域增强、\(\sim 0\) pp 来自架构升级（仅把 fusion 拉到 CLDNN 量级以稳住基础）、\(-0.19\) pp 来自标签平滑叠加**。这意味着 \texttt{arch\_aug}（\(0.6284\)）作为**更简单的提案配置**实际上略优于本文报告的 ``full'' 配置（\(0.6264\)）；该证据让我们对"标签平滑值得保留"持保守态度，并在第~5~章末尾的未来工作里把"取消标签平滑、改用更细的增强强度网格"列为优先实验项。本节因协议纪律仍以 ``full'' 配置作为登记的提案模型主结果，但同时显式给出该消融证据，避免对单干预贡献做事后猜测。
+综合图~\ref{fig:ablation-grouped-bars}、图~\ref{fig:proposed-paired-forest}与两张消融表，可提炼三条结论：\textbf{架构升级（\texttt{arch\_only}，均值 0.6116）}仅把 fusion 拉到 CLDNN 量级（$\Delta=-0.13$ pp，种子噪声内），本身无显著正向贡献；\textbf{信号域增强是主要涨点来源}，\texttt{arch\_aug} 达到 0.6284，相对 \texttt{arch\_only} 提升 +1.68 pp，配对检验 $p\approx 6\times10^{-78}$，低、中、高 SNR 均一致正向；\textbf{标签平滑在已有增强时冗余且略有害}，\texttt{full} 相对 \texttt{arch\_aug} 整体 $\Delta=-0.19$ pp（95\% CI $[-0.0033,-0.0006]$，McNemar $p=0.0155$），提案 +1.35 pp 可分解为增强 $\approx+1.55$ pp、架构 $\approx 0$ pp、标签平滑 $\approx -0.19$ pp。\texttt{arch\_aug}（0.6284）作为更简单配置略优于登记的 ``full''（0.6264），未来工作优先考虑取消标签平滑并细化增强强度网格；本节仍以 ``full'' 作为协议登记的提案主结果。
