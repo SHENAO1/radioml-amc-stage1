@@ -151,7 +151,14 @@ STFT 视图通过对 I/Q 序列进行窗口化傅里叶变换得到。设窗函�
   \end{tabularx}
 \end{table}
 
-提案模型在训练侧叠加两类干预。**信号域增强**仅在训练集启用：以概率 \(0.5\) 做相位旋转 \(\theta\sim\mathcal{U}(-\pi,\pi)\)（对 (I, Q) 应用旋转矩阵 \([\cos\theta,-\sin\theta;\sin\theta,\cos\theta]\)），与以概率 \(0.5\) 做循环时移 \(k\sim\mathcal{U}(-8,+8)\)（沿时间维 \(\mathrm{roll}(\cdot,k)\)）。两者对调制类型分类保标签且保有效 SNR；幅度缩放与加性高斯噪声因会改变有效 SNR 而不予采用，图像式 mixup 因 I/Q 直接线性插值不可解释\cite{huang2022mixingsignals,shorten2019dataaug}也不采用。**标签平滑** \(\epsilon=0.1\)\cite{szegedy2016inception} 把 one-hot 目标替换为 \((1-\epsilon)\delta_{y}+\epsilon/K\)（\(K=11\)），与 \texttt{SnrWeightedCrossEntropy} 互斥，由 \texttt{train.loss} 字段配置。
+提案模型在训练侧叠加两类干预。\textbf{信号域增强}仅在训练集启用：以概率 \(0.5\) 做随机相位旋转，以概率 \(0.5\) 做随机循环时移。两者对调制类型分类保标签且保有效 SNR（图~\ref{fig:augmentation-demo}）；幅度缩放与加性高斯噪声因会改变有效 SNR 而不予采用，图像式 mixup 因 I/Q 直接线性插值不可解释\cite{huang2022mixingsignals,shorten2019dataaug}也不采用。\textbf{标签平滑} \(\epsilon=0.1\)\cite{szegedy2016inception} 把 one-hot 目标替换为 \((1-\epsilon)\delta_{y}+\epsilon/K\)（\(K=11\)），由 \texttt{train.loss} 字段配置。
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.96\textwidth]{fig23_augmentation_visualization.pdf}
+  \caption{信号域增强示意（QPSK @ +6 dB，样本索引 0，数据源：\texttt{data/raw/radioml2016/RML2016.10a\_dict.pkl}）。蓝色实线=I 通道，橙色虚线=Q 通道。(a) 原始 I/Q 时序；(b) 相位旋转 $\theta=\pi/3$；(c) 循环时移 $k=+8$；(d) 两者叠加。四种条件下信号能量不变，调制类别不变，说明两种变换均为保标签且保有效 SNR 的信号域增强。}
+  \label{fig:augmentation-demo}
+\end{figure}
 
 \section{实现细节与方法边界}
 
